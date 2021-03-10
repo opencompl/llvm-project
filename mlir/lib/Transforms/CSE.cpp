@@ -90,26 +90,22 @@ struct CSE : public CSEBase<CSE> {
 
 private:
   /// Operations marked as dead and to be erased.
-  std::vector<Operation *> opsToErase;
-
-  /// Operations removed because the results were unused.
-  SmallPtrSet<Operation *, 8> unusedOps;
+  SmallPtrSet<Operation *, 8> opsToErase;
 };
 } // end anonymous namespace
 
 LogicalResult CSE::simplifyRecursivelyOperation(Operation *op) {
   // If any use is not marked as unused, do not remove the operation.
   for (auto it = op->user_begin(); it != op->user_end(); ++it)
-    if (unusedOps.find(*it) == unusedOps.end())
+    if (opsToErase.find(*it) == opsToErase.end())
       return failure();
 
   // If the operation has an effect, do not remove it.
   if (!wouldOpBeTriviallyDead(op))
     return failure();
 
-  // Remove the operation.
-  unusedOps.insert(op);
-  opsToErase.push_back(op);
+  // Remove the current operation and set the operation as unused.
+  opsToErase.insert(op);
   ++numDCE;
 
   // Check if any operand needs to be removed as well.
@@ -121,7 +117,7 @@ LogicalResult CSE::simplifyRecursivelyOperation(Operation *op) {
 
     // Simplify recursively only if the operand is not already supposed to be
     // removed.
-    if (unusedOps.find(operandOp) != unusedOps.end())
+    if (opsToErase.find(operandOp) != opsToErase.end())
       continue;
 
     (void)simplifyRecursivelyOperation(operandOp);
@@ -138,8 +134,8 @@ LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
 
   // If the operation is already trivially dead just add it to the erase list.
   if (isOpTriviallyDead(op)) {
-    opsToErase.push_back(op);
-    unusedOps.insert(op);
+    opsToErase.insert(op);
+    ++numDCE;
 
     for (auto operand : op->getOperands()) {
       // If the operand is the result of an operation, simplify recursively that
@@ -149,7 +145,6 @@ LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
         continue;
       (void)simplifyRecursivelyOperation(operand.getDefiningOp());
     }
-    ++numDCE;
     return success();
   }
 
@@ -169,7 +164,7 @@ LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
     // If we find one then replace all uses of the current operation with the
     // existing one and mark it for deletion.
     op->replaceAllUsesWith(existing);
-    opsToErase.push_back(op);
+    opsToErase.insert(op);
 
     // If the existing operation has an unknown location and the current
     // operation doesn't, then set the existing op's location to that of the
@@ -280,7 +275,6 @@ void CSE::runOnOperation() {
   for (auto *op : opsToErase)
     op->erase();
   opsToErase.clear();
-  unusedOps.clear();
 
   // We currently don't remove region operations, so mark dominance as
   // preserved.
