@@ -22,6 +22,7 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/RecyclingAllocator.h"
 #include <deque>
+#include <unordered_set>
 
 using namespace mlir;
 
@@ -74,6 +75,12 @@ struct CSE : public CSEBase<CSE> {
   /// operation was marked for removal, failure otherwise.
   LogicalResult simplifyOperation(ScopedMapTy &knownValues, Operation *op);
 
+  /// Attempt to eliminate an unused operation. This function should be
+  /// called when one of the op uses is marked as unused.
+  /// Return success if the operation was mark for removal, and failure
+  /// otherwise.
+  LogicalResult simplifyRecursivelyOperation(Operation *op);
+
   void simplifyBlock(ScopedMapTy &knownValues, DominanceInfo &domInfo,
                      Block *bb);
   void simplifyRegion(ScopedMapTy &knownValues, DominanceInfo &domInfo,
@@ -84,8 +91,44 @@ struct CSE : public CSEBase<CSE> {
 private:
   /// Operations marked as dead and to be erased.
   std::vector<Operation *> opsToErase;
+
+  /// Operations removed because the results were unused.
+  SmallPtrSet<Operation *, 8> unusedOps;
 };
 } // end anonymous namespace
+
+LogicalResult CSE::simplifyRecursivelyOperation(Operation *op) {
+  // If any use is not unused, do not remove the operation.
+  for (auto it = op->user_begin(); it != op->user_end(); ++it)
+    if (unusedOps.find(*it) == unusedOps.end())
+      return failure();
+
+  // If the operation has an effect, do not remove it.
+  if (!wouldOpBeTriviallyDead(op))
+    return failure();
+
+  // Remove the operation.
+  unusedOps.insert(op);
+  opsToErase.push_back(op);
+  ++numDCE;
+
+  // Check if any operand needs to be removed as well.
+  for (auto operand : op->getOperands()) {
+    auto operandOpResult = operand.dyn_cast<OpResult>();
+    if (!operandOpResult)
+      continue;
+    auto *operandOp = operandOpResult.getOwner();
+
+    // Simplify recursively only if the operand is not already supposed to be
+    // removed.
+    if (unusedOps.find(operandOp) != unusedOps.end())
+      continue;
+
+    (void)simplifyRecursivelyOperation(operandOp);
+  }
+
+  return success();
+}
 
 /// Attempt to eliminate a redundant operation.
 LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
@@ -96,6 +139,10 @@ LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
   // If the operation is already trivially dead just add it to the erase list.
   if (isOpTriviallyDead(op)) {
     opsToErase.push_back(op);
+    unusedOps.insert(op);
+    for (auto operand : op->getOperands()) {
+      (void)simplifyRecursivelyOperation(operand.getDefiningOp());
+    }
     ++numDCE;
     return success();
   }
@@ -227,6 +274,7 @@ void CSE::runOnOperation() {
   for (auto *op : opsToErase)
     op->erase();
   opsToErase.clear();
+  unusedOps.clear();
 
   // We currently don't remove region operations, so mark dominance as
   // preserved.
