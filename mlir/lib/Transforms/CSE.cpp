@@ -98,7 +98,7 @@ private:
 } // end anonymous namespace
 
 LogicalResult CSE::simplifyRecursivelyOperation(Operation *op) {
-  // If any use is not unused, do not remove the operation.
+  // If any use is not marked as unused, do not remove the operation.
   for (auto it = op->user_begin(); it != op->user_end(); ++it)
     if (unusedOps.find(*it) == unusedOps.end())
       return failure();
@@ -140,7 +140,13 @@ LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op) {
   if (isOpTriviallyDead(op)) {
     opsToErase.push_back(op);
     unusedOps.insert(op);
+
     for (auto operand : op->getOperands()) {
+      // If the operand is the result of an operation, simplify recursively that
+      // operation.
+      auto *operandOp = operand.getDefiningOp();
+      if (!operandOp)
+        continue;
       (void)simplifyRecursivelyOperation(operand.getDefiningOp());
     }
     ++numDCE;
