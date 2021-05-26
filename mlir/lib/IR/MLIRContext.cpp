@@ -25,6 +25,7 @@
 #include "mlir/IR/Types.h"
 #include "mlir/Support/DebugAction.h"
 #include "mlir/Support/ThreadLocalCache.h"
+#include "mlir/Support/TypeID.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SetVector.h"
@@ -283,6 +284,9 @@ public:
   /// An allocator used for AbstractAttribute and AbstractType objects.
   llvm::BumpPtrAllocator abstractDialectSymbolAllocator;
 
+  /// Manages the creation and lifetime of TypeID defined at runtime.
+  TypeIDAllocator typeIDAllocator;
+
   //===--------------------------------------------------------------------===//
   // Affine uniquing
   //===--------------------------------------------------------------------===//
@@ -430,6 +434,14 @@ static ArrayRef<T> copyArrayRefInto(llvm::BumpPtrAllocator &allocator,
 
 DebugActionManager &MLIRContext::getDebugActionManager() {
   return getImpl().debugActionManager;
+}
+
+//===----------------------------------------------------------------------===//
+// TypeIDs allocation
+//===----------------------------------------------------------------------===//
+
+TypeID MLIRContext::allocateTypeID() {
+  return getImpl().typeIDAllocator.allocate();
 }
 
 //===----------------------------------------------------------------------===//
