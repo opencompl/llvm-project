@@ -89,6 +89,8 @@ private:
 
   // See TypeIDExported below for an explanation of the trampoline behavior.
   friend struct detail::TypeIDExported;
+
+  friend class TypeIDAllocator;
 };
 
 /// Enable hashing TypeID.
@@ -134,6 +136,24 @@ template <template <typename> class Trait>
 TypeID TypeID::get() {
   return detail::TypeIDExported::get<Trait>();
 }
+
+/// This class provides a way to define new TypeIDs at runtime.
+/// When the allocator is destructed, all allocated TypeIDs becode invalid and
+/// therefore should not be used.
+class TypeIDAllocator {
+public:
+  /// Allocate a new TypeID, that is ensured to be unique for the lifetime
+  /// of the TypeIDAllocator.
+  TypeID allocateID() {
+    ids.emplace_back(new TypeID::Storage());
+    return TypeID(ids.back().get());
+  }
+
+private:
+  /// The TypeIDs allocated are the addresses of the different storages.
+  /// Keeping those in memory ensure uniqueness of the TypeIDs.
+  std::vector<std::unique_ptr<TypeID::Storage>> ids;
+};
 
 } // end namespace mlir
 
