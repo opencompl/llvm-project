@@ -152,6 +152,10 @@ public:
   // MLIRContextImpl type.
   MLIRContextImpl &getImpl() { return *impl; }
 
+  /// Create a new TypeID that is guaranteed to be unique for the lifetime
+  /// of the MLIRContext.
+  TypeID allocateTypeID();
+
   /// Returns the diagnostic engine for this context.
   DiagnosticEngine &getDiagEngine();
 
