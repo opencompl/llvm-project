@@ -275,6 +275,9 @@ class Dialect {
 
   // If this dialect overrides the hook for op interface fallback.
   bit hasOperationInterfaceFallback = 0;
+
+  // If this dialect can be extended at runtime with new operations or types.
+  bit isExtensible = 0;
 }
 
 //===----------------------------------------------------------------------===//
