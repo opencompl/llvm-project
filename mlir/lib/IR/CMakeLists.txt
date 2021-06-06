@@ -11,9 +11,11 @@ add_mlir_library(MLIRIR
   Diagnostics.cpp
   Dialect.cpp
   Dominance.cpp
+  ExtensibleDialect.cpp
   FunctionImplementation.cpp
   FunctionSupport.cpp
   IntegerSet.cpp
+  IsDynamicInterfaces.cpp
   Location.cpp
   MLIRContext.cpp
   Operation.cpp

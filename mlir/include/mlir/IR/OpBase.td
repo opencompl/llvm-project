@@ -282,6 +282,9 @@ class Dialect {
 
   // If this dialect overrides the hook for canonicalization patterns.
   bit hasCanonicalizer = 0;
+
+  // If this dialect can be extended at runtime with new operations or types.
+  bit isExtensible = 0;
 }
 
 //===----------------------------------------------------------------------===//

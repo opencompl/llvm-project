@@ -31,6 +31,7 @@ def Test_Dialect : Dialect {
   let hasRegionArgAttrVerify = 1;
   let hasRegionResultAttrVerify = 1;
   let hasOperationInterfaceFallback = 1;
+  let isExtensible = 1;
   let dependentDialects = ["::mlir::DLTIDialect"];
 
   let extraClassDeclaration = [{
@@ -53,6 +54,10 @@ def Test_Dialect : Dialect {
     // Storage for a custom fallback interface.
     void *fallbackEffectOpInterfaces;
 
+    Type parseTestType(MLIRContext *ctxt, DialectAsmParser &parser,
+                       SetVector<Type> &stack) const;
+    void printTestType(Type type, DialectAsmPrinter &printer,
+                          SetVector<Type> &stack) const;
   }];
 }
 

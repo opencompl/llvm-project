@@ -85,6 +85,10 @@ bool Dialect::hasOperationInterfaceFallback() const {
   return def->getValueAsBit("hasOperationInterfaceFallback");
 }
 
+bool Dialect::isExtensible() const {
+  return def->getValueAsBit("isExtensible");
+}
+
 bool Dialect::operator==(const Dialect &other) const {
   return def == other.def;
 }
