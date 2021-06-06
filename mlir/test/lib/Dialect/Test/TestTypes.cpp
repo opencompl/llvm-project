@@ -216,6 +216,75 @@ unsigned TestTypeWithLayoutType::extractKind(DataLayoutEntryListRef params,
 #include "TestTypeDefs.cpp.inc"
 
 //===----------------------------------------------------------------------===//
+// Dynamic Types
+//===----------------------------------------------------------------------===//
+
+namespace {
+/// Define a singleton dynamic type.
+std::unique_ptr<DynamicTypeDefinition>
+getSingletonDynamicType(Dialect *testDialect) {
+  return DynamicTypeDefinition::get(
+      testDialect, "singleton_dyntype",
+      [](function_ref<InFlightDiagnostic()> emitError,
+         ArrayRef<Attribute> args) {
+        if (!args.empty()) {
+          emitError() << "expected 0 type arguments, but had " << args.size();
+          return failure();
+        }
+        return success();
+      });
+}
+
+/// Define a dynamic type representing a pair.
+std::unique_ptr<DynamicTypeDefinition>
+getPairDynamicType(Dialect *testDialect) {
+  return DynamicTypeDefinition::get(
+      testDialect, "pair_dyntype",
+      [](function_ref<InFlightDiagnostic()> emitError,
+         ArrayRef<Attribute> args) {
+        if (args.size() != 2) {
+          emitError() << "expected 2 type arguments, but had " << args.size();
+          return failure();
+        }
+        return success();
+      });
+}
+
+std::unique_ptr<DynamicTypeDefinition>
+getCustomAssemblyFormatDynamicType(Dialect *testDialect) {
+  auto verifier = [](function_ref<InFlightDiagnostic()> emitError,
+                     ArrayRef<Attribute> args) {
+    if (args.size() != 2) {
+      emitError() << "expected 2 type arguments, but had " << args.size();
+      return failure();
+    }
+    return success();
+  };
+
+  auto parser = [](DialectAsmParser &parser,
+                   std::vector<Attribute> &parsedParams) {
+    Attribute leftAttr, rightAttr;
+    if (parser.parseLess() || parser.parseAttribute(leftAttr) ||
+        parser.parseColon() || parser.parseAttribute(rightAttr) ||
+        parser.parseGreater())
+      return failure();
+    parsedParams.push_back(leftAttr);
+    parsedParams.push_back(rightAttr);
+    return success();
+  };
+
+  auto printer = [](DialectAsmPrinter &printer, std::vector<Attribute> params) {
+    printer << "<" << params[0] << ":" << params[1] << ">";
+  };
+
+  return DynamicTypeDefinition::get(
+      testDialect, "custom_assembly_format_dyntype", std::move(verifier),
+      std::move(parser), std::move(printer));
+}
+
+} // namespace
+
+//===----------------------------------------------------------------------===//
 // TestDialect
 //===----------------------------------------------------------------------===//
 
@@ -224,10 +293,14 @@ void TestDialect::registerTypes() {
 #define GET_TYPEDEF_LIST
 #include "TestTypeDefs.cpp.inc"
            >();
+
+  addDynamicType(getSingletonDynamicType(this));
+  addDynamicType(getPairDynamicType(this));
+  addDynamicType(getCustomAssemblyFormatDynamicType(this));
 }
 
-static Type parseTestType(MLIRContext *ctxt, DialectAsmParser &parser,
-                          SetVector<Type> &stack) {
+Type TestDialect::parseTestType(MLIRContext *ctxt, DialectAsmParser &parser,
+                                SetVector<Type> &stack) const {
   StringRef typeTag;
   if (failed(parser.parseKeyword(&typeTag)))
     return Type();
@@ -237,6 +310,16 @@ static Type parseTestType(MLIRContext *ctxt, DialectAsmParser &parser,
     auto parseResult = generatedTypeParser(ctxt, parser, typeTag, genType);
     if (parseResult.hasValue())
       return genType;
+  }
+
+  {
+    Type dynType;
+    auto parseResult = parseOptionalDynamicType(typeTag, parser, dynType);
+    if (parseResult.hasValue()) {
+      if (succeeded(parseResult.getValue()))
+        return dynType;
+      return Type();
+    }
   }
 
   if (typeTag != "test_rec") {
@@ -274,9 +357,12 @@ Type TestDialect::parseType(DialectAsmParser &parser) const {
   return parseTestType(getContext(), parser, stack);
 }
 
-static void printTestType(Type type, DialectAsmPrinter &printer,
-                          SetVector<Type> &stack) {
+void TestDialect::printTestType(Type type, DialectAsmPrinter &printer,
+                                SetVector<Type> &stack) const {
   if (succeeded(generatedTypePrinter(type, printer)))
+    return;
+
+  if (succeeded(printIfDynamicType(type, printer)))
     return;
 
   auto rec = type.cast<TestRecursiveType>();

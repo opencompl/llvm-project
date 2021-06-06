@@ -26,6 +26,11 @@ mlir_tablegen(BuiltinTypes.h.inc -gen-typedef-decls)
 mlir_tablegen(BuiltinTypes.cpp.inc -gen-typedef-defs)
 add_public_tablegen_target(MLIRBuiltinTypesIncGen)
 
+set(LLVM_TARGET_DEFINITIONS IsDynamicInterfaces.td)
+mlir_tablegen(IsDynamicTypeInterfaces.h.inc -gen-type-interface-decls)
+mlir_tablegen(IsDynamicTypeInterfaces.cpp.inc -gen-type-interface-defs)
+add_public_tablegen_target(MLIRIsDynamicTypeInterfaces)
+
 set(LLVM_TARGET_DEFINITIONS TensorEncoding.td)
 mlir_tablegen(TensorEncInterfaces.h.inc -gen-attr-interface-decls)
 mlir_tablegen(TensorEncInterfaces.cpp.inc -gen-attr-interface-defs)
