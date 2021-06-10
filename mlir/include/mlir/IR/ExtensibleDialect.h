@@ -17,6 +17,7 @@
 #include "mlir/IR/DialectInterface.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/Support/LLVM.h"
 #include "llvm/ADT/StringMap.h"
 
 namespace mlir {
@@ -166,6 +167,42 @@ public:
 // Dynamic operation
 //===----------------------------------------------------------------------===//
 
+/// Traits that can be implemented by dynamic ops.
+class DynamicOpTrait {
+public:
+  using VerifierFn = llvm::unique_function<LogicalResult(Operation *op)>;
+
+  template <template <typename ConcreteT> class TraitTy>
+  static std::unique_ptr<DynamicOpTrait> get() {
+    return std::unique_ptr<DynamicOpTrait>(
+        new DynamicOpTrait(TraitTy<void>::verifyTrait, TypeID::get<TraitTy>()));
+  }
+
+  static std::unique_ptr<DynamicOpTrait> get(MLIRContext *ctx,
+                                             VerifierFn &&verifierFn) {
+    return std::unique_ptr<DynamicOpTrait>(
+        new DynamicOpTrait(std::move(verifierFn), ctx->allocateTypeID()));
+  }
+
+  TypeID getTypeID() { return typeID; }
+
+  llvm::function_ref<LogicalResult(Operation *op)> getVerifyFn() {
+    return verifier;
+  }
+
+private:
+  DynamicOpTrait(VerifierFn verifier, TypeID typeID)
+      : verifier(std::move(verifier)), typeID(typeID) {}
+
+  /// Verification function for operations implementing the trait.
+  VerifierFn verifier;
+
+  /// Unique identifier for the concrete trait.
+  TypeID typeID;
+
+  friend MLIRContext;
+};
+
 /// The definition of a dynamic operation.
 /// It contains the name of the operation, its owning dialect, a verifier,
 /// a printer, and parser.
@@ -212,6 +249,13 @@ public:
     getCanonicalizationPatternsFn = std::move(getCanonicalizationPatterns);
   }
 
+  void addTrait(DynamicOpTrait *trait);
+
+  template <template <typename ConcreteType> class TraitTy>
+  void addTrait() {
+    addTrait(dialect->getContext()->getOrRegisterDynamicTrait<TraitTy>());
+  }
+
 private:
   DynamicOpDefinition(StringRef name, Dialect *dialect,
                       AbstractOperation::VerifyInvariantsFn &&verifyFn,
@@ -237,6 +281,9 @@ private:
   AbstractOperation::FoldHookFn foldHookFn;
   AbstractOperation::GetCanonicalizationPatternsFn
       getCanonicalizationPatternsFn;
+
+  /// Traits implemented by the operation.
+  std::vector<DynamicOpTrait *> traits;
 
   friend ExtensibleDialect;
 };

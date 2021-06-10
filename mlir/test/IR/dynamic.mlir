@@ -82,3 +82,41 @@ func @customOpParserPrinter() {
   test.custom_parser_printer_dynamic_op custom_keyword
   return
 }
+
+//===----------------------------------------------------------------------===//
+// Dynamic trait
+//===----------------------------------------------------------------------===//
+
+// -----
+
+// CHECK-LABEL: func @succeededDynamicTraitVerifier
+func @succeededDynamicTraitVerifier() {
+  // CHECK: "test.one_result_dynamic_op"() : () -> f32
+  "test.one_result_dynamic_op"() : () -> f32
+  return
+}
+
+// -----
+
+func @failedDynamicTraitVerifier() {
+  // expected-error@+1 {{requires one result}}
+  "test.one_result_dynamic_op"() : () -> ()
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func @succeededDynamicRuntimeTraitVerifier
+func @succeededDynamicRuntimeTraitVerifier(%a: f32) {
+  // CHECK: "test.two_operands_dynamic_op"(%{{.*}}, %{{.*}}) : (f32, f32) -> ()
+  "test.two_operands_dynamic_op"(%a, %a) : (f32, f32) -> ()
+  return
+}
+
+// -----
+
+func @failedDynamicRuntimeTraitVerifier() {
+  // expected-error@+1 {{requires two operands}}
+  "test.two_operands_dynamic_op"() : () -> ()
+  return
+}

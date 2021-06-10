@@ -247,6 +247,10 @@ DynamicOpDefinition::get(StringRef name, Dialect *dialect,
       std::move(getCanonicalizationPatternsFn)));
 }
 
+void DynamicOpDefinition::addTrait(DynamicOpTrait* trait) {
+  traits.push_back(trait);
+}
+
 //===----------------------------------------------------------------------===//
 // Extensible dialect
 //===----------------------------------------------------------------------===//
@@ -295,13 +299,44 @@ void ExtensibleDialect::addDynamicOp(
     std::unique_ptr<DynamicOpDefinition> &&op) {
   assert(op->dialect == this &&
          "trying to register a dynamic op in the wrong dialect");
-  auto hasTraitFn = [](TypeID traitId) { return false; };
+  auto foldHook = [](mlir::Operation *op,
+                     llvm::ArrayRef<mlir::Attribute> operands,
+                     llvm::SmallVectorImpl<mlir::OpFoldResult> &results) {
+    return failure();
+  };
+
+  auto getCanonicalizationPatterns = [](OwningRewritePatternList &,
+                                        MLIRContext *) {};
+
+  std::vector<TypeID> traitIds;
+  for (const auto &trait : op->traits) {
+    traitIds.push_back(trait->getTypeID());
+  }
+
+  auto hasTraitFn = [traitIds{std::move(traitIds)}](TypeID id) {
+    return llvm::any_of(traitIds,
+                        [id](TypeID traitId) { return traitId == id; });
+  };
+
+  std::vector<function_ref<LogicalResult(Operation* op)>> traitVerifiers;
+  for (auto &trait : op->traits) {
+    traitVerifiers.push_back(trait->getVerifyFn());
+  }
+
+  auto verifier = [opVerifier{std::move(op->verifyFn)},
+                   traitVerifiers{std::move(traitVerifiers)}](Operation *op) {
+    if (failed(opVerifier(op)))
+      return failure();
+    return success(llvm::all_of(traitVerifiers, [op](auto verifier) {
+      return succeeded(verifier(op));
+    }));
+  };
 
   AbstractOperation::insert(
       op->name, *op->dialect, op->typeID, std::move(op->parseFn),
-      std::move(op->printFn), std::move(op->verifyFn),
-      std::move(op->foldHookFn), std::move(op->getCanonicalizationPatternsFn),
-      detail::InterfaceMap::get<>(), std::move(hasTraitFn), {});
+      std::move(op->printFn), std::move(verifier), std::move(foldHook),
+      std::move(getCanonicalizationPatterns), detail::InterfaceMap::get<>(),
+      std::move(hasTraitFn), {});
 }
 
 bool ExtensibleDialect::classof(const Dialect *dialect) {

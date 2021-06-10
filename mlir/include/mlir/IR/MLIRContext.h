@@ -10,7 +10,9 @@
 #define MLIR_IR_MLIRCONTEXT_H
 
 #include "mlir/Support/LLVM.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
+#include "llvm/ADT/FunctionExtras.h"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -29,14 +31,16 @@ class InFlightDiagnostic;
 class Location;
 class MLIRContextImpl;
 class StorageUniquer;
+class DynamicOpTrait;
+class Operation;
 
-/// MLIRContext is the top-level object for a collection of MLIR operations. It
-/// holds immortal uniqued objects like types, and the tables used to unique
-/// them.
+/// MLIRContext is the top-level object for a collection of MLIR operations.
+/// It holds immortal uniqued objects like types, and the tables used to
+/// unique them.
 ///
-/// MLIRContext gets a redundant "MLIR" prefix because otherwise it ends up with
-/// a very generic name ("Context") and because it is uncommon for clients to
-/// interact with it.
+/// MLIRContext gets a redundant "MLIR" prefix because otherwise it ends up
+/// with a very generic name ("Context") and because it is uncommon for
+/// clients to interact with it.
 ///
 class MLIRContext {
 public:
@@ -103,6 +107,26 @@ public:
   /// registry, returns nullptr.
   Dialect *getOrLoadDialect(StringRef name);
 
+  /// Register a dynamic trait and give it a name.
+  void registerDynamicTrait(StringRef name,
+                            std::unique_ptr<DynamicOpTrait> trait);
+
+  /// Get a dynamic trait for the given name.
+  /// If no dynamic trait is registered for this name, returns nullptr.
+  DynamicOpTrait* getDynamicTrait(StringRef name);
+
+  /// Get (or create) a dynamic trait given a trait defined with a C++ class.
+  template <template <typename ConcreteT> class TraitTy>
+  DynamicOpTrait *getOrRegisterDynamicTrait() {
+    return getOrRegisterDynamicTrait(TypeID::get<TraitTy>(),
+                                     TraitTy<void>::verifyTrait);
+  }
+
+private:
+  DynamicOpTrait *
+  getOrRegisterDynamicTrait(TypeID id, LogicalResult (*verifyFn)(Operation *));
+
+public:
   /// Return true if we allow to create operation for unregistered dialects.
   bool allowsUnregisteredDialects();
 

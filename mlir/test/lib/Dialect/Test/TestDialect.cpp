@@ -17,6 +17,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/ExtensibleDialect.h"
+#include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Reducer/ReductionPatternInterface.h"
@@ -250,6 +251,37 @@ getCustomParserPrinterDynamicOp(Dialect *dialect) {
                                   verifier, parser, printer);
 }
 
+std::unique_ptr<DynamicOpDefinition>
+getOneResultTraitDynamicOp(Dialect *dialect) {
+  auto type = DynamicOpDefinition::get("one_result_dynamic_op", dialect,
+                                       [](Operation *op) { return success(); });
+  type->addTrait<OpTrait::OneResult>();
+  return type;
+}
+
+std::unique_ptr<DynamicOpDefinition>
+getTwoOperandsTraitDynamicOp(Dialect *dialect) {
+  auto op = DynamicOpDefinition::get("two_operands_dynamic_op", dialect,
+                                       [](Operation *op) { return success(); });
+
+  auto *ctx = dialect->getContext();
+  auto verifier = [](Operation *op) {
+    if (op->getNumOperands() != 2) {
+      op->emitOpError() << "requires two operands";
+      return failure();
+    }
+    return success();
+  };
+
+  auto trait = DynamicOpTrait::get(ctx, std::move(verifier));
+  ctx->registerDynamicTrait("test_two_operands_dynamic_op_trait", std::move(trait));
+
+  auto* registeredTrait = ctx->getDynamicTrait("test_two_operands_dynamic_op_trait");
+  assert(registeredTrait && "registered trait was not found");
+  op->addTrait(registeredTrait);
+  return op;
+}
+
 //===----------------------------------------------------------------------===//
 // TestDialect
 //===----------------------------------------------------------------------===//
@@ -287,6 +319,8 @@ void TestDialect::initialize() {
   addDynamicOp(getGenericDynamicOp(this));
   addDynamicOp(getOneOperandTwoResultsDynamicOp(this));
   addDynamicOp(getCustomParserPrinterDynamicOp(this));
+  addDynamicOp(getOneResultTraitDynamicOp(this));
+  addDynamicOp(getTwoOperandsTraitDynamicOp(this));
 
   addInterfaces<TestOpAsmInterface, TestDialectFoldInterface,
                 TestInlinerInterface, TestReductionPatternInterface>();

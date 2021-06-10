@@ -18,6 +18,7 @@
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Dialect.h"
+#include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/Identifier.h"
 #include "mlir/IR/IntegerSet.h"
 #include "mlir/IR/Location.h"
@@ -29,6 +30,7 @@
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/Allocator.h"
@@ -269,6 +271,15 @@ public:
   /// The MLIRContext owns the objects.
   DenseMap<StringRef, std::unique_ptr<Dialect>> loadedDialects;
   DialectRegistry dialectsRegistry;
+
+  /// This is a list of traits that can be assigned to operations and traits
+  /// that are defined at runtime.
+  DenseMap<TypeID, std::unique_ptr<DynamicOpTrait>> dynamicTraits;
+
+  /// This field allows to fetch a dynamic trait by its name.
+  /// Traits defined in C++ do not define a name, and thus are not contained in
+  /// this field.
+  llvm::StringMap<DynamicOpTrait *> nameToDynamicTraits;
 
   /// This is a mapping from operation name to AbstractOperation for registered
   /// operations.
@@ -687,6 +698,46 @@ void Dialect::addAttribute(TypeID typeID, AbstractAttribute &&attrInfo) {
           AbstractAttribute(std::move(attrInfo));
   if (!impl.registeredAttributes.insert({typeID, newInfo}).second)
     llvm::report_fatal_error("Dialect Attribute already registered.");
+}
+
+//===----------------------------------------------------------------------===//
+// Dynamic Trait Registration
+//===----------------------------------------------------------------------===//
+
+void MLIRContext::registerDynamicTrait(StringRef name,
+                                       std::unique_ptr<DynamicOpTrait> trait) {
+  auto* traitPtr = trait.get();
+  auto registered =
+      impl->dynamicTraits.insert({trait->getTypeID(), std::move(trait)}).second;
+  if (!registered) {
+    llvm::errs() << "error: dynamic trait '" << name
+                 << "' is already registered.\n";
+    abort();
+  }
+
+  auto nameRegistered =
+    impl->nameToDynamicTraits.insert({name, traitPtr}).second;
+  if (!nameRegistered) {
+    llvm::errs() << "error: dynamic trait with name '" << name
+                 << "' is already registered.\n";
+    abort();
+  }
+}
+
+DynamicOpTrait *MLIRContext::getDynamicTrait(StringRef name) {
+  auto it = impl->nameToDynamicTraits.find(name);
+  if (it == impl->nameToDynamicTraits.end())
+    return nullptr;
+  return it->second;
+}
+
+DynamicOpTrait *
+MLIRContext::getOrRegisterDynamicTrait(TypeID id,
+                                       LogicalResult (*verifyFn)(Operation *)) {
+  auto &trait = impl->dynamicTraits[id];
+  if (!trait)
+    trait.reset(new DynamicOpTrait(verifyFn, id));
+  return trait.get();
 }
 
 //===----------------------------------------------------------------------===//
