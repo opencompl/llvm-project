@@ -366,3 +366,34 @@ ExtensibleDialect::printIfDynamicType(Type type, DialectAsmPrinter &printer) {
   }
   return failure();
 }
+
+//===----------------------------------------------------------------------===//
+// Dynamic dialect
+//===----------------------------------------------------------------------===//
+
+void DynamicDialect::printType(Type type, DialectAsmPrinter &printer) const {
+  if (failed(printIfDynamicType(type, printer))) {
+    assert(false && "non-dynamic type found in a dynamic dialect");
+  }
+}
+
+Type DynamicDialect::parseType(DialectAsmParser &parser) const {
+  StringRef name;
+  auto loc = parser.getCurrentLocation();
+  if (failed(parser.parseKeyword(&name))) {
+    parser.emitError(loc, "type name expected");
+    return Type{};
+  }
+
+  Type type;
+  auto res = parseOptionalDynamicType(name, parser, type);
+  if (!res.hasValue()) {
+    parser.emitError(loc, "unknown type");
+    return Type{};
+  }
+
+  if (failed(res.getValue()))
+    return Type{};
+
+  return type;
+}

@@ -98,6 +98,10 @@ public:
     loadDialect<OtherDialect, MoreDialects...>();
   }
 
+  /// Load a new dialect that will be populated with operations and types at
+  /// runtime.
+  void loadDynamicDialect(StringRef dialectNamespace);
+
   /// Load all dialects available in the registry in this context.
   void loadAllAvailableDialects();
 
