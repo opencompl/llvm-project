@@ -561,6 +561,16 @@ MLIRContext::getOrLoadDialect(StringRef dialectNamespace, TypeID dialectID,
   return dialect.get();
 }
 
+void MLIRContext::loadDynamicDialect(StringRef dialectNamespace) {
+  auto typeID = allocateTypeID();
+  auto dialectIdent = Identifier::get(dialectNamespace, this);
+  getOrLoadDialect(dialectIdent, typeID, [this, typeID, dialectIdent]() {
+    std::unique_ptr<DynamicDialect> dialect(
+        new DynamicDialect(dialectIdent, this, typeID));
+    return dialect;
+  });
+}
+
 void MLIRContext::loadAllAvailableDialects() {
   for (StringRef name : getAvailableDialects())
     getOrLoadDialect(name);
@@ -691,7 +701,7 @@ void Dialect::addAttribute(TypeID typeID, AbstractAttribute &&attrInfo) {
 
 void MLIRContext::registerDynamicTrait(StringRef name,
                                        std::unique_ptr<DynamicOpTrait> trait) {
-  auto* traitPtr = trait.get();
+  auto *traitPtr = trait.get();
   auto registered =
       impl->dynamicTraits.insert({trait->getTypeID(), std::move(trait)}).second;
   if (!registered) {
@@ -701,7 +711,7 @@ void MLIRContext::registerDynamicTrait(StringRef name,
   }
 
   auto nameRegistered =
-    impl->nameToDynamicTraits.insert({name, traitPtr}).second;
+      impl->nameToDynamicTraits.insert({name, traitPtr}).second;
   if (!nameRegistered) {
     llvm::errs() << "error: dynamic trait with name '" << name
                  << "' is already registered.\n";

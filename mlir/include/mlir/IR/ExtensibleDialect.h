@@ -346,6 +346,21 @@ private:
   /// This structure allows to get in O(1) a dynamic type given its name.
   llvm::StringMap<DynamicTypeDefinition *> nameToDynTypes;
 };
+
+//===----------------------------------------------------------------------===//
+// Dynamic dialect
+//===----------------------------------------------------------------------===//
+
+/// A dialect that can be defined at runtime.
+/// It can be extended with new operations and types at runtime.
+class DynamicDialect : public ExtensibleDialect {
+public:
+  // Use ExtensibleDialect constructor.
+  using ExtensibleDialect::ExtensibleDialect;
+
+  virtual void printType(Type type, DialectAsmPrinter &printer) const override;
+  virtual Type parseType(DialectAsmParser &parser) const override;
+};
 } // namespace mlir
 
 namespace llvm {
