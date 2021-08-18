@@ -58,7 +58,6 @@ public:
   // Get the location of the predicate.
   ArrayRef<llvm::SMLoc> getLoc() const;
 
-protected:
   // The TableGen definition of this predicate.
   const llvm::Record *def;
 };

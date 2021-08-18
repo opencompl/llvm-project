@@ -49,6 +49,9 @@ public:
   explicit MLIRContext(const DialectRegistry &registry);
   ~MLIRContext();
 
+  int getNumRegisteredOperations(Dialect *dialect);
+  int getNumRegisteredTypes(Dialect *dialect);
+
   /// Return information about all IR dialects loaded in the context.
   std::vector<Dialect *> getLoadedDialects();
 

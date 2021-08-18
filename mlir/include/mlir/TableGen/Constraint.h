@@ -62,6 +62,7 @@ public:
 protected:
   Constraint(Kind kind, const llvm::Record *record);
 
+public:
   // The TableGen definition of this constraint.
   const llvm::Record *def;
 

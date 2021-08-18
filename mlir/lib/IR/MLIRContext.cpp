@@ -1155,3 +1155,26 @@ llvm::unique_function<InFlightDiagnostic()>
 mlir::detail::getDefaultDiagnosticEmitFn(const Location &loc) {
   return [=] { return emitError(loc); };
 }
+
+
+int MLIRContext::getNumRegisteredOperations(Dialect *dialect) {
+  auto& ops = getImpl().registeredOperations;
+  int res = 0;
+  for (auto& op : ops) {
+    if (op.getValue().dialect.dialectID == dialect->dialectID) {
+      res++;
+    }
+  }
+  return res;
+}
+
+int MLIRContext::getNumRegisteredTypes(Dialect *dialect) {
+  auto &types = getImpl().registeredTypes;
+  int res = 0;
+  for (auto &typ : types) {
+    if (typ.getSecond()->getDialect().dialectID == dialect->dialectID) {
+      res++;
+    }
+  }
+  return res;
+}
