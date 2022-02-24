@@ -51,6 +51,7 @@ public:
 
   int getNumRegisteredOperations(Dialect *dialect);
   int getNumRegisteredTypes(Dialect *dialect);
+  int getNumRegisteredAttributes(Dialect *dialect);
 
   /// Return information about all IR dialects loaded in the context.
   std::vector<Dialect *> getLoadedDialects();

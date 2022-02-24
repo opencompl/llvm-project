@@ -1178,3 +1178,14 @@ int MLIRContext::getNumRegisteredTypes(Dialect *dialect) {
   }
   return res;
 }
+
+int MLIRContext::getNumRegisteredAttributes(Dialect *dialect) {
+  auto &types = getImpl().registeredAttributes;
+  int res = 0;
+  for (auto &typ : types) {
+    if (typ.getSecond()->getDialect().dialectID == dialect->dialectID) {
+      res++;
+    }
+  }
+  return res;
+}
