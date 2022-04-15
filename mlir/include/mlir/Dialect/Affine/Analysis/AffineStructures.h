@@ -290,13 +290,6 @@ public:
     return appendId(IdKind::Local, num);
   }
 
-  /// Removes identifiers in the column range [idStart, idLimit), and copies any
-  /// remaining valid data into place, updates member variables, and resizes
-  /// arrays as needed.
-  void removeIdRange(presburger::IdKind kind, unsigned idStart,
-                     unsigned idLimit) override;
-  using IntegerPolyhedron::removeIdRange;
-
   /// Add the specified values as a dim or symbol id depending on its nature, if
   /// it already doesn't exist in the system. `val` has to be either a terminal
   /// symbol or a loop IV, i.e., it cannot be the result affine.apply of any
@@ -367,9 +360,6 @@ public:
   /// space, i.e., if they are associated with the same set of identifiers,
   /// appearing in the same order. Returns false otherwise.
   bool areIdsAlignedWithOther(const FlatAffineValueConstraints &other);
-
-  /// Replaces the contents of this FlatAffineValueConstraints with `other`.
-  void clearAndCopyFrom(const IntegerRelation &other) override;
 
   Optional<Value> &atValue(unsigned pos) { return space.atValue(pos); }
   const Optional<Value> &atValue(unsigned pos) const {
@@ -449,11 +439,6 @@ public:
 protected:
   using IdKind = presburger::IdKind;
 
-  /// Returns false if the fields corresponding to various identifier counts, or
-  /// equality/inequality buffer sizes aren't consistent; true otherwise. This
-  /// is meant to be used within an assert internally.
-  bool hasConsistentState() const override;
-
   /// Given an affine map that is aligned with this constraint system:
   /// * Flatten the map.
   /// * Add newly introduced local columns at the beginning of this constraint
@@ -466,16 +451,6 @@ protected:
   ///       `composeMatchingMap`.
   LogicalResult flattenAlignedMapAndMergeLocals(
       AffineMap map, std::vector<SmallVector<int64_t, 8>> *flattenedExprs);
-
-  /// Eliminates the identifier at the specified position using Fourier-Motzkin
-  /// variable elimination, but uses Gaussian elimination if there is an
-  /// equality involving that identifier. If the result of the elimination is
-  /// integer exact, `*isResultIntegerExact` is set to true. If `darkShadow` is
-  /// set to true, a potential under approximation (subset) of the rational
-  /// shadow / exact integer shadow is computed.
-  // See implementation comments for more details.
-  void fourierMotzkinEliminate(unsigned pos, bool darkShadow = false,
-                               bool *isResultIntegerExact = nullptr) override;
 
   /// Prints the number of constraints, dimensions, symbols and locals in the
   /// FlatAffineConstraints. Also, prints for each identifier whether there is

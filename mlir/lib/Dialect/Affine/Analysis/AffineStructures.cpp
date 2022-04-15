@@ -688,15 +688,6 @@ void FlatAffineValueConstraints::addAffineIfOpDomain(AffineIfOp ifOp) {
   append(cst);
 }
 
-bool FlatAffineValueConstraints::hasConsistentState() const {
-  return IntegerPolyhedron::hasConsistentState();
-}
-
-void FlatAffineValueConstraints::removeIdRange(IdKind kind, unsigned idStart,
-                                               unsigned idLimit) {
-  IntegerPolyhedron::removeIdRange(kind, idStart, idLimit);
-}
-
 // Determine whether the identifier at 'pos' (say id_r) can be expressed as
 // modulo of another known identifier (say id_n) w.r.t a constant. For example,
 // if the following constraints hold true:
@@ -1329,17 +1320,6 @@ void FlatAffineValueConstraints::printSpace(raw_ostream &os) const {
       os << "None ";
   }
   os << " const)\n";
-}
-
-void FlatAffineValueConstraints::clearAndCopyFrom(
-    const IntegerRelation &other) {
-  *static_cast<IntegerRelation *>(this) = other;
-}
-
-void FlatAffineValueConstraints::fourierMotzkinEliminate(
-    unsigned pos, bool darkShadow, bool *isResultIntegerExact) {
-  IntegerPolyhedron::fourierMotzkinEliminate(pos, darkShadow,
-                                             isResultIntegerExact);
 }
 
 void FlatAffineValueConstraints::projectOut(Value val) {

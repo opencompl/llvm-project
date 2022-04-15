@@ -273,7 +273,7 @@ public:
   void setAndEliminate(unsigned pos, ArrayRef<int64_t> values);
 
   /// Replaces the contents of this IntegerRelation with `other`.
-  virtual void clearAndCopyFrom(const IntegerRelation &other);
+  void clearAndCopyFrom(const IntegerRelation &other);
 
   /// Gather positions of all lower and upper bounds of the identifier at `pos`,
   /// and optionally any equalities on it. In addition, the bounds are to be
@@ -538,7 +538,7 @@ protected:
   /// set to true, a potential under approximation (subset) of the rational
   /// shadow / exact integer shadow is computed.
   // See implementation comments for more details.
-  virtual void fourierMotzkinEliminate(unsigned pos, bool darkShadow = false,
+  void fourierMotzkinEliminate(unsigned pos, bool darkShadow = false,
                                        bool *isResultIntegerExact = nullptr);
 
   /// Tightens inequalities given that we are dealing with integer spaces. This
@@ -565,7 +565,7 @@ protected:
   /// Returns false if the fields corresponding to various identifier counts, or
   /// equality/inequality buffer sizes aren't consistent; true otherwise. This
   /// is meant to be used within an assert internally.
-  virtual bool hasConsistentState() const;
+  bool hasConsistentState() const;
 
   /// Prints the number of constraints, dimensions, symbols and locals in the
   /// IntegerRelation.
