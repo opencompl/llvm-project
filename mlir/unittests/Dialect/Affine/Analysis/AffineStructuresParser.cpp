@@ -21,5 +21,11 @@ mlir::parseIntegerSetToFAC(llvm::StringRef str, MLIRContext *context,
   if (!set)
     return failure();
 
-  return FlatAffineValueConstraints(set);
+  // Set values in FAC to llvm::None.
+  // TODO: Check if we can also introduce use Value in tests.
+  FlatAffineValueConstraints fac(set);
+  for (unsigned i = 0, e = fac.getNumIds(); i < e; ++i)
+    fac.atValue(i) = llvm::None;
+
+  return fac;
 }

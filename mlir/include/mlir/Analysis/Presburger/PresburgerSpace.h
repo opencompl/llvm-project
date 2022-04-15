@@ -14,6 +14,8 @@
 #ifndef MLIR_ANALYSIS_PRESBURGER_PRESBURGERSPACE_H
 #define MLIR_ANALYSIS_PRESBURGER_PRESBURGERSPACE_H
 
+#include "mlir/IR/Value.h"
+#include "mlir/Support/LLVM.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -92,6 +94,13 @@ public:
     return numDomain + numRange + numSymbols + numLocals;
   }
 
+  Optional<Value> &atValue(unsigned pos) { return values[pos]; }
+  const Optional<Value> &atValue(unsigned pos) const { return values[pos]; }
+
+  ArrayRef<Optional<Value>> getMaybeValues() const {
+    return {values.data(), values.size()};
+  }
+
   /// Get the number of ids of the specified kind.
   unsigned getNumIdKind(IdKind kind) const;
 
@@ -120,13 +129,23 @@ public:
   void removeIdRange(IdKind kind, unsigned idStart, unsigned idLimit);
 
   /// Returns true if both the spaces are compatible i.e. if both spaces have
-  /// the same number of identifiers of each kind (excluding locals).
+  /// the same number of identifiers of each kind (excluding locals) and
+  /// have the same values for each identifier (excluding locals).
   bool isCompatible(const PresburgerSpace &other) const;
+
+  /// Returns true if both the spaces are compatible i.e. if both spaces have
+  /// the same number of identifiers of each kind (excluding locals).
+  bool isCompatibleWithoutValues(const PresburgerSpace &other) const;
+
+  /// Returns true if both the spaces are equal including local identifiers i.e.
+  /// if both spaces have the same number of identifiers of each kind (including
+  /// locals) and have the same values for each identifer (excluding locals).
+  bool isEqual(const PresburgerSpace &other) const;
 
   /// Returns true if both the spaces are equal including local identifiers i.e.
   /// if both spaces have the same number of identifiers of each kind (including
   /// locals).
-  bool isEqual(const PresburgerSpace &other) const;
+  bool isEqualWithoutValues(const PresburgerSpace &other) const;
 
   /// Changes the partition between dimensions and symbols. Depending on the new
   /// symbol count, either a chunk of dimensional identifiers immediately before
@@ -141,7 +160,11 @@ protected:
   PresburgerSpace(unsigned numDomain = 0, unsigned numRange = 0,
                   unsigned numSymbols = 0, unsigned numLocals = 0)
       : numDomain(numDomain), numRange(numRange), numSymbols(numSymbols),
-        numLocals(numLocals) {}
+        numLocals(numLocals),
+        values(numDomain + numRange + numSymbols + numLocals, None) {}
+
+  /// Checks if the number of values are equal to the number of variables.
+  bool isConsistent() const;
 
 private:
   // Number of identifiers corresponding to domain identifiers.
@@ -157,6 +180,10 @@ private:
   /// Number of identifers corresponding to locals (identifiers corresponding
   /// to existentially quantified variables).
   unsigned numLocals;
+
+  /// Values corresponding to the identifiers of this space.Temporary ones or
+  /// those that aren't associated with any Value are set to None.
+  SmallVector<Optional<Value>, 8> values;
 };
 
 } // namespace presburger

@@ -83,6 +83,11 @@ unsigned PresburgerSpace::insertId(IdKind kind, unsigned pos, unsigned num) {
   else
     numLocals += num;
 
+  // Insert values for newly added variables.
+  values.insert(values.begin() + absolutePos, num, None);
+
+  assert(isConsistent() && "Space must be consistent.");
+
   return absolutePos;
 }
 
@@ -102,21 +107,51 @@ void PresburgerSpace::removeIdRange(IdKind kind, unsigned idStart,
     numSymbols -= numIdsEliminated;
   else
     numLocals -= numIdsEliminated;
+
+  // Remove values for removed variables.
+  unsigned offset = getIdKindOffset(kind);
+  values.erase(values.begin() + offset + idStart,
+               values.begin() + offset + idLimit);
+
+  assert(isConsistent() && "Space must be consistent.");
+}
+
+bool PresburgerSpace::isConsistent() const {
+  return values.size() == getNumIds();
 }
 
 bool PresburgerSpace::isCompatible(const PresburgerSpace &other) const {
+  assert(isConsistent() && "Space must be consistent.");
+  return isCompatibleWithoutValues(other) &&
+         getMaybeValues().slice(0, getNumDimAndSymbolIds()) ==
+             other.getMaybeValues().slice(0, other.getNumDimAndSymbolIds());
+}
+
+bool PresburgerSpace::isCompatibleWithoutValues(
+    const PresburgerSpace &other) const {
+  assert(isConsistent() && "Space must be consistent.");
   return getNumDomainIds() == other.getNumDomainIds() &&
          getNumRangeIds() == other.getNumRangeIds() &&
          getNumSymbolIds() == other.getNumSymbolIds();
 }
 
 bool PresburgerSpace::isEqual(const PresburgerSpace &other) const {
-  return isCompatible(other) && getNumLocalIds() == other.getNumLocalIds();
+  assert(isConsistent() && "Space must be consistent.");
+  return isEqualWithoutValues(other) &&
+         getMaybeValues() == other.getMaybeValues();
+}
+
+bool PresburgerSpace::isEqualWithoutValues(const PresburgerSpace &other) const {
+  assert(isConsistent() && "Space must be consistent.");
+  return isCompatibleWithoutValues(other) &&
+         getNumLocalIds() == other.getNumLocalIds();
 }
 
 void PresburgerSpace::setDimSymbolSeparation(unsigned newSymbolCount) {
+  assert(isConsistent() && "Space must be consistent.");
   assert(newSymbolCount <= getNumDimAndSymbolIds() &&
          "invalid separation position");
+  // No need to modify `values`, since only the seperation is changed.
   numRange = numRange + numSymbols - newSymbolCount;
   numSymbols = newSymbolCount;
 }
