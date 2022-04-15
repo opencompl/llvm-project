@@ -156,9 +156,6 @@ FlatAffineValueConstraints::FlatAffineValueConstraints(IntegerSet set)
                                                      set.getNumSymbols(),
                                                      /*numLocals=*/0)) {
 
-  // Resize values.
-  values.resize(getNumIds(), None);
-
   // Flatten expressions and add them to the constraint system.
   std::vector<SmallVector<int64_t, 8>> flatExprs;
   FlatAffineValueConstraints localVarCst;
@@ -292,14 +289,6 @@ unsigned FlatAffineValueConstraints::insertSymbolId(unsigned pos,
 }
 
 unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
-                                              unsigned num) {
-  unsigned absolutePos = IntegerPolyhedron::insertId(kind, pos, num);
-  values.insert(values.begin() + absolutePos, num, None);
-  assert(values.size() == getNumIds());
-  return absolutePos;
-}
-
-unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
                                               ValueRange vals) {
   assert(!vals.empty() && "expected ValueRange with Values");
   unsigned num = vals.size();
@@ -307,17 +296,16 @@ unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
 
   // If a Value is provided, insert it; otherwise use None.
   for (unsigned i = 0; i < num; ++i)
-    values.insert(values.begin() + absolutePos + i,
-                  vals[i] ? Optional<Value>(vals[i]) : None);
+    space.atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
 
-  assert(values.size() == getNumIds());
   return absolutePos;
 }
 
 bool FlatAffineValueConstraints::hasValues() const {
-  return llvm::find_if(values, [](Optional<Value> id) {
-           return id.hasValue();
-         }) != values.end();
+  for (unsigned i = 0, e = getNumIds(); i < e; ++i)
+    if (space.atValue(i).hasValue())
+      return true;
+  return false;
 }
 
 /// Checks if two constraint systems are in the same space, i.e., if they are
@@ -701,16 +689,12 @@ void FlatAffineValueConstraints::addAffineIfOpDomain(AffineIfOp ifOp) {
 }
 
 bool FlatAffineValueConstraints::hasConsistentState() const {
-  return IntegerPolyhedron::hasConsistentState() &&
-         values.size() == getNumIds();
+  return IntegerPolyhedron::hasConsistentState();
 }
 
 void FlatAffineValueConstraints::removeIdRange(IdKind kind, unsigned idStart,
                                                unsigned idLimit) {
   IntegerPolyhedron::removeIdRange(kind, idStart, idLimit);
-  unsigned offset = getIdKindOffset(kind);
-  values.erase(values.begin() + idStart + offset,
-               values.begin() + idLimit + offset);
 }
 
 // Determine whether the identifier at 'pos' (say id_r) can be expressed as
@@ -1222,11 +1206,11 @@ FlatAffineValueConstraints::computeAlignedMap(AffineMap map,
   for (unsigned i = getIdKindOffset(IdKind::SetDim),
                 e = getIdKindEnd(IdKind::SetDim);
        i < e; ++i)
-    dims.push_back(values[i] ? *values[i] : Value());
+    dims.push_back(space.atValue(i) ? *space.atValue(i) : Value());
   for (unsigned i = getIdKindOffset(IdKind::Symbol),
                 e = getIdKindEnd(IdKind::Symbol);
        i < e; ++i)
-    syms.push_back(values[i] ? *values[i] : Value());
+    syms.push_back(space.atValue(i) ? *space.atValue(i) : Value());
 
   AffineMap alignedMap =
       alignAffineMapWithValues(map, operands, dims, syms, newSymsPtr);
@@ -1305,26 +1289,25 @@ LogicalResult FlatAffineValueConstraints::addSliceBounds(
 }
 
 bool FlatAffineValueConstraints::findId(Value val, unsigned *pos) const {
-  unsigned i = 0;
-  for (const auto &mayBeId : values) {
-    if (mayBeId.hasValue() && mayBeId.getValue() == val) {
+  for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
+    const Optional<Value> &spaceVal = space.atValue(i);
+    if (spaceVal.hasValue() && spaceVal.getValue() == val) {
       *pos = i;
       return true;
     }
-    i++;
   }
+
   return false;
 }
 
 bool FlatAffineValueConstraints::containsId(Value val) const {
-  return llvm::any_of(values, [&](const Optional<Value> &mayBeId) {
-    return mayBeId.hasValue() && mayBeId.getValue() == val;
-  });
+  unsigned pos;
+  return findId(val, &pos);
 }
 
 void FlatAffineValueConstraints::swapId(unsigned posA, unsigned posB) {
   IntegerPolyhedron::swapId(posA, posB);
-  std::swap(values[posA], values[posB]);
+  std::swap(space.atValue(posA), space.atValue(posB));
 }
 
 void FlatAffineValueConstraints::addBound(BoundType type, Value val,
@@ -1350,28 +1333,13 @@ void FlatAffineValueConstraints::printSpace(raw_ostream &os) const {
 
 void FlatAffineValueConstraints::clearAndCopyFrom(
     const IntegerRelation &other) {
-
-  if (auto *otherValueSet =
-          dyn_cast<const FlatAffineValueConstraints>(&other)) {
-    *this = *otherValueSet;
-  } else {
-    *static_cast<IntegerRelation *>(this) = other;
-    values.clear();
-    values.resize(getNumIds(), None);
-  }
+  *static_cast<IntegerRelation *>(this) = other;
 }
 
 void FlatAffineValueConstraints::fourierMotzkinEliminate(
     unsigned pos, bool darkShadow, bool *isResultIntegerExact) {
-  SmallVector<Optional<Value>, 8> newVals;
-  newVals.reserve(getNumIds() - 1);
-  newVals.append(values.begin(), values.begin() + pos);
-  newVals.append(values.begin() + pos + 1, values.end());
-  // Note: Base implementation discards all associated Values.
   IntegerPolyhedron::fourierMotzkinEliminate(pos, darkShadow,
                                              isResultIntegerExact);
-  values = newVals;
-  assert(values.size() == getNumIds());
 }
 
 void FlatAffineValueConstraints::projectOut(Value val) {
@@ -1597,8 +1565,9 @@ FlatAffineValueConstraints FlatAffineRelation::getRangeSet() const {
 void FlatAffineRelation::compose(const FlatAffineRelation &other) {
   assert(getNumDomainDims() == other.getNumRangeDims() &&
          "Domain of this and range of other do not match");
-  assert(std::equal(values.begin(), values.begin() + getNumDomainDims(),
-                    other.values.begin() + other.getNumDomainDims()) &&
+  assert(getMaybeValues().take_front(getNumDomainDims()) ==
+             other.getMaybeValues().slice(other.getNumDomainDims(),
+                                          getNumDomainDims()) &&
          "Domain of this and range of other do not match");
 
   FlatAffineRelation rel = other;

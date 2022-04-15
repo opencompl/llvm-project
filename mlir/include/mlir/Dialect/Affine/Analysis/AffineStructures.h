@@ -49,11 +49,10 @@ public:
                               numDims, numSymbols, numLocals)) {
     assert(numReservedCols >= getNumIds() + 1);
     assert(valArgs.empty() || valArgs.size() == getNumIds());
-    values.reserve(numReservedCols);
-    if (valArgs.empty())
-      values.resize(getNumIds(), None);
-    else
-      values.append(valArgs.begin(), valArgs.end());
+
+    // Set values.
+    for (unsigned i = 0, e = valArgs.size(); i < e; ++i)
+      space.atValue(i) = valArgs[i];
   }
 
   /// Constructs a constraint system with the specified number of
@@ -71,10 +70,10 @@ public:
                              ArrayRef<Optional<Value>> valArgs = {})
       : IntegerPolyhedron(fac) {
     assert(valArgs.empty() || valArgs.size() == getNumIds());
-    if (valArgs.empty())
-      values.resize(getNumIds(), None);
-    else
-      values.append(valArgs.begin(), valArgs.end());
+
+    // Set values.
+    for (unsigned i = 0, e = valArgs.size(); i < e; ++i)
+      space.atValue(i) = valArgs[i];
   }
 
   /// Create a flat affine constraint system from an AffineValueMap or a list of
@@ -270,9 +269,8 @@ public:
   }
   unsigned insertDimId(unsigned pos, ValueRange vals);
   unsigned insertSymbolId(unsigned pos, ValueRange vals);
-  unsigned insertId(presburger::IdKind kind, unsigned pos,
-                    unsigned num = 1) override;
   unsigned insertId(presburger::IdKind kind, unsigned pos, ValueRange vals);
+  using IntegerPolyhedron::insertId;
 
   /// Append identifiers of the specified kind after the last identifier of that
   /// kind. The coefficient columns corresponding to the added identifiers are
@@ -373,15 +371,22 @@ public:
   /// Replaces the contents of this FlatAffineValueConstraints with `other`.
   void clearAndCopyFrom(const IntegerRelation &other) override;
 
+  Optional<Value> &atValue(unsigned pos) { return space.atValue(pos); }
+  const Optional<Value> &atValue(unsigned pos) const {
+    return space.atValue(pos);
+  }
+
   /// Returns the Value associated with the pos^th identifier. Asserts if
   /// no Value identifier was associated.
   inline Value getValue(unsigned pos) const {
     assert(hasValue(pos) && "identifier's Value not set");
-    return values[pos].getValue();
+    return space.atValue(pos).getValue();
   }
 
   /// Returns true if the pos^th identifier has an associated Value.
-  inline bool hasValue(unsigned pos) const { return values[pos].hasValue(); }
+  inline bool hasValue(unsigned pos) const {
+    return space.atValue(pos).hasValue();
+  }
 
   /// Returns true if at least one identifier has an associated Value.
   bool hasValues() const;
@@ -402,25 +407,28 @@ public:
   }
 
   inline ArrayRef<Optional<Value>> getMaybeValues() const {
-    return {values.data(), values.size()};
+    return space.getMaybeValues();
   }
 
   inline ArrayRef<Optional<Value>> getMaybeDimValues() const {
-    return {values.data(), getNumDimIds()};
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
+                                  space.getNumIdKind(IdKind::SetDim));
   }
 
   inline ArrayRef<Optional<Value>> getMaybeSymbolValues() const {
-    return {values.data() + getNumDimIds(), getNumSymbolIds()};
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::Symbol),
+                                  space.getNumIdKind(IdKind::Symbol));
   }
 
   inline ArrayRef<Optional<Value>> getMaybeDimAndSymbolValues() const {
-    return {values.data(), getNumDimIds() + getNumSymbolIds()};
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
+                                  space.getNumDimAndSymbolIds());
   }
 
   /// Sets the Value associated with the pos^th identifier.
   inline void setValue(unsigned pos, Value val) {
     assert(pos < getNumIds() && "invalid id position");
-    values[pos] = val;
+    space.atValue(pos) = val;
   }
 
   /// Sets the Values associated with the identifiers in the range [start, end).
@@ -473,12 +481,6 @@ protected:
   /// FlatAffineConstraints. Also, prints for each identifier whether there is
   /// an SSA Value attached to it.
   void printSpace(raw_ostream &os) const override;
-
-  /// Values corresponding to the (column) identifiers of this constraint
-  /// system appearing in the order the identifiers correspond to columns.
-  /// Temporary ones or those that aren't associated with any Value are set to
-  /// None.
-  SmallVector<Optional<Value>, 8> values;
 };
 
 /// A FlatAffineRelation represents a set of ordered pairs (domain -> range)
