@@ -52,7 +52,7 @@ public:
 
     // Set values.
     for (unsigned i = 0, e = valArgs.size(); i < e; ++i)
-      space.atValue(i) = valArgs[i];
+      atValue(i) = valArgs[i];
   }
 
   /// Constructs a constraint system with the specified number of
@@ -73,7 +73,7 @@ public:
 
     // Set values.
     for (unsigned i = 0, e = valArgs.size(); i < e; ++i)
-      space.atValue(i) = valArgs[i];
+      atValue(i) = valArgs[i];
   }
 
   /// Create a flat affine constraint system from an AffineValueMap or a list of
@@ -370,13 +370,11 @@ public:
   /// no Value identifier was associated.
   inline Value getValue(unsigned pos) const {
     assert(hasValue(pos) && "identifier's Value not set");
-    return space.atValue(pos).getValue();
+    return atValue(pos).getValue();
   }
 
   /// Returns true if the pos^th identifier has an associated Value.
-  inline bool hasValue(unsigned pos) const {
-    return space.atValue(pos).hasValue();
-  }
+  inline bool hasValue(unsigned pos) const { return atValue(pos).hasValue(); }
 
   /// Returns true if at least one identifier has an associated Value.
   bool hasValues() const;
@@ -418,7 +416,7 @@ public:
   /// Sets the Value associated with the pos^th identifier.
   inline void setValue(unsigned pos, Value val) {
     assert(pos < getNumIds() && "invalid id position");
-    space.atValue(pos) = val;
+    atValue(pos) = val;
   }
 
   /// Sets the Values associated with the identifiers in the range [start, end).

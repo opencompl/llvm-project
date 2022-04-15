@@ -296,14 +296,14 @@ unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
 
   // If a Value is provided, insert it; otherwise use None.
   for (unsigned i = 0; i < num; ++i)
-    space.atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
+    atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
 
   return absolutePos;
 }
 
 bool FlatAffineValueConstraints::hasValues() const {
   for (unsigned i = 0, e = getNumIds(); i < e; ++i)
-    if (space.atValue(i).hasValue())
+    if (atValue(i).hasValue())
       return true;
   return false;
 }
@@ -1197,11 +1197,11 @@ FlatAffineValueConstraints::computeAlignedMap(AffineMap map,
   for (unsigned i = getIdKindOffset(IdKind::SetDim),
                 e = getIdKindEnd(IdKind::SetDim);
        i < e; ++i)
-    dims.push_back(space.atValue(i) ? *space.atValue(i) : Value());
+    dims.push_back(atValue(i) ? *atValue(i) : Value());
   for (unsigned i = getIdKindOffset(IdKind::Symbol),
                 e = getIdKindEnd(IdKind::Symbol);
        i < e; ++i)
-    syms.push_back(space.atValue(i) ? *space.atValue(i) : Value());
+    syms.push_back(atValue(i) ? *atValue(i) : Value());
 
   AffineMap alignedMap =
       alignAffineMapWithValues(map, operands, dims, syms, newSymsPtr);
@@ -1281,7 +1281,7 @@ LogicalResult FlatAffineValueConstraints::addSliceBounds(
 
 bool FlatAffineValueConstraints::findId(Value val, unsigned *pos) const {
   for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
-    const Optional<Value> &spaceVal = space.atValue(i);
+    const Optional<Value> &spaceVal = atValue(i);
     if (spaceVal.hasValue() && spaceVal.getValue() == val) {
       *pos = i;
       return true;
@@ -1298,7 +1298,7 @@ bool FlatAffineValueConstraints::containsId(Value val) const {
 
 void FlatAffineValueConstraints::swapId(unsigned posA, unsigned posB) {
   IntegerPolyhedron::swapId(posA, posB);
-  std::swap(space.atValue(posA), space.atValue(posB));
+  std::swap(atValue(posA), atValue(posB));
 }
 
 void FlatAffineValueConstraints::addBound(BoundType type, Value val,

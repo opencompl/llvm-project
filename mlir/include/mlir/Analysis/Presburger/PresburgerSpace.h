@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Classes representing space information like number of identifiers and kind of
-// identifiers.
+// Classes representing space information like number of identifiers, kind of
+// identifiers and values attached to identifiers.
 //
 //===----------------------------------------------------------------------===//
 
@@ -60,6 +60,8 @@ enum class IdKind { Symbol, Local, Domain, Range, SetDim = Range };
 /// A space with no distinction between types of dimension identifiers can
 /// be implemented as a space with zero domain. IdKind::SetDim should be used
 /// to refer to dimensions in such spaces.
+///
+/// Each variable in the space can have a mlir::Value attached to it.
 ///
 /// Compatibility of two spaces implies that number of identifiers of each kind
 /// other than Locals are equal. Equality of two spaces implies that number of
@@ -181,8 +183,9 @@ private:
   /// to existentially quantified variables).
   unsigned numLocals;
 
-  /// Values corresponding to the identifiers of this space.Temporary ones or
-  /// those that aren't associated with any Value are set to None.
+  /// Values corresponding to the identifiers of this space. Temporary ones or
+  /// those that aren't associated with any Value are set to llvm::None.
+  /// TODO: Remove dependency of Presburger on MLIRIR by making this general.
   SmallVector<Optional<Value>, 8> values;
 };
 
