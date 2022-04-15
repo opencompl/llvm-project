@@ -247,9 +247,6 @@ public:
   /// otherwise.
   bool containsId(Value val) const;
 
-  /// Swap the posA^th identifier with the posB^th identifier.
-  void swapId(unsigned posA, unsigned posB) override;
-
   /// Insert identifiers of the specified kind at position `pos`. Positions are
   /// relative to the kind of identifier. The coefficient columns corresponding
   /// to the added identifiers are initialized to zero. `vals` are the Values
@@ -360,73 +357,6 @@ public:
   /// space, i.e., if they are associated with the same set of identifiers,
   /// appearing in the same order. Returns false otherwise.
   bool areIdsAlignedWithOther(const FlatAffineValueConstraints &other);
-
-  Optional<Value> &atValue(unsigned pos) { return space.atValue(pos); }
-  const Optional<Value> &atValue(unsigned pos) const {
-    return space.atValue(pos);
-  }
-
-  /// Returns the Value associated with the pos^th identifier. Asserts if
-  /// no Value identifier was associated.
-  inline Value getValue(unsigned pos) const {
-    assert(hasValue(pos) && "identifier's Value not set");
-    return atValue(pos).getValue();
-  }
-
-  /// Returns true if the pos^th identifier has an associated Value.
-  inline bool hasValue(unsigned pos) const { return atValue(pos).hasValue(); }
-
-  /// Returns true if at least one identifier has an associated Value.
-  bool hasValues() const;
-
-  /// Returns the Values associated with identifiers in range [start, end).
-  /// Asserts if no Value was associated with one of these identifiers.
-  inline void getValues(unsigned start, unsigned end,
-                        SmallVectorImpl<Value> *values) const {
-    assert((start < getNumIds() || start == end) && "invalid start position");
-    assert(end <= getNumIds() && "invalid end position");
-    values->clear();
-    values->reserve(end - start);
-    for (unsigned i = start; i < end; i++)
-      values->push_back(getValue(i));
-  }
-  inline void getAllValues(SmallVectorImpl<Value> *values) const {
-    getValues(0, getNumIds(), values);
-  }
-
-  inline ArrayRef<Optional<Value>> getMaybeValues() const {
-    return space.getMaybeValues();
-  }
-
-  inline ArrayRef<Optional<Value>> getMaybeDimValues() const {
-    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
-                                  space.getNumIdKind(IdKind::SetDim));
-  }
-
-  inline ArrayRef<Optional<Value>> getMaybeSymbolValues() const {
-    return getMaybeValues().slice(space.getIdKindOffset(IdKind::Symbol),
-                                  space.getNumIdKind(IdKind::Symbol));
-  }
-
-  inline ArrayRef<Optional<Value>> getMaybeDimAndSymbolValues() const {
-    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
-                                  space.getNumDimAndSymbolIds());
-  }
-
-  /// Sets the Value associated with the pos^th identifier.
-  inline void setValue(unsigned pos, Value val) {
-    assert(pos < getNumIds() && "invalid id position");
-    atValue(pos) = val;
-  }
-
-  /// Sets the Values associated with the identifiers in the range [start, end).
-  void setValues(unsigned start, unsigned end, ArrayRef<Value> values) {
-    assert((start < getNumIds() || end == start) && "invalid start position");
-    assert(end <= getNumIds() && "invalid end position");
-    assert(values.size() == end - start);
-    for (unsigned i = start; i < end; ++i)
-      setValue(i, values[i - start]);
-  }
 
   /// Merge and align symbols of `this` and `other` such that both get union of
   /// of symbols that are unique. Symbols in `this` and `other` should be

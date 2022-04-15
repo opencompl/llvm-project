@@ -39,8 +39,7 @@ std::unique_ptr<IntegerPolyhedron> IntegerPolyhedron::clone() const {
 }
 
 void IntegerRelation::append(const IntegerRelation &other) {
-  assert(space.isEqualWithoutValues(other.getSpace()) &&
-         "Spaces must be equal.");
+  assert(space.isEqual(other.getSpace()) && "Spaces must be equal.");
 
   inequalities.reserveRows(inequalities.getNumRows() +
                            other.getNumInequalities());
@@ -62,14 +61,12 @@ IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
 }
 
 bool IntegerRelation::isEqual(const IntegerRelation &other) const {
-  assert(space.isEqualWithoutValues(other.getSpace()) &&
-         "Spaces must be equal.");
+  assert(space.isEqual(other.getSpace()) && "Spaces must be equal.");
   return PresburgerRelation(*this).isEqual(PresburgerRelation(other));
 }
 
 bool IntegerRelation::isSubsetOf(const IntegerRelation &other) const {
-  assert(space.isEqualWithoutValues(other.getSpace()) &&
-         "Spaces must be equal.");
+  assert(space.isEqual(other.getSpace()) && "Spaces must be equal.");
   return PresburgerRelation(*this).isSubsetOf(PresburgerRelation(other));
 }
 
@@ -285,6 +282,7 @@ void IntegerRelation::swapId(unsigned posA, unsigned posB) {
   if (posA == posB)
     return;
 
+  std::swap(atValue(posA), atValue(posB));
   inequalities.swapColumns(posA, posB);
   equalities.swapColumns(posA, posB);
 }
@@ -1095,7 +1093,7 @@ void IntegerRelation::eliminateRedundantLocalId(unsigned posA, unsigned posB) {
 /// obtained, and thus these local ids are not considered for detecting
 /// duplicates.
 unsigned IntegerRelation::mergeLocalIds(IntegerRelation &other) {
-  assert(space.isCompatibleWithoutValues(other.getSpace()) &&
+  assert(space.isCompatible(other.getSpace()) &&
          "Spaces should be compatible.");
 
   IntegerRelation &relA = *this;
@@ -1918,8 +1916,7 @@ static void getCommonConstraints(const IntegerRelation &a,
 // lower bounds and the max of the upper bounds along each of the dimensions.
 LogicalResult
 IntegerRelation::unionBoundingBox(const IntegerRelation &otherCst) {
-  assert(space.isEqualWithoutValues(otherCst.getSpace()) &&
-         "Spaces should match.");
+  assert(space.isEqual(otherCst.getSpace()) && "Spaces should match.");
   assert(getNumLocalIds() == 0 && "local ids not supported yet here");
 
   // Get the constraints common to both systems; these will be added as is to
@@ -2111,4 +2108,11 @@ unsigned IntegerPolyhedron::insertId(IdKind kind, unsigned pos, unsigned num) {
   assert((kind != IdKind::Domain || num == 0) &&
          "Domain has to be zero in a set");
   return IntegerRelation::insertId(kind, pos, num);
+}
+
+bool IntegerRelation::hasValues() const {
+  for (unsigned i = 0, e = getNumIds(); i < e; ++i)
+    if (atValue(i).hasValue())
+      return true;
+  return false;
 }

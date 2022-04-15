@@ -131,23 +131,13 @@ public:
   void removeIdRange(IdKind kind, unsigned idStart, unsigned idLimit);
 
   /// Returns true if both the spaces are compatible i.e. if both spaces have
-  /// the same number of identifiers of each kind (excluding locals) and
-  /// have the same values for each identifier (excluding locals).
-  bool isCompatible(const PresburgerSpace &other) const;
-
-  /// Returns true if both the spaces are compatible i.e. if both spaces have
   /// the same number of identifiers of each kind (excluding locals).
-  bool isCompatibleWithoutValues(const PresburgerSpace &other) const;
-
-  /// Returns true if both the spaces are equal including local identifiers i.e.
-  /// if both spaces have the same number of identifiers of each kind (including
-  /// locals) and have the same values for each identifer (excluding locals).
-  bool isEqual(const PresburgerSpace &other) const;
+  bool isCompatible(const PresburgerSpace &other) const;
 
   /// Returns true if both the spaces are equal including local identifiers i.e.
   /// if both spaces have the same number of identifiers of each kind (including
   /// locals).
-  bool isEqualWithoutValues(const PresburgerSpace &other) const;
+  bool isEqual(const PresburgerSpace &other) const;
 
   /// Changes the partition between dimensions and symbols. Depending on the new
   /// symbol count, either a chunk of dimensional identifiers immediately before

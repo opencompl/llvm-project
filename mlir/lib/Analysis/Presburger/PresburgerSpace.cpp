@@ -122,14 +122,6 @@ bool PresburgerSpace::isConsistent() const {
 
 bool PresburgerSpace::isCompatible(const PresburgerSpace &other) const {
   assert(isConsistent() && "Space must be consistent.");
-  return isCompatibleWithoutValues(other) &&
-         getMaybeValues().slice(0, getNumDimAndSymbolIds()) ==
-             other.getMaybeValues().slice(0, other.getNumDimAndSymbolIds());
-}
-
-bool PresburgerSpace::isCompatibleWithoutValues(
-    const PresburgerSpace &other) const {
-  assert(isConsistent() && "Space must be consistent.");
   return getNumDomainIds() == other.getNumDomainIds() &&
          getNumRangeIds() == other.getNumRangeIds() &&
          getNumSymbolIds() == other.getNumSymbolIds();
@@ -137,14 +129,7 @@ bool PresburgerSpace::isCompatibleWithoutValues(
 
 bool PresburgerSpace::isEqual(const PresburgerSpace &other) const {
   assert(isConsistent() && "Space must be consistent.");
-  return isEqualWithoutValues(other) &&
-         getMaybeValues() == other.getMaybeValues();
-}
-
-bool PresburgerSpace::isEqualWithoutValues(const PresburgerSpace &other) const {
-  assert(isConsistent() && "Space must be consistent.");
-  return isCompatibleWithoutValues(other) &&
-         getNumLocalIds() == other.getNumLocalIds();
+  return isCompatible(other) && getNumLocalIds() == other.getNumLocalIds();
 }
 
 void PresburgerSpace::setDimSymbolSeparation(unsigned newSymbolCount) {

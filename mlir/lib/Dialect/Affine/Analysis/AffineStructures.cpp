@@ -301,13 +301,6 @@ unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
   return absolutePos;
 }
 
-bool FlatAffineValueConstraints::hasValues() const {
-  for (unsigned i = 0, e = getNumIds(); i < e; ++i)
-    if (atValue(i).hasValue())
-      return true;
-  return false;
-}
-
 /// Checks if two constraint systems are in the same space, i.e., if they are
 /// associated with the same set of identifiers, appearing in the same order.
 static bool areIdsAligned(const FlatAffineValueConstraints &a,
@@ -1294,11 +1287,6 @@ bool FlatAffineValueConstraints::findId(Value val, unsigned *pos) const {
 bool FlatAffineValueConstraints::containsId(Value val) const {
   unsigned pos;
   return findId(val, &pos);
-}
-
-void FlatAffineValueConstraints::swapId(unsigned posA, unsigned posB) {
-  IntegerPolyhedron::swapId(posA, posB);
-  std::swap(atValue(posA), atValue(posB));
 }
 
 void FlatAffineValueConstraints::addBound(BoundType type, Value val,
