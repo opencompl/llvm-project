@@ -288,127 +288,6 @@ unsigned FlatAffineValueConstraints::insertSymbolId(unsigned pos,
   return insertId(IdKind::Symbol, pos, vals);
 }
 
-/// Checks if two constraint systems are in the same space, i.e., if they are
-/// associated with the same set of identifiers, appearing in the same order.
-static bool areIdsAligned(const FlatAffineValueConstraints &a,
-                          const FlatAffineValueConstraints &b) {
-  return a.getNumDimIds() == b.getNumDimIds() &&
-         a.getNumSymbolIds() == b.getNumSymbolIds() &&
-         a.getNumIds() == b.getNumIds() &&
-         a.getMaybeValues().equals(b.getMaybeValues());
-}
-
-/// Calls areIdsAligned to check if two constraint systems have the same set
-/// of identifiers in the same order.
-bool FlatAffineValueConstraints::areIdsAlignedWithOther(
-    const FlatAffineValueConstraints &other) {
-  return areIdsAligned(*this, other);
-}
-
-/// Checks if the SSA values associated with `cst`'s identifiers in range
-/// [start, end) are unique.
-static bool LLVM_ATTRIBUTE_UNUSED areIdsUnique(
-    const FlatAffineValueConstraints &cst, unsigned start, unsigned end) {
-
-  assert(start <= cst.getNumIds() && "Start position out of bounds");
-  assert(end <= cst.getNumIds() && "End position out of bounds");
-
-  if (start >= end)
-    return true;
-
-  SmallPtrSet<Value, 8> uniqueIds;
-  ArrayRef<Optional<Value>> maybeValues = cst.getMaybeValues();
-  for (Optional<Value> val : maybeValues) {
-    if (val.hasValue() && !uniqueIds.insert(val.getValue()).second)
-      return false;
-  }
-  return true;
-}
-
-/// Checks if the SSA values associated with `cst`'s identifiers are unique.
-static bool LLVM_ATTRIBUTE_UNUSED
-areIdsUnique(const FlatAffineValueConstraints &cst) {
-  return areIdsUnique(cst, 0, cst.getNumIds());
-}
-
-/// Checks if the SSA values associated with `cst`'s identifiers of kind `kind`
-/// are unique.
-static bool LLVM_ATTRIBUTE_UNUSED
-areIdsUnique(const FlatAffineValueConstraints &cst, IdKind kind) {
-
-  if (kind == IdKind::SetDim)
-    return areIdsUnique(cst, 0, cst.getNumDimIds());
-  if (kind == IdKind::Symbol)
-    return areIdsUnique(cst, cst.getNumDimIds(), cst.getNumDimAndSymbolIds());
-  if (kind == IdKind::Local)
-    return areIdsUnique(cst, cst.getNumDimAndSymbolIds(), cst.getNumIds());
-  llvm_unreachable("Unexpected IdKind");
-}
-
-/// Merge and align the identifiers of A and B starting at 'offset', so that
-/// both constraint systems get the union of the contained identifiers that is
-/// dimension-wise and symbol-wise unique; both constraint systems are updated
-/// so that they have the union of all identifiers, with A's original
-/// identifiers appearing first followed by any of B's identifiers that didn't
-/// appear in A. Local identifiers in B that have the same division
-/// representation as local identifiers in A are merged into one.
-//  E.g.: Input: A has ((%i, %j) [%M, %N]) and B has (%k, %j) [%P, %N, %M])
-//        Output: both A, B have (%i, %j, %k) [%M, %N, %P]
-static void mergeAndAlignIds(unsigned offset, FlatAffineValueConstraints *a,
-                             FlatAffineValueConstraints *b) {
-  assert(offset <= a->getNumDimIds() && offset <= b->getNumDimIds());
-  // A merge/align isn't meaningful if a cst's ids aren't distinct.
-  assert(areIdsUnique(*a) && "A's values aren't unique");
-  assert(areIdsUnique(*b) && "B's values aren't unique");
-
-  assert(std::all_of(a->getMaybeValues().begin() + offset,
-                     a->getMaybeValues().begin() + a->getNumDimAndSymbolIds(),
-                     [](Optional<Value> id) { return id.hasValue(); }));
-
-  assert(std::all_of(b->getMaybeValues().begin() + offset,
-                     b->getMaybeValues().begin() + b->getNumDimAndSymbolIds(),
-                     [](Optional<Value> id) { return id.hasValue(); }));
-
-  SmallVector<Value, 4> aDimValues;
-  a->getValues(offset, a->getNumDimIds(), &aDimValues);
-
-  {
-    // Merge dims from A into B.
-    unsigned d = offset;
-    for (auto aDimValue : aDimValues) {
-      unsigned loc;
-      if (b->findId(aDimValue, &loc)) {
-        assert(loc >= offset && "A's dim appears in B's aligned range");
-        assert(loc < b->getNumDimIds() &&
-               "A's dim appears in B's non-dim position");
-        b->swapId(d, loc);
-      } else {
-        b->insertDimId(d, aDimValue);
-      }
-      d++;
-    }
-    // Dimensions that are in B, but not in A, are added at the end.
-    for (unsigned t = a->getNumDimIds(), e = b->getNumDimIds(); t < e; t++) {
-      a->appendDimId(b->getValue(t));
-    }
-    assert(a->getNumDimIds() == b->getNumDimIds() &&
-           "expected same number of dims");
-  }
-
-  // Merge and align symbols of A and B
-  a->mergeSymbolIds(*b);
-  // Merge and align local ids of A and B
-  a->mergeLocalIds(*b);
-
-  assert(areIdsAligned(*a, *b) && "IDs expected to be aligned");
-}
-
-// Call 'mergeAndAlignIds' to align constraint systems of 'this' and 'other'.
-void FlatAffineValueConstraints::mergeAndAlignIdsWithOther(
-    unsigned offset, FlatAffineValueConstraints *other) {
-  mergeAndAlignIds(offset, this, other);
-}
-
 LogicalResult
 FlatAffineValueConstraints::composeMap(const AffineValueMap *vMap) {
   return composeMatchingMap(
@@ -625,7 +504,9 @@ void FlatAffineValueConstraints::addAffineIfOpDomain(AffineIfOp ifOp) {
   // Merge the constraints from ifOp to the current domain. We need first merge
   // and align the IDs from both constraints, and then append the constraints
   // from the ifOp into the current one.
-  mergeAndAlignIdsWithOther(0, &cst);
+  mergeIds(IdKind::SetDim, cst);
+  mergeIds(IdKind::Symbol, cst);
+  mergeLocalIds(cst);
   append(cst);
 }
 
@@ -1260,9 +1141,9 @@ LogicalResult FlatAffineValueConstraints::unionBoundingBox(
   assert(getNumLocalIds() == 0 && "local ids not supported yet here");
 
   // Align `other` to this.
-  if (!areIdsAligned(*this, otherCst)) {
+  if (!space.areIdsAlignedWithOther(otherCst.space)) {
     FlatAffineValueConstraints otherCopy(otherCst);
-    mergeAndAlignIds(/*offset=*/getNumDimIds(), this, &otherCopy);
+    mergeSymbolIds(otherCopy);
     return IntegerPolyhedron::unionBoundingBox(otherCopy);
   }
 

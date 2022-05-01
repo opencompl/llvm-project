@@ -327,26 +327,6 @@ public:
   LogicalResult unionBoundingBox(const FlatAffineValueConstraints &other);
   using IntegerPolyhedron::unionBoundingBox;
 
-  /// Merge and align the identifiers of `this` and `other` starting at
-  /// `offset`, so that both constraint systems get the union of the contained
-  /// identifiers that is dimension-wise and symbol-wise unique; both
-  /// constraint systems are updated so that they have the union of all
-  /// identifiers, with `this`'s original identifiers appearing first followed
-  /// by any of `other`'s identifiers that didn't appear in `this`. Local
-  /// identifiers in `other` that have the same division representation as local
-  /// identifiers in `this` are merged into one.
-  //  E.g.: Input: `this`  has (%i, %j) [%M, %N]
-  //               `other` has (%k, %j) [%P, %N, %M]
-  //        Output: both `this`, `other` have (%i, %j, %k) [%M, %N, %P]
-  //
-  void mergeAndAlignIdsWithOther(unsigned offset,
-                                 FlatAffineValueConstraints *other);
-
-  /// Returns true if this constraint system and `other` are in the same
-  /// space, i.e., if they are associated with the same set of identifiers,
-  /// appearing in the same order. Returns false otherwise.
-  bool areIdsAlignedWithOther(const FlatAffineValueConstraints &other);
-
 protected:
   using IdKind = presburger::IdKind;
 

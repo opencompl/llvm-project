@@ -871,7 +871,8 @@ mlir::computeSliceUnion(ArrayRef<Operation *> opsA, ArrayRef<Operation *> opsB,
       }
 
       // Align coordinate spaces of 'sliceUnionCst' and 'tmpSliceCst' if needed.
-      if (!sliceUnionCst.areIdsAlignedWithOther(tmpSliceCst)) {
+      if (!sliceUnionCst.getSpace().areIdsAlignedWithOther(
+              tmpSliceCst.getSpace())) {
 
         // Pre-constraint id alignment: record loop IVs used in each constraint
         // system.
@@ -882,7 +883,9 @@ mlir::computeSliceUnion(ArrayRef<Operation *> opsA, ArrayRef<Operation *> opsB,
         for (unsigned k = 0, l = tmpSliceCst.getNumDimIds(); k < l; ++k)
           tmpSliceIVs.insert(tmpSliceCst.getValue(k));
 
-        sliceUnionCst.mergeAndAlignIdsWithOther(/*offset=*/0, &tmpSliceCst);
+        sliceUnionCst.mergeIds(IdKind::SetDim, tmpSliceCst);
+        sliceUnionCst.mergeIds(IdKind::Symbol, tmpSliceCst);
+        sliceUnionCst.mergeLocalIds(tmpSliceCst);
 
         // Post-constraint id alignment: add loop IV bounds missing after
         // id alignment to constraint systems. This can occur if one constraint

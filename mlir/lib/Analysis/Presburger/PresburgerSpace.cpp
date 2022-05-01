@@ -197,3 +197,18 @@ bool LLVM_ATTRIBUTE_UNUSED PresburgerSpace::areIdsUnique(IdKind kind) {
 
   llvm_unreachable("Unexpected IdKind");
 }
+
+/// Checks if two constraint systems are in the same space, i.e., if they are
+/// associated with the same set of identifiers, appearing in the same order.
+static bool areIdsAligned(const PresburgerSpace &a, const PresburgerSpace &b) {
+  return a.getNumDimIds() == b.getNumDimIds() &&
+         a.getNumSymbolIds() == b.getNumSymbolIds() &&
+         a.getNumIds() == b.getNumIds() &&
+         a.getMaybeValues().equals(b.getMaybeValues());
+}
+
+/// Calls areIdsAligned to check if two constraint systems have the same set
+/// of identifiers in the same order.
+bool PresburgerSpace::areIdsAlignedWithOther(const PresburgerSpace &other) const {
+  return areIdsAligned(*this, other);
+}

@@ -152,6 +152,11 @@ public:
   bool LLVM_ATTRIBUTE_UNUSED areIdsUnique();
   bool LLVM_ATTRIBUTE_UNUSED areIdsUnique(IdKind kind);
 
+  /// Returns true if this constraint system and `other` are in the same
+  /// space, i.e., if they are associated with the same set of identifiers,
+  /// appearing in the same order. Returns false otherwise.
+  bool areIdsAlignedWithOther(const PresburgerSpace &other) const;
+
 protected:
   PresburgerSpace(unsigned numDomain = 0, unsigned numRange = 0,
                   unsigned numSymbols = 0, unsigned numLocals = 0)
