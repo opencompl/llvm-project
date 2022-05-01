@@ -148,6 +148,10 @@ public:
   void print(llvm::raw_ostream &os) const;
   void dump() const;
 
+  bool LLVM_ATTRIBUTE_UNUSED areIdsUnique(unsigned start, unsigned end);
+  bool LLVM_ATTRIBUTE_UNUSED areIdsUnique();
+  bool LLVM_ATTRIBUTE_UNUSED areIdsUnique(IdKind kind);
+
 protected:
   PresburgerSpace(unsigned numDomain = 0, unsigned numRange = 0,
                   unsigned numSymbols = 0, unsigned numLocals = 0)

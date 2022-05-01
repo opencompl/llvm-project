@@ -288,19 +288,6 @@ unsigned FlatAffineValueConstraints::insertSymbolId(unsigned pos,
   return insertId(IdKind::Symbol, pos, vals);
 }
 
-unsigned FlatAffineValueConstraints::insertId(IdKind kind, unsigned pos,
-                                              ValueRange vals) {
-  assert(!vals.empty() && "expected ValueRange with Values");
-  unsigned num = vals.size();
-  unsigned absolutePos = IntegerPolyhedron::insertId(kind, pos, num);
-
-  // If a Value is provided, insert it; otherwise use None.
-  for (unsigned i = 0; i < num; ++i)
-    atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
-
-  return absolutePos;
-}
-
 /// Checks if two constraint systems are in the same space, i.e., if they are
 /// associated with the same set of identifiers, appearing in the same order.
 static bool areIdsAligned(const FlatAffineValueConstraints &a,
@@ -487,45 +474,6 @@ static void turnSymbolIntoDim(FlatAffineValueConstraints *cst, Value id) {
     cst->swapId(pos, cst->getNumDimIds());
     cst->setDimSymbolSeparation(cst->getNumSymbolIds() - 1);
   }
-}
-
-/// Merge and align symbols of `this` and `other` such that both get union of
-/// of symbols that are unique. Symbols in `this` and `other` should be
-/// unique. Symbols with Value as `None` are considered to be inequal to all
-/// other symbols.
-void FlatAffineValueConstraints::mergeSymbolIds(
-    FlatAffineValueConstraints &other) {
-
-  assert(areIdsUnique(*this, IdKind::Symbol) && "Symbol ids are not unique");
-  assert(areIdsUnique(other, IdKind::Symbol) && "Symbol ids are not unique");
-
-  SmallVector<Value, 4> aSymValues;
-  getValues(getNumDimIds(), getNumDimAndSymbolIds(), &aSymValues);
-
-  // Merge symbols: merge symbols into `other` first from `this`.
-  unsigned s = other.getNumDimIds();
-  for (Value aSymValue : aSymValues) {
-    unsigned loc;
-    // If the id is a symbol in `other`, then align it, otherwise assume that
-    // it is a new symbol
-    if (other.findId(aSymValue, &loc) && loc >= other.getNumDimIds() &&
-        loc < other.getNumDimAndSymbolIds())
-      other.swapId(s, loc);
-    else
-      other.insertSymbolId(s - other.getNumDimIds(), aSymValue);
-    s++;
-  }
-
-  // Symbols that are in other, but not in this, are added at the end.
-  for (unsigned t = other.getNumDimIds() + getNumSymbolIds(),
-                e = other.getNumDimAndSymbolIds();
-       t < e; t++)
-    insertSymbolId(getNumSymbolIds(), other.getValue(t));
-
-  assert(getNumSymbolIds() == other.getNumSymbolIds() &&
-         "expected same number of symbols");
-  assert(areIdsUnique(*this, IdKind::Symbol) && "Symbol ids are not unique");
-  assert(areIdsUnique(other, IdKind::Symbol) && "Symbol ids are not unique");
 }
 
 // Changes all symbol identifiers which are loop IVs to dim identifiers.
@@ -1270,23 +1218,6 @@ LogicalResult FlatAffineValueConstraints::addSliceBounds(
     }
   }
   return success();
-}
-
-bool FlatAffineValueConstraints::findId(Value val, unsigned *pos) const {
-  for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
-    const Optional<Value> &spaceVal = atValue(i);
-    if (spaceVal.hasValue() && spaceVal.getValue() == val) {
-      *pos = i;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool FlatAffineValueConstraints::containsId(Value val) const {
-  unsigned pos;
-  return findId(val, &pos);
 }
 
 void FlatAffineValueConstraints::addBound(BoundType type, Value val,

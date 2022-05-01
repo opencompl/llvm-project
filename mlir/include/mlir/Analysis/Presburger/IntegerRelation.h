@@ -19,6 +19,7 @@
 #include "mlir/Analysis/Presburger/Matrix.h"
 #include "mlir/Analysis/Presburger/PresburgerSpace.h"
 #include "mlir/Analysis/Presburger/Utils.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
@@ -261,6 +262,33 @@ public:
   ///                     /Values
   /// ---------------------------------------------------------------
 
+  /// ---------------------------------------------------------------
+  ///                     Value interaction
+  /// ---------------------------------------------------------------
+
+  /// Looks up the position of the identifier with the specified Value. Returns
+  /// true if found (false otherwise). `pos` is set to the (column) position of
+  /// the identifier.
+  bool findId(Value val, unsigned *pos) const;
+
+  /// Returns true if an identifier with the specified Value exists, false
+  /// otherwise.
+  bool containsId(Value val) const;
+
+  /// Merge and align symbols of `this` and `other` such that both get union of
+  /// of symbols that are unique. Symbols in `this` and `other` should be
+  /// unique. Symbols with Value as `None` are considered to be inequal to all
+  /// other symbols.
+  void mergeIds(IdKind kind, IntegerRelation &other);
+
+  void mergeSymbolIds(IntegerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+  }
+
+  /// ---------------------------------------------------------------
+  ///                     /Value interaction
+  /// ---------------------------------------------------------------
+
   /// The struct CountsSnapshot stores the count of each IdKind, and also of
   /// each constraint type. getCounts() returns a CountsSnapshot object
   /// describing the current state of the IntegerRelation. truncate() truncates
@@ -291,6 +319,7 @@ public:
   /// absolute column position (i.e., not relative to the kind of identifier)
   /// of the first added identifier.
   virtual unsigned insertId(IdKind kind, unsigned pos, unsigned num = 1);
+  unsigned insertId(IdKind kind, unsigned pos, ValueRange vals);
 
   /// Append `num` identifiers of the specified kind after the last identifier.
   /// of that kind. Return the position of the first appended column relative to
@@ -739,6 +768,7 @@ public:
   /// column position (i.e., not relative to the kind of identifier) of the
   /// first added identifier.
   unsigned insertId(IdKind kind, unsigned pos, unsigned num = 1) override;
+  using IntegerRelation::insertId;
 
   /// Compute the symbolic integer lexmin of the polyhedron.
   /// This finds, for every assignment to the symbols, the lexicographically

@@ -20,6 +20,8 @@
 #include "mlir/Analysis/Presburger/Utils.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Debug.h"
 
 #define DEBUG_TYPE "presburger"
@@ -2115,4 +2117,71 @@ bool IntegerRelation::hasValues() const {
     if (atValue(i).hasValue())
       return true;
   return false;
+}
+
+bool IntegerRelation::findId(Value val, unsigned *pos) const {
+  for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
+    const Optional<Value> &spaceVal = atValue(i);
+    if (spaceVal.hasValue() && spaceVal.getValue() == val) {
+      *pos = i;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool IntegerRelation::containsId(Value val) const {
+  unsigned pos;
+  return findId(val, &pos);
+}
+
+unsigned IntegerRelation::insertId(IdKind kind, unsigned pos, ValueRange vals) {
+  assert(!vals.empty() && "expected ValueRange with Values");
+  unsigned num = vals.size();
+  unsigned absolutePos = insertId(kind, pos, num);
+
+  // If a Value is provided, insert it; otherwise use None.
+  for (unsigned i = 0; i < num; ++i)
+    atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
+
+  return absolutePos;
+}
+
+/// Merge and align symbols of `this` and `other` such that both get union of
+/// of symbols that are unique. Symbols in `this` and `other` should be
+/// unique. Symbols with Value as `None` are considered to be inequal to all
+/// other symbols.
+void IntegerRelation::mergeIds(IdKind kind, IntegerRelation &other) {
+
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+
+  SmallVector<Value, 4> aValues;
+  getValues(getIdKindOffset(kind), getIdKindEnd(kind), &aValues);
+
+  // Merge ids: merge ids into `other` first from `this`.
+  unsigned s = other.getIdKindOffset(kind);
+  for (Value aValue : aValues) {
+    unsigned loc;
+    // If the id is a symbol in `other`, then align it, otherwise assume that
+    // it is a new symbol
+    if (other.findId(aValue, &loc) && loc >= other.getIdKindOffset(kind) &&
+        loc < other.getIdKindEnd(kind))
+      other.swapId(s, loc);
+    else
+      other.insertId(kind, s - other.getIdKindOffset(kind), aValue);
+    s++;
+  }
+
+  // Symbols that are in other, but not in this, are added at the end.
+  for (unsigned t = other.getIdKindOffset(kind) + getNumIdKind(kind),
+                e = other.getIdKindEnd(kind);
+       t < e; t++)
+    insertId(kind, getNumIdKind(kind), other.getValue(t));
+
+  assert(getNumIdKind(kind) == other.getNumIdKind(kind) &&
+         "expected same number of symbols");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
 }

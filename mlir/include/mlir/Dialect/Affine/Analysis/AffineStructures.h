@@ -238,15 +238,6 @@ public:
                                ArrayRef<AffineMap> ubMaps,
                                ArrayRef<Value> operands);
 
-  /// Looks up the position of the identifier with the specified Value. Returns
-  /// true if found (false otherwise). `pos` is set to the (column) position of
-  /// the identifier.
-  bool findId(Value val, unsigned *pos) const;
-
-  /// Returns true if an identifier with the specified Value exists, false
-  /// otherwise.
-  bool containsId(Value val) const;
-
   /// Insert identifiers of the specified kind at position `pos`. Positions are
   /// relative to the kind of identifier. The coefficient columns corresponding
   /// to the added identifiers are initialized to zero. `vals` are the Values
@@ -266,8 +257,6 @@ public:
   }
   unsigned insertDimId(unsigned pos, ValueRange vals);
   unsigned insertSymbolId(unsigned pos, ValueRange vals);
-  unsigned insertId(presburger::IdKind kind, unsigned pos, ValueRange vals);
-  using IntegerPolyhedron::insertId;
 
   /// Append identifiers of the specified kind after the last identifier of that
   /// kind. The coefficient columns corresponding to the added identifiers are
@@ -357,12 +346,6 @@ public:
   /// space, i.e., if they are associated with the same set of identifiers,
   /// appearing in the same order. Returns false otherwise.
   bool areIdsAlignedWithOther(const FlatAffineValueConstraints &other);
-
-  /// Merge and align symbols of `this` and `other` such that both get union of
-  /// of symbols that are unique. Symbols in `this` and `other` should be
-  /// unique. Symbols with Value as `None` are considered to be inequal to all
-  /// other symbols.
-  void mergeSymbolIds(FlatAffineValueConstraints &other);
 
 protected:
   using IdKind = presburger::IdKind;

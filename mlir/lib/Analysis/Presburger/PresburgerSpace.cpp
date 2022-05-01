@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Analysis/Presburger/PresburgerSpace.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include <algorithm>
 #include <cassert>
 
@@ -149,3 +150,50 @@ void PresburgerSpace::print(llvm::raw_ostream &os) const {
 }
 
 void PresburgerSpace::dump() const { print(llvm::errs()); }
+
+/// Checks if the SSA values associated with `cst`'s identifiers in range
+/// [start, end) are unique.
+bool LLVM_ATTRIBUTE_UNUSED PresburgerSpace::areIdsUnique(unsigned start,
+                                                         unsigned end) {
+
+  assert(start <= getNumIds() && "Start position out of bounds");
+  assert(end <= getNumIds() && "End position out of bounds");
+
+  if (start >= end)
+    return true;
+
+  SmallPtrSet<Value, 8> uniqueIds;
+  ArrayRef<Optional<Value>> maybeValues = getMaybeValues();
+  for (Optional<Value> val : maybeValues) {
+    if (val.hasValue() && !uniqueIds.insert(val.getValue()).second)
+      return false;
+  }
+  return true;
+}
+
+/// Checks if the SSA values associated with `cst`'s identifiers are unique.
+bool LLVM_ATTRIBUTE_UNUSED PresburgerSpace::areIdsUnique() {
+  return areIdsUnique(0, getNumIds());
+}
+
+/// Checks if the SSA values associated with `cst`'s identifiers of kind `kind`
+/// are unique.
+bool LLVM_ATTRIBUTE_UNUSED PresburgerSpace::areIdsUnique(IdKind kind) {
+
+  switch (kind) {
+  case IdKind::Domain:
+    return areIdsUnique(getIdKindOffset(IdKind::Domain),
+                        getIdKindEnd(IdKind::Domain));
+  case IdKind::Range:
+    return areIdsUnique(getIdKindOffset(IdKind::Range),
+                        getIdKindEnd(IdKind::Range));
+  case IdKind::Symbol:
+    return areIdsUnique(getIdKindOffset(IdKind::Symbol),
+                        getIdKindEnd(IdKind::Symbol));
+  case IdKind::Local:
+    return areIdsUnique(getIdKindOffset(IdKind::Local),
+                        getIdKindEnd(IdKind::Local));
+  }
+
+  llvm_unreachable("Unexpected IdKind");
+}
