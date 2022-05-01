@@ -209,6 +209,24 @@ static bool areIdsAligned(const PresburgerSpace &a, const PresburgerSpace &b) {
 
 /// Calls areIdsAligned to check if two constraint systems have the same set
 /// of identifiers in the same order.
-bool PresburgerSpace::areIdsAlignedWithOther(const PresburgerSpace &other) const {
+bool PresburgerSpace::areIdsAlignedWithOther(
+    const PresburgerSpace &other) const {
   return areIdsAligned(*this, other);
+}
+
+bool PresburgerSpace::findId(Value val, unsigned *pos) const {
+  for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
+    const Optional<Value> &spaceVal = atValue(i);
+    if (spaceVal.hasValue() && spaceVal.getValue() == val) {
+      *pos = i;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool PresburgerSpace::containsId(Value val) const {
+  unsigned pos;
+  return findId(val, &pos);
 }

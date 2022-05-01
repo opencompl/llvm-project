@@ -157,6 +157,15 @@ public:
   /// appearing in the same order. Returns false otherwise.
   bool areIdsAlignedWithOther(const PresburgerSpace &other) const;
 
+  /// Looks up the position of the identifier with the specified Value. Returns
+  /// true if found (false otherwise). `pos` is set to the (column) position of
+  /// the identifier.
+  bool findId(Value val, unsigned *pos) const;
+
+  /// Returns true if an identifier with the specified Value exists, false
+  /// otherwise.
+  bool containsId(Value val) const;
+
 protected:
   PresburgerSpace(unsigned numDomain = 0, unsigned numRange = 0,
                   unsigned numSymbols = 0, unsigned numLocals = 0)

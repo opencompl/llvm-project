@@ -2119,23 +2119,6 @@ bool IntegerRelation::hasValues() const {
   return false;
 }
 
-bool IntegerRelation::findId(Value val, unsigned *pos) const {
-  for (unsigned i = 0, e = getNumIds(); i < e; ++i) {
-    const Optional<Value> &spaceVal = atValue(i);
-    if (spaceVal.hasValue() && spaceVal.getValue() == val) {
-      *pos = i;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool IntegerRelation::containsId(Value val) const {
-  unsigned pos;
-  return findId(val, &pos);
-}
-
 unsigned IntegerRelation::insertId(IdKind kind, unsigned pos, ValueRange vals) {
   assert(!vals.empty() && "expected ValueRange with Values");
   unsigned num = vals.size();
@@ -2153,7 +2136,6 @@ unsigned IntegerRelation::insertId(IdKind kind, unsigned pos, ValueRange vals) {
 /// unique. Symbols with Value as `None` are considered to be inequal to all
 /// other symbols.
 void IntegerRelation::mergeIds(IdKind kind, IntegerRelation &other) {
-
   assert(space.areIdsUnique(kind) && "ids are not unique");
   assert(space.areIdsUnique(kind) && "ids are not unique");
 

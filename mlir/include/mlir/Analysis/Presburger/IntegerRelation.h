@@ -269,11 +269,11 @@ public:
   /// Looks up the position of the identifier with the specified Value. Returns
   /// true if found (false otherwise). `pos` is set to the (column) position of
   /// the identifier.
-  bool findId(Value val, unsigned *pos) const;
+  bool findId(Value val, unsigned *pos) const { return space.findId(val, pos); }
 
   /// Returns true if an identifier with the specified Value exists, false
   /// otherwise.
-  bool containsId(Value val) const;
+  bool containsId(Value val) const { return space.containsId(val); }
 
   /// Merge and align symbols of `this` and `other` such that both get union of
   /// of symbols that are unique. Symbols in `this` and `other` should be

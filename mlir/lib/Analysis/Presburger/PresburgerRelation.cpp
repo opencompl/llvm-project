@@ -802,3 +802,113 @@ PresburgerSet PresburgerSet::subtract(const PresburgerRelation &set) const {
 PresburgerSet PresburgerSet::coalesce() const {
   return PresburgerSet(PresburgerRelation::coalesce());
 }
+
+/// Merge and align symbols of `this` and `other` such that both get union of
+/// of symbols that are unique. Symbols in `this` and `other` should be
+/// unique. Symbols with Value as `None` are considered to be inequal to all
+/// other symbols.
+void PresburgerRelation::mergeIds(IdKind kind, PresburgerRelation &other) {
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+
+  SmallVector<Value, 4> aValues;
+  getValues(getIdKindOffset(kind), getIdKindEnd(kind), &aValues);
+
+  // Merge ids: merge ids into `other` first from `this`.
+  unsigned s = other.getIdKindOffset(kind);
+  for (Value aValue : aValues) {
+    unsigned loc;
+    // If the id is a symbol in `other`, then align it, otherwise assume that
+    // it is a new symbol
+    if (other.findId(aValue, &loc) && loc >= other.getIdKindOffset(kind) &&
+        loc < other.getIdKindEnd(kind))
+      other.swapId(s, loc);
+    else
+      other.insertId(kind, s - other.getIdKindOffset(kind), aValue);
+    s++;
+  }
+
+  // Symbols that are in other, but not in this, are added at the end.
+  for (unsigned t = other.getIdKindOffset(kind) + getNumIdKind(kind),
+                e = other.getIdKindEnd(kind);
+       t < e; t++)
+    insertId(kind, getNumIdKind(kind), other.getValue(t));
+
+  assert(getNumIdKind(kind) == other.getNumIdKind(kind) &&
+         "expected same number of symbols");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
+}
+
+/// Merge and align symbols of `this` and `other` such that both get union of
+/// of symbols that are unique. Symbols in `this` and `other` should be
+/// unique. Symbols with Value as `None` are considered to be inequal to all
+/// other symbols.
+void PresburgerRelation::mergeIds(IdKind kind, IntegerRelation &other) {
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+  assert(space.areIdsUnique(kind) && "ids are not unique");
+
+  SmallVector<Value, 4> aValues;
+  getValues(getIdKindOffset(kind), getIdKindEnd(kind), &aValues);
+
+  // Merge ids: merge ids into `other` first from `this`.
+  unsigned s = other.getIdKindOffset(kind);
+  for (Value aValue : aValues) {
+    unsigned loc;
+    // If the id is a symbol in `other`, then align it, otherwise assume that
+    // it is a new symbol
+    if (other.findId(aValue, &loc) && loc >= other.getIdKindOffset(kind) &&
+        loc < other.getIdKindEnd(kind))
+      other.swapId(s, loc);
+    else
+      other.insertId(kind, s - other.getIdKindOffset(kind), aValue);
+    s++;
+  }
+
+  // Symbols that are in other, but not in this, are added at the end.
+  for (unsigned t = other.getIdKindOffset(kind) + getNumIdKind(kind),
+                e = other.getIdKindEnd(kind);
+       t < e; t++)
+    insertId(kind, getNumIdKind(kind), other.getValue(t));
+
+  assert(getNumIdKind(kind) == other.getNumIdKind(kind) &&
+         "expected same number of symbols");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
+  assert(space.areIdsUnique(kind) && "Symbol ids are not unique");
+}
+
+void PresburgerRelation::swapId(unsigned posA, unsigned posB) {
+  assert(posA < getNumIds() && "invalid position A");
+  assert(posB < getNumIds() && "invalid position B");
+
+  if (posA == posB)
+    return;
+
+  std::swap(atValue(posA), atValue(posB));
+  for (auto &disjunct : disjuncts)
+    disjunct.swapId(posA, posB);
+}
+
+unsigned PresburgerRelation::insertId(IdKind kind, unsigned pos, unsigned num) {
+  assert(pos <= getNumIdKind(kind));
+
+  unsigned insertPos = space.insertId(kind, pos, num);
+  for (auto &disjunct : disjuncts)
+    disjunct.insertId(kind, pos, num);
+
+  return insertPos;
+}
+
+unsigned PresburgerRelation::insertId(IdKind kind, unsigned pos,
+                                      ValueRange vals) {
+  assert(!vals.empty() && "expected ValueRange with Values");
+
+  unsigned num = vals.size();
+  unsigned absolutePos = insertId(kind, pos, num);
+
+  // If a Value is provided, insert it; otherwise use None.
+  for (unsigned i = 0; i < num; ++i)
+    atValue(absolutePos + i) = vals[i] ? Optional<Value>(vals[i]) : None;
+
+  return absolutePos;
+}

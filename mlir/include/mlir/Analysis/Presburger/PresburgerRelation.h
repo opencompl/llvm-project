@@ -121,6 +121,137 @@ public:
   void print(raw_ostream &os) const;
   void dump() const;
 
+  /// Get the number of ids of the specified kind.
+  unsigned getNumIdKind(IdKind kind) const { return space.getNumIdKind(kind); };
+
+  /// Return the index at which the specified kind of id starts.
+  unsigned getIdKindOffset(IdKind kind) const {
+    return space.getIdKindOffset(kind);
+  };
+
+  /// Return the index at Which the specified kind of id ends.
+  unsigned getIdKindEnd(IdKind kind) const { return space.getIdKindEnd(kind); };
+
+  /// Get the number of elements of the specified kind in the range
+  /// [idStart, idLimit).
+  unsigned getIdKindOverlap(IdKind kind, unsigned idStart,
+                            unsigned idLimit) const {
+    return space.getIdKindOverlap(kind, idStart, idLimit);
+  };
+
+  /// Return the IdKind of the id at the specified position.
+  IdKind getIdKindAt(unsigned pos) const { return space.getIdKindAt(pos); };
+
+  /// ---------------------------------------------------------------
+  ///                     Values
+  /// ---------------------------------------------------------------
+
+  Optional<Value> &atValue(unsigned pos) { return space.atValue(pos); }
+  const Optional<Value> &atValue(unsigned pos) const {
+    return space.atValue(pos);
+  }
+
+  /// Returns the Value associated with the pos^th identifier. Asserts if
+  /// no Value identifier was associated.
+  inline Value getValue(unsigned pos) const {
+    assert(hasValue(pos) && "identifier's Value not set");
+    return atValue(pos).getValue();
+  }
+
+  /// Returns true if the pos^th identifier has an associated Value.
+  inline bool hasValue(unsigned pos) const { return atValue(pos).hasValue(); }
+
+  /// Returns true if at least one identifier has an associated Value.
+  bool hasValues() const;
+
+  /// Returns the Values associated with identifiers in range [start, end).
+  /// Asserts if no Value was associated with one of these identifiers.
+  inline void getValues(unsigned start, unsigned end,
+                        SmallVectorImpl<Value> *values) const {
+    assert((start < getNumIds() || start == end) && "invalid start position");
+    assert(end <= getNumIds() && "invalid end position");
+    values->clear();
+    values->reserve(end - start);
+    for (unsigned i = start; i < end; i++)
+      values->push_back(getValue(i));
+  }
+  inline void getAllValues(SmallVectorImpl<Value> *values) const {
+    getValues(0, getNumIds(), values);
+  }
+
+  inline ArrayRef<Optional<Value>> getMaybeValues() const {
+    return space.getMaybeValues();
+  }
+
+  inline ArrayRef<Optional<Value>> getMaybeDimValues() const {
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
+                                  space.getNumIdKind(IdKind::SetDim));
+  }
+
+  inline ArrayRef<Optional<Value>> getMaybeSymbolValues() const {
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::Symbol),
+                                  space.getNumIdKind(IdKind::Symbol));
+  }
+
+  inline ArrayRef<Optional<Value>> getMaybeDimAndSymbolValues() const {
+    return getMaybeValues().slice(space.getIdKindOffset(IdKind::SetDim),
+                                  space.getNumDimAndSymbolIds());
+  }
+
+  /// Sets the Value associated with the pos^th identifier.
+  inline void setValue(unsigned pos, Value val) {
+    assert(pos < getNumIds() && "invalid id position");
+    atValue(pos) = val;
+  }
+
+  /// Sets the Values associated with the identifiers in the range [start, end).
+  void setValues(unsigned start, unsigned end, ArrayRef<Value> values) {
+    assert((start < getNumIds() || end == start) && "invalid start position");
+    assert(end <= getNumIds() && "invalid end position");
+    assert(values.size() == end - start);
+    for (unsigned i = start; i < end; ++i)
+      setValue(i, values[i - start]);
+  }
+
+  /// ---------------------------------------------------------------
+  ///                     /Values
+  /// ---------------------------------------------------------------
+
+  /// ---------------------------------------------------------------
+  ///                     Value interaction
+  /// ---------------------------------------------------------------
+
+  /// Looks up the position of the identifier with the specified Value. Returns
+  /// true if found (false otherwise). `pos` is set to the (column) position of
+  /// the identifier.
+  bool findId(Value val, unsigned *pos) const { return space.findId(val, pos); }
+
+  /// Returns true if an identifier with the specified Value exists, false
+  /// otherwise.
+  bool containsId(Value val) const { return space.containsId(val); }
+
+  /// Merge and align symbols of `this` and `other` such that both get union of
+  /// of symbols that are unique. Symbols in `this` and `other` should be
+  /// unique. Symbols with Value as `None` are considered to be inequal to all
+  /// other symbols.
+  void mergeIds(IdKind kind, PresburgerRelation &other);
+  void mergeIds(IdKind kind, IntegerRelation &other);
+
+  /// ---------------------------------------------------------------
+  ///                     /Value interaction
+  /// ---------------------------------------------------------------
+
+  /// Insert `num` identifiers of the specified kind at position `pos`.
+  /// Positions are relative to the kind of identifier. The coefficient columns
+  /// corresponding to the added identifiers are initialized to zero. Return the
+  /// absolute column position (i.e., not relative to the kind of identifier)
+  /// of the first added identifier.
+  unsigned insertId(IdKind kind, unsigned pos, unsigned num = 1);
+  unsigned insertId(IdKind kind, unsigned pos, ValueRange vals);
+
+  /// Swap the posA^th identifier with the posB^th identifier.
+  void swapId(unsigned posA, unsigned posB);
+
 protected:
   /// Construct an empty PresburgerRelation with the specified number of
   /// dimension and symbols.
