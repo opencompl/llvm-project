@@ -25,6 +25,8 @@
 namespace mlir {
 namespace presburger {
 
+class PresburgerRelation;
+
 /// An IntegerRelation represents the set of points from a PresburgerSpace that
 /// satisfy a list of affine constraints. Affine constraints can be inequalities
 /// or equalities in the form:
@@ -556,6 +558,8 @@ public:
   /// in the polytope and C is the number of constraints, the algorithm takes
   /// O(VC) time.
   void removeRedundantConstraints();
+  void removeRedundantConstraints(const IntegerRelation &cst);
+  void removeRedundantConstraints(const PresburgerRelation &cst);
 
   void removeDuplicateDivs();
 

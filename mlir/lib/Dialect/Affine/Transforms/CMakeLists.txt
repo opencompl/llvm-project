@@ -11,6 +11,7 @@ add_mlir_dialect_library(MLIRAffineTransforms
   LoopUnrollAndJam.cpp
   PipelineDataTransfer.cpp
   SuperVectorize.cpp
+  SimplifyAffineIf.cpp
   SimplifyAffineStructures.cpp
 
   ADDITIONAL_HEADER_DIRS

@@ -398,4 +398,9 @@ def SimplifyAffineStructures : Pass<"affine-simplify-structures", "func::FuncOp"
   let constructor = "mlir::createSimplifyAffineStructuresPass()";
 }
 
+def SimplifyAffineIf : Pass<"affine-simplify-if", "func::FuncOp"> {
+  let summary = "Simplify if conditions using for/if conditions surrounding it";
+  let constructor = "mlir::createSimplifyAffineIfPass()";
+}
+
 #endif // MLIR_DIALECT_AFFINE_PASSES

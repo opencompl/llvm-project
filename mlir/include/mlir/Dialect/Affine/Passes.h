@@ -34,6 +34,11 @@ enum FusionMode { Greedy, ProducerConsumer, Sibling };
 std::unique_ptr<OperationPass<func::FuncOp>>
 createSimplifyAffineStructuresPass();
 
+/// Creates a simplification pass for affine if operations which simplifies
+/// conditions based on outer loop conditions.
+std::unique_ptr<OperationPass<func::FuncOp>>
+createSimplifyAffineIfPass();
+
 /// Creates a loop invariant code motion pass that hoists loop invariant
 /// operations out of affine loops.
 std::unique_ptr<OperationPass<func::FuncOp>>

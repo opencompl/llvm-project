@@ -1012,6 +1012,46 @@ void IntegerRelation::removeRedundantConstraints() {
   equalities.resizeVertically(pos);
 }
 
+void IntegerRelation::removeRedundantConstraints(const IntegerRelation &cst) {
+  IntegerRelation tmp = cst;
+  mergeLocalIds(tmp);
+
+  IntegerRelation intersectTest = *this;
+  intersectTest.append(cst);
+  if (intersectTest.isIntegerEmpty()) {
+    equalities.resizeVertically(0);
+    inequalities.resizeVertically(0);
+    SmallVector<int64_t, 8> ineq(getNumCols());
+    ineq.back() = -1;
+    addInequality(ineq);
+    return;
+  }
+
+  Simplex simplex(tmp);
+
+  for (unsigned i = 0; i < getNumInequalities();) {
+    if (simplex.findIneqType(getInequality(i)) == Simplex::IneqType::Redundant)
+      removeInequality(i);
+    else
+      ++i;
+  }
+
+  for (unsigned i = 0; i < getNumEqualities();) {
+    if (simplex.findIneqType(getEquality(i)) == Simplex::IneqType::Redundant &&
+        simplex.findIneqType(getNegatedCoeffs(getEquality(i))) ==
+            Simplex::IneqType::Redundant)
+      removeEquality(i);
+    else
+      ++i;
+  }
+}
+
+void IntegerRelation::removeRedundantConstraints(
+    const PresburgerRelation &cst) {
+  for (const auto &disjunct : cst.getAllDisjuncts())
+    removeRedundantConstraints(disjunct);
+}
+
 Optional<uint64_t> IntegerRelation::computeVolume() const {
   assert(getNumSymbolIds() == 0 && "Symbols are not yet supported!");
 
