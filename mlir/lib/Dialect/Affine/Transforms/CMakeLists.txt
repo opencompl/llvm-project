@@ -4,6 +4,7 @@ add_mlir_dialect_library(MLIRAffineTransforms
   AffineLoopNormalize.cpp
   AffineParallelize.cpp
   AffineScalarReplacement.cpp
+  CoalesceMemRefs.cpp
   LoopCoalescing.cpp
   LoopFusion.cpp
   LoopTiling.cpp

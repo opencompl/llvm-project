@@ -403,4 +403,9 @@ def SimplifyAffineIf : Pass<"affine-simplify-if", "func::FuncOp"> {
   let constructor = "mlir::createSimplifyAffineIfPass()";
 }
 
+def CoalesceMemRefs : Pass<"affine-coalesce-memrefs", "func::FuncOp"> {
+  let summary = "Coalesce sharded memrefs";
+  let constructor = "mlir::createCoalesceMemRefsPass()";
+}
+
 #endif // MLIR_DIALECT_AFFINE_PASSES

@@ -2,10 +2,13 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/IR/IntegerSet.h"
 
+#ifndef MLIR_DIALECT_AFFINE_ANALYSIS_AFFINEFLATTENERS_H
+#define MLIR_DIALECT_AFFINE_ANALYSIS_AFFINEFLATTENERS_H
+
 namespace mlir {
 namespace presburger {
 
-LogicalResult addAffineForOpDomain(IntegerPolyhedron &cst, AffineForOp forOp) {
+inline LogicalResult addAffineForOpDomain(IntegerPolyhedron &cst, AffineForOp forOp) {
   FlatAffineValueConstraints tmp(cst);
 
   if (failed(tmp.addAffineForOpDomain(forOp)))
@@ -15,7 +18,7 @@ LogicalResult addAffineForOpDomain(IntegerPolyhedron &cst, AffineForOp forOp) {
   return success();
 }
 
-LogicalResult addAffineIfOpDomain(IntegerPolyhedron &cst, AffineIfOp ifOp) {
+inline LogicalResult addAffineIfOpDomain(IntegerPolyhedron &cst, AffineIfOp ifOp) {
   FlatAffineValueConstraints tmp(cst);
 
   tmp.addAffineIfOpDomain(ifOp);
@@ -24,7 +27,7 @@ LogicalResult addAffineIfOpDomain(IntegerPolyhedron &cst, AffineIfOp ifOp) {
   return success();
 }
 
-IntegerSet presburgerToIntegerSet(IntegerPolyhedron &cst, MLIRContext *ctx) {
+inline IntegerSet presburgerToIntegerSet(IntegerPolyhedron &cst, MLIRContext *ctx) {
   FlatAffineValueConstraints tmp(cst);
   return tmp.getAsIntegerSet(ctx);
 }
@@ -32,3 +35,4 @@ IntegerSet presburgerToIntegerSet(IntegerPolyhedron &cst, MLIRContext *ctx) {
 } // namespace presburger
 } // namespace mlir
 
+#endif // MLIR_DIALECT_AFFINE_ANALYSIS_AFFINEFLATTENERS_H

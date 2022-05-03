@@ -39,6 +39,9 @@ createSimplifyAffineStructuresPass();
 std::unique_ptr<OperationPass<func::FuncOp>>
 createSimplifyAffineIfPass();
 
+std::unique_ptr<OperationPass<func::FuncOp>>
+createCoalesceMemRefsPass();
+
 /// Creates a loop invariant code motion pass that hoists loop invariant
 /// operations out of affine loops.
 std::unique_ptr<OperationPass<func::FuncOp>>
