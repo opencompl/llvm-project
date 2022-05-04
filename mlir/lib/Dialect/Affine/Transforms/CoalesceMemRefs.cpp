@@ -61,11 +61,28 @@ void CoalesceMemRefs::runOnOperation() {
     }
   }
 
+  if (subviews.empty())
+    return;
+
+  // Get the source meref.
+  auto sourceMemref = subviews[0].getSourceType();
+
+  // Build space of source memref as a set.
+  IntegerPolyhedron sourceSet(
+      PresburgerSpace::getSetSpace(sourceMemref.getRank()));
+  for (unsigned i = 0, e = sourceMemref.getRank(); i < e; ++i) {
+    sourceSet.addBound(IntegerPolyhedron::BoundType::LB, i, 0);
+    sourceSet.addBound(IntegerPolyhedron::BoundType::UB, i,
+                       sourceMemref.getDimSize(i));
+  }
+
+  // The set containing memory spaces in the subviews.
+  PresburgerSet fillSet = PresburgerSet::getEmpty(sourceSet.getSpace());
+
   // There are some other checks that can be added such as checking if the
   // original memref of the subviews are same.
   for (auto subview : subviews) {
-    auto parentMemref = subview->getResultTypes()[0].cast<MemRefType>();
-    unsigned numDims = parentMemref.getRank();
+    unsigned numDims = sourceMemref.getRank();
 
     IntegerPolyhedron subviewSpace(PresburgerSpace::getSetSpace(numDims));
     for (unsigned i = 0; i < numDims; ++i) {
@@ -97,6 +114,18 @@ void CoalesceMemRefs::runOnOperation() {
       }
     }
 
-    subviewSpace.dump();
+    // Check that there is no overlap. If overlap, don't do anything.
+    // Although, for this particular operation i.e. linalg.fill, this does not
+    // matter.
+    if (!fillSet.intersect(PresburgerSet(subviewSpace)).isIntegerEmpty())
+      return;
+
+    // Take union with other sets.
+    fillSet.unionInPlace(subviewSpace);
   }
+
+  // Check if the source set and the fill set are equal. If they are indeed
+  // equal, we can replace the operation.
+  if (!fillSet.isEqual(PresburgerSet(sourceSet)))
+    return;
 }
