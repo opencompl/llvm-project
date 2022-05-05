@@ -52,12 +52,15 @@ void CoalesceMemRefs::runOnOperation() {
   if (!sameConstant)
     return;
 
-  // Collect all memrefs in fill defined by subviews.
+  // Collect all memrefs in fill defined by subviews. If a fill doesn't use
+  // a subview, we return and don't continue further.
   SmallVector<memref::SubViewOp, 2> subviews;
   for (auto fillOp : fillOps) {
     if (auto subview = dyn_cast<memref::SubViewOp>(
             fillOp.getOutputOperand(0)->get().getDefiningOp())) {
       subviews.push_back(subview);
+    } else {
+      return;
     }
   }
 
@@ -73,7 +76,7 @@ void CoalesceMemRefs::runOnOperation() {
   for (unsigned i = 0, e = sourceMemref.getRank(); i < e; ++i) {
     sourceSet.addBound(IntegerPolyhedron::BoundType::LB, i, 0);
     sourceSet.addBound(IntegerPolyhedron::BoundType::UB, i,
-                       sourceMemref.getDimSize(i));
+                       sourceMemref.getDimSize(i) - 1);
   }
 
   // The set containing memory spaces in the subviews.
@@ -91,7 +94,8 @@ void CoalesceMemRefs::runOnOperation() {
       int64_t stride = subview.getStaticStride(i);
 
       subviewSpace.addBound(IntegerPolyhedron::BoundType::LB, i, offset);
-      subviewSpace.addBound(IntegerPolyhedron::BoundType::UB, i, offset + size);
+      subviewSpace.addBound(IntegerPolyhedron::BoundType::UB, i,
+                            offset + size - 1);
 
       if (stride != 1) {
         // Add constraints for the stride.
@@ -128,4 +132,15 @@ void CoalesceMemRefs::runOnOperation() {
   // equal, we can replace the operation.
   if (!fillSet.isEqual(PresburgerSet(sourceSet)))
     return;
+
+  OpBuilder builder(firstOp);
+  builder.create<linalg::FillOp>(firstOp.getLoc(), firstOp.inputs(),
+                                 subviews[0].getViewSource());
+
+  auto currOp = fillOps.begin();
+  while(currOp != fillOps.end()) {
+    auto op = *currOp;
+    currOp++;
+    op.erase();
+  }
 }
