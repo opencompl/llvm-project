@@ -71,6 +71,7 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     copySet.mergeIds(IdKind::Symbol, conditions);
 
     conditions.removeRedundantConstraints(copySet);
+    conditions.removeRedundantConstraints();
 
     SmallVector<Value, 8> values;
     conditions.getValues(0, conditions.getNumDimAndSymbolIds(), &values);
