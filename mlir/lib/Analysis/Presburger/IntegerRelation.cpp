@@ -1013,8 +1013,7 @@ void IntegerRelation::removeRedundantConstraints() {
 }
 
 void IntegerRelation::simplifyGivenHolds(const IntegerRelation &cst) {
-  IntegerRelation intersection = this->intersect(cst);
-  if (intersection.isIntegerEmpty()) {
+  if (this->intersect(cst).isIntegerEmpty()) {
     *this = IntegerRelation::getEmpty(getSpace());
     return;
   }
