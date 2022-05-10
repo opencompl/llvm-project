@@ -60,10 +60,7 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     assert(succeeded(addAffineIfOpDomain(conditions, ifOp)));
 
     PresburgerSet copySet = cst;
-
-    copySet.mergeIds(IdKind::SetDim, conditions);
-    copySet.mergeIds(IdKind::Symbol, conditions);
-
+    copySet.mergeValueIds(conditions);
     conditions.simplifyGivenHolds(copySet);
     conditions.removeRedundantConstraints();
 
