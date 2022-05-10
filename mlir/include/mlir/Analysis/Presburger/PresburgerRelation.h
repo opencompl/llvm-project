@@ -236,6 +236,20 @@ public:
   /// other symbols.
   void mergeIds(IdKind kind, PresburgerRelation &other);
   void mergeIds(IdKind kind, IntegerRelation &other);
+  void mergeSymbolIds(PresburgerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+  }
+  void mergeSymbolIds(IntegerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+  }
+  void mergeValueIds(PresburgerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+    mergeIds(IdKind::SetDim, other);
+  }
+  void mergeValueIds(IntegerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+    mergeIds(IdKind::SetDim, other);
+  }
 
   /// ---------------------------------------------------------------
   ///                     /Value interaction
@@ -251,6 +265,7 @@ public:
 
   /// Swap the posA^th identifier with the posB^th identifier.
   void swapId(unsigned posA, unsigned posB);
+  unsigned appendId(IdKind kind, Value value);
 
 protected:
   /// Construct an empty PresburgerRelation with the specified number of

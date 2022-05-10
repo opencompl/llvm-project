@@ -889,6 +889,10 @@ void PresburgerRelation::swapId(unsigned posA, unsigned posB) {
     disjunct.swapId(posA, posB);
 }
 
+unsigned PresburgerRelation::appendId(IdKind kind, Value val) {
+  return insertId(kind, getNumIdKind(kind), {val});
+}
+
 unsigned PresburgerRelation::insertId(IdKind kind, unsigned pos, unsigned num) {
   assert(pos <= getNumIdKind(kind));
 
