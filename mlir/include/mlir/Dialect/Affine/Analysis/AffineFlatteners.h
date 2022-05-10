@@ -1,3 +1,4 @@
+#include "mlir/Analysis/Presburger/PresburgerRelation.h"
 #include "mlir/Dialect/Affine/Analysis/AffineStructures.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/IR/IntegerSet.h"
@@ -8,13 +9,22 @@
 namespace mlir {
 namespace presburger {
 
-inline LogicalResult addAffineForOpDomain(IntegerPolyhedron &cst, AffineForOp forOp) {
-  FlatAffineValueConstraints tmp(cst);
+// inline LogicalResult addAffineForOpDomain(IntegerPolyhedron &cst, AffineForOp forOp) {
+//   FlatAffineValueConstraints tmp(cst);
 
-  if (failed(tmp.addAffineForOpDomain(forOp)))
+//   if (failed(tmp.addAffineForOpDomain(forOp)))
+//     return failure();
+
+//   cst = tmp;
+//   return success();
+// }
+
+inline LogicalResult addAffineForOpDomain(PresburgerSet &set, AffineForOp forOp) {
+  FlatAffineValueConstraints forOpDomain(IntegerPolyhedron(set.getSpace()));
+  if (failed(forOpDomain.addAffineForOpDomain(forOp)))
     return failure();
-
-  cst = tmp;
+  set.mergeValueIds(forOpDomain);
+  set = set.intersect(PresburgerSet(forOpDomain));
   return success();
 }
 

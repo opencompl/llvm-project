@@ -46,20 +46,12 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     // TODO: Create iteration domain here and intersect with cst.
 
     // Create for conditions here.
-    IntegerPolyhedron conditions(cst.getSpace());
-    unsigned idPos = conditions.appendId(IdKind::SetDim);
-    conditions.atValue(idPos) = forOp.getInductionVar();
-    assert(succeeded(addAffineForOpDomain(conditions, forOp)));
-
-    PresburgerSet copySet = cst;
-
-    copySet.mergeIds(IdKind::SetDim, conditions);
-    copySet.mergeIds(IdKind::Symbol, conditions);
-    copySet = copySet.intersect(PresburgerSet(conditions));
-
+    PresburgerSet surroundingConstraints = cst;
+    // Add a new variable for the iteration variable.
+    surroundingConstraints.appendId(IdKind::SetDim, forOp.getInductionVar());
+    assert(succeeded(addAffineForOpDomain(surroundingConstraints, forOp)));
     for (Region &region : op->getRegions())
-      traverse(region, copySet);
-
+      traverse(region, surroundingConstraints);
   } else if (AffineIfOp ifOp = dyn_cast<AffineIfOp>(*op)) {
     // Create if constraints here.
     IntegerPolyhedron conditions(cst.getSpace());
