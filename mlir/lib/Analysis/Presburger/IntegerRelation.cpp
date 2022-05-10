@@ -1019,7 +1019,7 @@ void IntegerRelation::simplifyGivenHolds(const IntegerRelation &cst) {
   }
 
   IntegerRelation mergedCst = cst;
-  mergeLocalIds(mergedCst);
+  this->mergeLocalIds(mergedCst);
   Simplex simplex(mergedCst);
 
   // These loop bounds change during the loop!
