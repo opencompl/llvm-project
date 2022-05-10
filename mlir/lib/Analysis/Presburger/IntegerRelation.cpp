@@ -1041,11 +1041,11 @@ void IntegerRelation::simplifyGivenHolds(
     const PresburgerRelation &cst) {
   SmallVector<Simplex, 2> simplexes;
   for (const IntegerRelation &disjunct : cst.getAllDisjuncts()) {
-    if (this->intersect(disjunct).isIntegerEmpty())
-      continue;
     IntegerRelation copy = disjunct;
     this->mergeLocalIds(copy);
-    simplexes.push_back(Simplex(copy));
+    Simplex simplex(copy);
+    if (!simplex.isEmpty())
+      simplexes.push_back(simplex);
   }
 
   if (simplexes.empty()) {
