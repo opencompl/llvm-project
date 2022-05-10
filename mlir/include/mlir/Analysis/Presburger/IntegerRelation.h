@@ -74,6 +74,14 @@ public:
                         /*numReservedEqualities=*/0,
                         /*numReservedCols=*/space.getNumIds() + 1, space) {}
 
+  static IntegerRelation getEmpty(const PresburgerSpace &space) {
+    IntegerRelation rel(1, 0, space.getNumIds() + 1, space);
+    SmallVector<int64_t, 8> ineq(rel.getNumCols());
+    ineq.back() = -1;
+    rel.addInequality(ineq);
+    return rel;
+  }
+
   virtual ~IntegerRelation() = default;
 
   /// Return a system with no constraints, i.e., one which is satisfied by all
