@@ -1039,8 +1039,34 @@ void IntegerRelation::simplifyGivenHolds(const IntegerRelation &cst) {
 
 void IntegerRelation::simplifyGivenHolds(
     const PresburgerRelation &cst) {
-  for (const auto &disjunct : cst.getAllDisjuncts())
-    simplifyGivenHolds(disjunct);
+  SmallVector<Simplex, 2> simplexes;
+  for (const IntegerRelation &disjunct : cst.getAllDisjuncts()) {
+    if (this->intersect(disjunct).isIntegerEmpty())
+      continue;
+    IntegerRelation copy = disjunct;
+    this->mergeLocalIds(copy);
+    simplexes.push_back(Simplex(copy));
+  }
+
+  if (simplexes.empty()) {
+    // Given any of the disjuncts, this is empty.
+    *this = IntegerRelation::getEmpty(getSpace());
+    return;
+  }
+
+  // These loop bounds change during the loop!
+  for (unsigned i = 0; i < getNumInequalities();) {
+    if (llvm::all_of(simplexes, [i, this](Simplex &simplex) { return simplex.isRedundantInequality(getInequality(i)); }))
+      removeInequality(i);
+    else
+      ++i;
+  }
+  for (unsigned i = 0; i < getNumEqualities();) {
+    if (llvm::all_of(simplexes, [i, this](Simplex &simplex) { return simplex.isRedundantEquality(getEquality(i)); }))
+      removeEquality(i);
+    else
+      ++i;
+  }
 }
 
 Optional<uint64_t> IntegerRelation::computeVolume() const {
