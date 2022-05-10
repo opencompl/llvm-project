@@ -566,8 +566,8 @@ public:
   /// in the polytope and C is the number of constraints, the algorithm takes
   /// O(VC) time.
   void removeRedundantConstraints();
-  void removeRedundantConstraints(const IntegerRelation &cst);
-  void removeRedundantConstraints(const PresburgerRelation &cst);
+  void simplifyGivenHolds(const IntegerRelation &cst);
+  void simplifyGivenHolds(const PresburgerRelation &cst);
 
   void removeDuplicateDivs();
 
