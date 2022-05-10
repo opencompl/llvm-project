@@ -44,18 +44,19 @@ void CoalesceMemRefs::runOnOperation() {
   auto fillOps = op.getOps<linalg::FillOp>();
 
   // Check if the constant for the fill operations is same.
-  auto firstOp = *fillOps.begin();
-  auto firstConstant = firstOp.getInputOperand(0)->get();
-  bool sameConstant = std::all_of(fillOps.begin(), fillOps.end(), [&](auto a) {
+  linalg::FillOp firstOp = *fillOps.begin();
+  Value firstConstant = firstOp.getInputOperand(0)->get();
+  bool sameConstant = llvm::all_of(fillOps, [&](auto a) {
     return a.getInputOperand(0)->get() == firstConstant;
   });
+
   if (!sameConstant)
     return;
 
   // Collect all memrefs in fill defined by subviews. If a fill doesn't use
   // a subview, we return and don't continue further.
   SmallVector<memref::SubViewOp, 2> subviews;
-  for (auto fillOp : fillOps) {
+  for (linalg::FillOp fillOp : fillOps) {
     if (auto subview = dyn_cast<memref::SubViewOp>(
             fillOp.getOutputOperand(0)->get().getDefiningOp())) {
       subviews.push_back(subview);
@@ -67,16 +68,23 @@ void CoalesceMemRefs::runOnOperation() {
   if (subviews.empty())
     return;
 
-  // Get the source meref.
-  auto sourceMemref = subviews[0].getSourceType();
+  bool sameSource = llvm::all_of(subviews, [&](auto a) {
+    return a.source() == subviews[0].source();
+  });
+
+  if (!sameSource)
+    return;
+
+  // Get the source meref type.
+  MemRefType sourceMemrefType = subviews[0].getSourceType();
 
   // Build space of source memref as a set.
   IntegerPolyhedron sourceSet(
-      PresburgerSpace::getSetSpace(sourceMemref.getRank()));
-  for (unsigned i = 0, e = sourceMemref.getRank(); i < e; ++i) {
+      PresburgerSpace::getSetSpace(sourceMemrefType.getRank()));
+  for (unsigned i = 0, e = sourceMemrefType.getRank(); i < e; ++i) {
     sourceSet.addBound(IntegerPolyhedron::BoundType::LB, i, 0);
     sourceSet.addBound(IntegerPolyhedron::BoundType::UB, i,
-                       sourceMemref.getDimSize(i) - 1);
+                       sourceMemrefType.getDimSize(i) - 1);
   }
 
   // The set containing memory spaces in the subviews.
@@ -84,8 +92,8 @@ void CoalesceMemRefs::runOnOperation() {
 
   // There are some other checks that can be added such as checking if the
   // original memref of the subviews are same.
-  for (auto subview : subviews) {
-    unsigned numDims = sourceMemref.getRank();
+  for (memref::SubViewOp subview : subviews) {
+    unsigned numDims = sourceMemrefType.getRank();
 
     IntegerPolyhedron subviewSpace(PresburgerSpace::getSetSpace(numDims));
     for (unsigned i = 0; i < numDims; ++i) {
