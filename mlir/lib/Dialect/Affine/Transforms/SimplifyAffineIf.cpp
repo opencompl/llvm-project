@@ -43,8 +43,6 @@ void SimplifyAffineIf::traverse(Region &region, const PresburgerSet &cst) {
 
 void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
   if (AffineForOp forOp = dyn_cast<AffineForOp>(*op)) {
-    // TODO: Create iteration domain here and intersect with cst.
-
     // Create for conditions here.
     PresburgerSet surroundingConstraints = cst;
     // Add a new variable for the iteration variable.
