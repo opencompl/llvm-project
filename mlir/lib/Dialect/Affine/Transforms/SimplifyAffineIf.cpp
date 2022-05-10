@@ -62,7 +62,6 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     PresburgerSet copySet = cst;
     copySet.mergeValueIds(conditions);
     conditions.simplifyGivenHolds(copySet);
-    conditions.removeRedundantConstraints();
 
     SmallVector<Value, 8> values;
     conditions.getValues(0, conditions.getNumDimAndSymbolIds(), &values);
@@ -76,7 +75,6 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     // Traverse else region with complement of constraints.
     traverse(ifOp.elseRegion(),
              copySet.intersect(PresburgerSet(conditions).complement()));
-
   } else {
     for (Region &region : op->getRegions())
       traverse(region, cst);
