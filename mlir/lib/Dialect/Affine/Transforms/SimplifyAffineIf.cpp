@@ -37,8 +37,8 @@ struct SimplifyAffineIf : public SimplifyAffineIfBase<SimplifyAffineIf> {
 
 void SimplifyAffineIf::runOnOperation() {
   func::FuncOp op = getOperation();
-  PresburgerSet cst =
-      PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(/*numDims=*/0, /*numSymbols=*/0, /*numLocals=*/0));
+  PresburgerSet cst = PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(
+      /*numDims=*/0, /*numSymbols=*/0, /*numLocals=*/0));
 
   traverse(op.getOperation(), cst);
 }
@@ -94,4 +94,3 @@ std::unique_ptr<OperationPass<func::FuncOp>>
 mlir::createSimplifyAffineIfPass() {
   return std::make_unique<SimplifyAffineIf>();
 }
-
