@@ -504,10 +504,8 @@ void FlatAffineValueConstraints::addAffineIfOpDomain(AffineIfOp ifOp) {
   // Merge the constraints from ifOp to the current domain. We need first merge
   // and align the IDs from both constraints, and then append the constraints
   // from the ifOp into the current one.
-  mergeIds(IdKind::SetDim, cst);
-  mergeIds(IdKind::Symbol, cst);
-  mergeLocalIds(cst);
-  append(cst);
+  mergeValueIds(cst);
+  intersectInPlace(cst);
 }
 
 // Determine whether the identifier at 'pos' (say id_r) can be expressed as

@@ -55,6 +55,11 @@ void IntegerRelation::append(const IntegerRelation &other) {
   }
 }
 
+void IntegerRelation::intersectInPlace(IntegerRelation other) {
+  mergeLocalIds(other);
+  append(other);
+}
+
 IntegerRelation IntegerRelation::intersect(IntegerRelation other) const {
   IntegerRelation result = *this;
   result.mergeLocalIds(other);

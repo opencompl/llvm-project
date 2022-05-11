@@ -112,6 +112,8 @@ public:
   /// intersection with no simplification of any sort attempted.
   void append(const IntegerRelation &other);
 
+  void intersectInPlace(IntegerRelation other);
+
   /// Return the intersection of the two sets.
   /// If there are locals, they will be merged.
   IntegerRelation intersect(IntegerRelation other) const;
@@ -290,6 +292,10 @@ public:
   /// unique. Symbols with Value as `None` are considered to be inequal to all
   /// other symbols.
   void mergeIds(IdKind kind, IntegerRelation &other);
+  void mergeValueIds(IntegerRelation &other) {
+    mergeIds(IdKind::Symbol, other);
+    mergeIds(IdKind::SetDim, other);
+  }
 
   void mergeSymbolIds(IntegerRelation &other) {
     mergeIds(IdKind::Symbol, other);
