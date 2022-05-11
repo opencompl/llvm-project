@@ -35,6 +35,14 @@ struct SimplifyAffineIf : public SimplifyAffineIfBase<SimplifyAffineIf> {
 
 } // namespace
 
+void SimplifyAffineIf::runOnOperation() {
+  func::FuncOp op = getOperation();
+  PresburgerSet cst =
+      PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(/*numDims=*/0, /*numSymbols=*/0, /*numLocals=*/0));
+
+  traverse(op.getOperation(), cst);
+}
+
 void SimplifyAffineIf::traverse(Region &region, const PresburgerSet &cst) {
   for (Block &block : region.getBlocks())
     for (Operation &op : block.getOperations())
@@ -57,7 +65,8 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
   } else if (AffineIfOp ifOp = dyn_cast<AffineIfOp>(*op)) {
     // Create if constraints here.
     IntegerPolyhedron conditions(cst.getSpace());
-    assert(succeeded(addAffineIfOpDomain(conditions, ifOp)));
+    LogicalResult status = addAffineIfOpDomain(conditions, ifOp);
+    assert(status.succeeded());
 
     PresburgerSet copySet = cst;
     copySet.mergeValueIds(conditions);
@@ -86,10 +95,3 @@ mlir::createSimplifyAffineIfPass() {
   return std::make_unique<SimplifyAffineIf>();
 }
 
-void SimplifyAffineIf::runOnOperation() {
-  func::FuncOp op = getOperation();
-  PresburgerSet cst =
-      PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(0, 0, 0));
-
-  traverse(op.getOperation(), cst);
-}
