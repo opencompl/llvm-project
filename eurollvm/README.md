@@ -1,7 +1,11 @@
-Simplify pass:
-  
-mlir-opt --allow-unregistered-dialect <file-name> --affine-simplify-if
+To run the simplify pass:
 
-Coalesce pass:
+`mlir-opt --allow-unregistered-dialect <file-name> --affine-simplify-if`
 
-mlir-opt --allow-unregistered-dialect <file-name> --affine-coalesce-memrefs
+The main implementation file for this is in ../mlir/lib/Dialect/Affine/Transforms/SimplifyAffineIf.cpp
+
+To run the coalesce pass:
+
+`mlir-opt --allow-unregistered-dialect <file-name> --affine-coalesce-memrefs`
+
+The main implementation file for this is in ../mlir/lib/Dialect/Affine/Transforms/CoalesceMemRefs.cpp
