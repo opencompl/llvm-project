@@ -223,5 +223,6 @@ if (MLIR_ENABLE_PYTHON_BENCHMARKS)
   add_subdirectory(utils/mbr)
 endif()
 
-# Benchmark
+# "benchmark"s
 add_subdirectory(benchmark)
+add_subdirectory(benchmarks)
