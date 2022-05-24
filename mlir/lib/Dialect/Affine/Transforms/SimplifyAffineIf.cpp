@@ -54,7 +54,7 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
     // Create for conditions here.
     PresburgerSet surroundingConstraints = cst;
 
-    // Add a new variable for the iteration variable.
+    // Add a new ID for the iteration variable.
     surroundingConstraints.appendId(IdKind::SetDim, forOp.getInductionVar());
 
     LogicalResult status = addAffineForOpDomain(surroundingConstraints, forOp);
@@ -74,7 +74,6 @@ void SimplifyAffineIf::traverse(Operation *op, const PresburgerSet &cst) {
 
     SmallVector<Value, 8> values;
     conditions.getValues(0, conditions.getNumDimAndSymbolIds(), &values);
-
     ifOp.setConditional(presburgerToIntegerSet(conditions, ifOp.getContext()),
                         values);
 

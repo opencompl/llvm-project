@@ -43,6 +43,10 @@ void CoalesceMemRefs::runOnOperation() {
   // Get all fill operations in this block.
   auto fillOps = op.getOps<linalg::FillOp>();
 
+  // No fill ops; bail.
+  if (fillOps.empty())
+    return;
+
   // Check if the constant for the fill operations is same.
   linalg::FillOp firstOp = *fillOps.begin();
   Value firstConstant = firstOp.getInputOperand(0)->get();
@@ -87,14 +91,14 @@ void CoalesceMemRefs::runOnOperation() {
                        sourceMemrefType.getDimSize(i) - 1);
   }
 
-  // The set containing memory spaces in the subviews.
+  // The set containing memory locations in the subviews.
   PresburgerSet fillSet = PresburgerSet::getEmpty(sourceSet.getSpace());
 
-  // There are some other checks that can be added such as checking if the
-  // original memref of the subviews are same.
   for (memref::SubViewOp subview : subviews) {
     unsigned numDims = sourceMemrefType.getRank();
 
+    // Set of locations in this subview.
+    // For now we assume everything is static.
     IntegerPolyhedron subviewSpace(PresburgerSpace::getSetSpace(numDims));
     for (unsigned i = 0; i < numDims; ++i) {
       int64_t offset = subview.getStaticOffset(i);
@@ -107,6 +111,7 @@ void CoalesceMemRefs::runOnOperation() {
 
       if (stride != 1) {
         // Add constraints for the stride.
+        // iv = lb, lb + step, lb + 2*step, ...
         // (iv - lb) % step = 0 can be written as:
         // (iv - lb) - step * q = 0 where q = (iv - lb) / step.
         // Add local variable 'q' and add the above equality.
@@ -129,8 +134,8 @@ void CoalesceMemRefs::runOnOperation() {
     // Check that there is no overlap. If overlap, don't do anything.
     // Although, for this particular operation i.e. linalg.fill, this does not
     // matter.
-    if (!fillSet.intersect(PresburgerSet(subviewSpace)).isIntegerEmpty())
-      return;
+    // if (!fillSet.intersect(PresburgerSet(subviewSpace)).isIntegerEmpty())
+    //   return;
 
     // Take union with other sets.
     fillSet.unionInPlace(subviewSpace);
