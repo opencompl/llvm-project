@@ -350,7 +350,7 @@ void presburger::mergeLocalIds(
   presburger::removeDuplicateDivs(divsA, denomsA, localOffset, merge);
 }
 
-MPInt presburger::gcdRange(ArrayRef<MPInt> range) {
+MPInt gcdRangeSlow(ArrayRef<MPInt> range) {
   MPInt curGCD(0);
   for (const MPInt &elem : range) {
     curGCD = gcd(curGCD, abs(elem));
@@ -359,6 +359,33 @@ MPInt presburger::gcdRange(ArrayRef<MPInt> range) {
   }
   return curGCD;
 }
+
+MPInt presburger::gcdRange(ArrayRef<MPInt> range) {
+  int64_t curGCD = 0;
+  for (const MPInt &elem : range) {
+    if (LLVM_LIKELY(elem.isSmall())) {
+      curGCD = llvm::GreatestCommonDivisor64(curGCD, std::abs(elem.get64()));
+      if (curGCD == 1)
+        return MPInt(curGCD);
+    }
+    return gcdRangeSlow(range);
+  }
+  return MPInt(curGCD);
+}
+
+MPInt presburger::gcdRange(ArrayRef<MPInt> range) {
+  int64_t curGCD = 0;
+  for (const MPInt &elem : range) {
+    if (LLVM_LIKELY(elem.isSmall())) {
+      curGCD = llvm::GreatestCommonDivisor64(curGCD, std::abs(elem.get64()));
+      if (curGCD == 1)
+        return MPInt(curGCD);
+    }
+    return gcdRangeSlow(range);
+  }
+  return MPInt(curGCD);
+}
+
 
 MPInt presburger::normalizeRange(MutableArrayRef<MPInt> range) {
   MPInt curGCD = gcdRange(range);
