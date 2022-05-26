@@ -378,7 +378,7 @@ MPInt presburger::normalizeRange(MutableArrayRef<MPInt> range) {
   if ((curGCD == 0) || (curGCD == 1))
     return curGCD;
   for (MPInt &elem : range)
-    elem /= curGCD;
+    elem.divByPositiveInPlace(curGCD);
   return curGCD;
 }
 
