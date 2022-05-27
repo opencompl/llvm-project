@@ -30,64 +30,88 @@ presburger::IntegerPolyhedron parsePoly(llvm::StringRef str) {
 
 #include <iostream>
 static void BM_PresburgerSetUnion(benchmark::State& state) {
-  for (auto _ : state) {}
-  // #pragma nounroll
-
   std::ifstream file("../mlir/benchmark/PresburgerSetUnion");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<presburger::PresburgerSet> setsB;
+  // std::vector<presburger::PresburgerSet> res;
   
   for (int i = 0; i < num; i++) {
-    std::getline(file, line);    
+    std::getline(file, line);
     presburger::PresburgerSet setA{parsePoly(line)};
     std::getline(file, line);
     presburger::PresburgerSet setB{parsePoly(line)};
     std::getline(file, line);
-    presburger::PresburgerSet setC{parsePoly(line)};
-    
-    presburger::PresburgerSet res = setA.unionSet(setB);
-    assert(res.isEqual(setC));
+    // presburger::PresburgerSet setC{parsePoly(line)};
+
+    setsA.push_back(setA);
+    setsB.push_back(setB);
+    // sets.push_back(setC);
   }
 
   file.close();
+
+  for (auto _ : state) {
+    for (int i = 0; i < num; i++) {
+      setsA[i].unionSet(setsB[i]);
+      // sets[i * 3].unionSet(sets[i * 3 + 1]);
+      // res.push_back(sets[i * 3].unionSet(sets[i * 3 + 1]));
+    }
+  }
+
+  // for (int i = 0; i < num; i++) {
+  //   assert(res[i].isEqual(sets[i * 3 + 2]));
+  // }
+
+  // llvm::errs() << "test";
+  // benchmark::DoNotOptimize(res);
   // state.SkipWithError("error message");
 }
 BENCHMARK(BM_PresburgerSetUnion);
 
 static void BM_PresburgerSetIntersect(benchmark::State& state) {
-  for (auto _ : state)
-    std::string empty_string;
-  
   std::ifstream file("../mlir/benchmark/PresburgerSetIntersect");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<presburger::PresburgerSet> setsB;
+  // std::vector<presburger::PresburgerSet> res;
   
   for (int i = 0; i < num; i++) {
-    std::getline(file, line);    
+    std::getline(file, line);
     presburger::PresburgerSet setA{parsePoly(line)};
     std::getline(file, line);
     presburger::PresburgerSet setB{parsePoly(line)};
     std::getline(file, line);
-    presburger::PresburgerSet setC{parsePoly(line)};
-    
-    presburger::PresburgerSet res = setA.intersect(setB);
-    assert(res.isEqual(setC));
+    // presburger::PresburgerSet setC{parsePoly(line)};
+
+    setsA.push_back(setA);
+    setsB.push_back(setB);
+    // sets.push_back(setC);
   }
 
   file.close();
+
+  for (auto _ : state) {   
+    for (int i = 0; i < num; i++) {
+      setsA[i].intersect(setsB[i]);
+    }
+  }
+
+  // assert(res.isEqual(setC));
 }
 BENCHMARK(BM_PresburgerSetIntersect);
 
 static void BM_PresburgerSetSubtract(benchmark::State& state) {
-  for (auto _ : state)
-    std::string empty_string;
-  
   std::ifstream file("../mlir/benchmark/PresburgerSetSubtract");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<presburger::PresburgerSet> setsB;
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
@@ -95,24 +119,32 @@ static void BM_PresburgerSetSubtract(benchmark::State& state) {
     std::getline(file, line);
     presburger::PresburgerSet setB{parsePoly(line)};
     std::getline(file, line);
-    presburger::PresburgerSet setC{parsePoly(line)};
+    // presburger::PresburgerSet setC{parsePoly(line)};
     
-    presburger::PresburgerSet res = setA.subtract(setB);
-    assert(res.isEqual(setC));
+    setsA.push_back(setA);
+    setsB.push_back(setB);
   }
 
   file.close();
+
+  for (auto _ : state) {
+    for (int i = 0; i < num; i++) {
+      setsA[i].subtract(setsB[i]);
+    }
+  }
+
+  // assert(res.isEqual(setC));
+
 }
 BENCHMARK(BM_PresburgerSetSubtract);
 
 static void BM_PresburgerSetComplement(benchmark::State& state) {
-  for (auto _ : state)
-    std::string empty_string;
-
   std::ifstream file("../mlir/benchmark/PresburgerSetComplement");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<presburger::PresburgerSet> setsB;
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
@@ -120,66 +152,89 @@ static void BM_PresburgerSetComplement(benchmark::State& state) {
     std::getline(file, line);
     presburger::PresburgerSet setB{parsePoly(line)};
     
-    presburger::PresburgerSet res = setA.complement();
-    assert(res.isEqual(setB));
+    setsA.push_back(setA);
+    setsB.push_back(setB);
   }
 
   file.close();
 
+  for (auto _ : state) {
+    for (int i = 0; i < num; i++) {
+      setsA[i].complement();
+    }
+  }
+
+  // for (int i = 0; i < num; i++) {
+  //   assert(res.isEqual(setB));
+  // }
 }
 BENCHMARK(BM_PresburgerSetComplement);
 
 static void BM_PresburgerSetIsEqual(benchmark::State& state) {
-  for (auto _ : state)
-    std::string empty_string;
-
   std::ifstream file("../mlir/benchmark/PresburgerSetEqual");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
-
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<presburger::PresburgerSet> setsB;
+  std::vector<bool> results;
+  
   for (int i = 0; i < num; i++) {
     bool result;
     std::getline(file, line);
     std::istringstream(line) >> result;
-    std::getline(file, line);
+    std::getline(file, line);    
     presburger::PresburgerSet setA{parsePoly(line)};
     std::getline(file, line);
     presburger::PresburgerSet setB{parsePoly(line)};
-
-    if (result)
-      assert(setA.isEqual(setB));
-    else
-      assert(!setA.isEqual(setB)); 
+    
+    results.push_back(result);
+    setsA.push_back(setA);
+    setsB.push_back(setB);
   }
 
   file.close();
+
+  for (auto _ : state) {
+    for (int i = 0; i < num; i++) {
+      if (results[i])
+        assert(setsA[i].isEqual(setsB[i]));
+      else
+        assert(!setsA[i].isEqual(setsB[i])); 
+    }
+  }
 }
 BENCHMARK(BM_PresburgerSetIsEqual);
 
 static void BM_PresburgerSetIsEmpty(benchmark::State& state) {
-  for (auto _ : state)
-    std::string empty_string;
-
   std::ifstream file("../mlir/benchmark/PresburgerSetEmpty");
   std::string line;
   std::getline(file, line);
   int num = stoi(line);
-
+  std::vector<presburger::PresburgerSet> setsA;
+  std::vector<bool> results;
+  
   for (int i = 0; i < num; i++) {
     bool result;
     std::getline(file, line);
     std::istringstream(line) >> result;
-    std::getline(file, line);
+    std::getline(file, line);    
     presburger::PresburgerSet setA{parsePoly(line)};
-
-    if (result)
-      assert(setA.isIntegerEmpty());
-    else
-      assert(!setA.isIntegerEmpty()); 
+    
+    results.push_back(result);
+    setsA.push_back(setA);
   }
 
   file.close();
+
+  for (auto _ : state) {
+    for (int i = 0; i < num; i++) {
+      if (results[i])
+        assert(setsA[i].isIntegerEmpty());
+      else
+        assert(!setsA[i].isIntegerEmpty()); 
+    }
+  }
 }
 BENCHMARK(BM_PresburgerSetIsEmpty);
 
