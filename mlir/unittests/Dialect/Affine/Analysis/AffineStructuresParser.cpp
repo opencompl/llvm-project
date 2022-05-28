@@ -23,3 +23,19 @@ mlir::parseIntegerSetToFAC(llvm::StringRef str, MLIRContext *context,
 
   return FlatAffineValueConstraints(set);
 }
+
+FailureOr<SmallVector<FlatAffineConstraints, 4>>
+mlir::parseMultipleIntegerSetsToFAC(llvm::StringRef str, MLIRContext *context,
+                                    bool printDiagnosticInfo) {
+  SmallVector<IntegerSet, 4> set =
+      parseMultipleIntegerSets(str, context, printDiagnosticInfo);
+
+  if (set.empty())
+    return failure();
+
+  SmallVector<FlatAffineConstraints, 4> ret;
+  for (auto iSet : set)
+    ret.push_back(FlatAffineConstraints(iSet));
+
+  return ret;
+}

@@ -83,6 +83,24 @@ static bool parseAndCompare(StringRef str, const IntegerPolyhedron &ex,
   return PresburgerSet(*fac).isEqual(PresburgerSet(ex));
 }
 
+static bool parseAndCompare(StringRef str,
+                            SmallVectorImpl<FlatAffineConstraints> &ex,
+                            MLIRContext *context) {
+  FailureOr<SmallVector<FlatAffineConstraints, 4>> fac =
+      parseMultipleIntegerSetsToFAC(str, context);
+
+  EXPECT_TRUE(succeeded(fac));
+  auto facVec = fac.getValue();
+  unsigned m = facVec.size();
+
+  EXPECT_TRUE(m == ex.size());
+
+  for (unsigned i = 0; i < m; i++)
+    if (!PresburgerSet(facVec[i]).isEqual(PresburgerSet(ex[i])))
+      return false;
+  return true;
+}
+
 TEST(ParseFACTest, ParseAndCompareTest) {
   MLIRContext context;
   // simple ineq
@@ -133,4 +151,29 @@ TEST(ParseFACTest, ParseAndCompareTest) {
       makeFACFromConstraints(2, 0, {}, {{0, 1, 0, -1, 0}},
                              {{{0, 1, 0}, 2}, {{1, 0, 1, 0}, 3}}),
       &context));
+}
+
+TEST(ParseMultipleFACTest, ParseAndCompareTest) {
+  MLIRContext context;
+
+  // Parses a simple ineq and eq respectively.
+  SmallVector<FlatAffineConstraints, 4> actualFac{
+      makeFACFromConstraints(1, 0, {{1, 0}}),
+      makeFACFromConstraints(1, 0, {}, {{1, 0}})};
+  EXPECT_TRUE(
+      parseAndCompare("(x)[] : (x >= 0), (x == 0)", actualFac, &context));
+
+  // simple floordiv, multiple floordiv and nested floordiv together.
+  SmallVector<FlatAffineConstraints, 4> divActualFac{
+      makeFACFromConstraints(2, 0, {}, {{0, 1, -3, -42}}, {{{1, 1, -13}, 3}}),
+      makeFACFromConstraints(2, 0, {}, {{0, 1, -1, -1, 0}},
+                             {{{1, 0, 0}, 3}, {{0, 1, 0, 0}, 2}}),
+      makeFACFromConstraints(2, 0, {}, {{0, 1, 0, -1, 0}},
+                             {{{0, 1, 0}, 2}, {{1, 0, 1, 0}, 3}})};
+
+  EXPECT_TRUE(
+      parseAndCompare("(x, y) : (y - 3 * ((x + y - 13) floordiv 3) - 42 == "
+                      "0), (y - x floordiv 3 - y floordiv 2 == 0), (y - (x + "
+                      "y floordiv 2) floordiv 3 == 0)",
+                      divActualFac, &context));
 }
