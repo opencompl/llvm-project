@@ -29,6 +29,10 @@ FailureOr<presburger::IntegerPolyhedron>
 parseIntegerSetToFAC(llvm::StringRef, MLIRContext *context,
                      bool printDiagnosticInfo = true);
 
+FailureOr<SmallVector<FlatAffineConstraints, 4>>
+parseMultipleIntegerSetsToFAC(llvm::StringRef str, MLIRContext *context,
+                              bool printDiagnosticInfo = true);
+
 } // namespace mlir
 
 #endif // MLIR_UNITTEST_ANALYSIS_AFFINESTRUCTURESPARSER_H

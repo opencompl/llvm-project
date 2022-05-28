@@ -97,9 +97,8 @@ static PresburgerSet makeSetFromPoly(unsigned numDims,
 }
 
 TEST(SetTest, containsPoint) {
-  PresburgerSet setA = parsePresburgerSetFromPolyStrings(
-      1,
-      {"(x) : (x - 2 >= 0, -x + 8 >= 0)", "(x) : (x - 10 >= 0, -x + 20 >= 0)"});
+  PresburgerSet setA = parsePresburgerSet(
+      "(x) : (x - 2 >= 0, -x + 8 >= 0), (x - 10 >= 0, -x + 20 >= 0)");
   for (unsigned x = 0; x <= 21; ++x) {
     if ((2 <= x && x <= 8) || (10 <= x && x <= 20))
       EXPECT_TRUE(setA.containsPoint({x}));
@@ -109,10 +108,10 @@ TEST(SetTest, containsPoint) {
 
   // A parallelogram with vertices {(3, 1), (10, -6), (24, 8), (17, 15)} union
   // a square with opposite corners (2, 2) and (10, 10).
-  PresburgerSet setB = parsePresburgerSetFromPolyStrings(
-      2, {"(x,y) : (x + y - 4 >= 0, -x - y + 32 >= 0, "
-          "x - y - 2 >= 0, -x + y + 16 >= 0)",
-          "(x,y) : (x - 2 >= 0, y - 2 >= 0, -x + 10 >= 0, -y + 10 >= 0)"});
+  PresburgerSet setB = parsePresburgerSet(
+      "(x,y) : (x + y - 4 >= 0, -x - y + 32 >= 0, "
+      "x - y - 2 >= 0, -x + y + 16 >= 0),"
+      "(x - 2 >= 0, y - 2 >= 0, -x + 10 >= 0, -y + 10 >= 0)");
 
   for (unsigned x = 1; x <= 25; ++x) {
     for (unsigned y = -6; y <= 16; ++y) {
@@ -127,9 +126,8 @@ TEST(SetTest, containsPoint) {
 }
 
 TEST(SetTest, Union) {
-  PresburgerSet set = parsePresburgerSetFromPolyStrings(
-      1,
-      {"(x) : (x - 2 >= 0, -x + 8 >= 0)", "(x) : (x - 10 >= 0, -x + 20 >= 0)"});
+  PresburgerSet set = parsePresburgerSet(
+      "(x) : (x - 2 >= 0, -x + 8 >= 0), (x - 10 >= 0, -x + 20 >= 0)");
 
   // Universe union set.
   testUnionAtPoints(PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(1)),
