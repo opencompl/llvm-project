@@ -35,6 +35,26 @@ inline IntegerPolyhedron parsePoly(StringRef str) {
   return *poly;
 }
 
+/// Parses a list of comma separated IntegerSets to IntegerPolyhedron and
+/// combine them into a PresburgerSet by using the union operation. It is
+/// expected that the string has valid comma separated IntegerSet constraints
+/// and that all of them have the same number of dimensions as is specified by
+/// the numDims argument.
+inline PresburgerSet parsePresburgerSet(StringRef str) {
+  MLIRContext context(MLIRContext::Threading::DISABLED);
+  FailureOr<SmallVector<FlatAffineConstraints, 4>> facs =
+      parseMultipleIntegerSetsToFAC(str, &context);
+  SmallVector<IntegerPolyhedron, 4> ips;
+  EXPECT_TRUE(succeeded(facs));
+  for (auto fac : facs.getValue())
+    ips.push_back(IntegerPolyhedron(fac));
+
+  PresburgerSet set = PresburgerSet(ips.front());
+  for (int i = 1, m = facs.getValue().size(); i < m; i++)
+    set.unionInPlace(ips[i]);
+  return set;
+}
+
 /// Parse a list of StringRefs to IntegerRelation and combine them into a
 /// PresburgerSet be using the union operation. It is expected that the strings
 /// are all valid IntegerSet representation and that all of them have the same

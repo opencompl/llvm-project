@@ -291,6 +291,8 @@ public:
                                                   IntegerSet &set);
   ParseResult parseAffineMapReference(AffineMap &map);
   ParseResult parseIntegerSetReference(IntegerSet &set);
+  ParseResult
+  parseMultipleIntegerSetsReference(SmallVectorImpl<IntegerSet> &set);
 
   /// Parse an AffineMap where the dim and symbol identifiers are SSA ids.
   ParseResult
