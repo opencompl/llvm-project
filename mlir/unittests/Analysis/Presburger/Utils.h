@@ -42,7 +42,7 @@ inline IntegerPolyhedron parsePoly(StringRef str) {
 /// the numDims argument.
 inline PresburgerSet parsePresburgerSet(StringRef str) {
   MLIRContext context(MLIRContext::Threading::DISABLED);
-  FailureOr<SmallVector<FlatAffineConstraints, 4>> facs =
+  FailureOr<SmallVector<FlatAffineValueConstraints, 4>> facs =
       parseMultipleIntegerSetsToFAC(str, &context);
   SmallVector<IntegerPolyhedron, 4> ips;
   EXPECT_TRUE(succeeded(facs));
