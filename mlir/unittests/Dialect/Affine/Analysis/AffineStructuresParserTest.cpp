@@ -84,9 +84,9 @@ static bool parseAndCompare(StringRef str, const IntegerPolyhedron &ex,
 }
 
 static bool parseAndCompare(StringRef str,
-                            SmallVectorImpl<FlatAffineConstraints> &ex,
+                            SmallVectorImpl<FlatAffineValueConstraints> &ex,
                             MLIRContext *context) {
-  FailureOr<SmallVector<FlatAffineConstraints, 4>> fac =
+  FailureOr<SmallVector<FlatAffineValueConstraints, 4>> fac =
       parseMultipleIntegerSetsToFAC(str, context);
 
   EXPECT_TRUE(succeeded(fac));
@@ -157,14 +157,14 @@ TEST(ParseMultipleFACTest, ParseAndCompareTest) {
   MLIRContext context;
 
   // Parses a simple ineq and eq respectively.
-  SmallVector<FlatAffineConstraints, 4> actualFac{
+  SmallVector<FlatAffineValueConstraints, 4> actualFac{
       makeFACFromConstraints(1, 0, {{1, 0}}),
       makeFACFromConstraints(1, 0, {}, {{1, 0}})};
   EXPECT_TRUE(
       parseAndCompare("(x)[] : (x >= 0), (x == 0)", actualFac, &context));
 
   // simple floordiv, multiple floordiv and nested floordiv together.
-  SmallVector<FlatAffineConstraints, 4> divActualFac{
+  SmallVector<FlatAffineValueConstraints, 4> divActualFac{
       makeFACFromConstraints(2, 0, {}, {{0, 1, -3, -42}}, {{{1, 1, -13}, 3}}),
       makeFACFromConstraints(2, 0, {}, {{0, 1, -1, -1, 0}},
                              {{{1, 0, 0}, 3}, {{0, 1, 0, 0}, 2}}),
