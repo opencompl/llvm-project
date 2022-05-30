@@ -539,7 +539,7 @@ AffineParser::parseMultipleIntegerSets(SmallVectorImpl<IntegerSet> &unionSet) {
 
   IntegerSet set;
   do {
-    if ((set = parseIntegerSetConstraints(numDims, numSymbols)))
+    if (parseIntegerSetConstraints(numDims, numSymbols, set))
       unionSet.push_back(set);
     else
       return failure();

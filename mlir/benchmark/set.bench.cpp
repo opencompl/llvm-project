@@ -22,6 +22,25 @@ presburger::IntegerPolyhedron parsePoly(llvm::StringRef str) {
   return *poly;
 }
 
+/// Parses a list of comma separated IntegerSets to IntegerPolyhedron and
+/// combine them into a PresburgerSet by using the union operation. It is
+/// expected that the string has valid comma separated IntegerSet constraints
+/// and that all of them have the same number of dimensions as is specified by
+/// the numDims argument.
+presburger::PresburgerSet parsePresburgerSet(StringRef str) {
+  MLIRContext context(MLIRContext::Threading::DISABLED);
+  FailureOr<SmallVector<FlatAffineValueConstraints, 4>> facs =
+      parseMultipleIntegerSetsToFAC(str, &context);
+  SmallVector<presburger::IntegerPolyhedron, 4> ips;
+  for (auto fac : facs.getValue())
+    ips.push_back(presburger::IntegerPolyhedron(fac));
+
+  presburger::PresburgerSet set = presburger::PresburgerSet(ips.front());
+  for (int i = 1, m = facs.getValue().size(); i < m; i++)
+    set.unionInPlace(ips[i]);
+  return set;
+}
+
 static void BM_PresburgerSetUnion(benchmark::State& state) {
   std::ifstream file("../mlir/benchmark/PresburgerSetUnion");
   std::string line;
@@ -158,7 +177,8 @@ static void BM_PresburgerSetIsEmpty(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
-    presburger::PresburgerSet setA{parsePoly(line)};
+    presburger::PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);    
     setsA.push_back(setA);
   }
 
