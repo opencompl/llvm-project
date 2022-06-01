@@ -51,11 +51,10 @@ static void BM_PresburgerSetUnion(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);
-    presburger::PresburgerSet setA{parsePoly(line)};
+    setsA.push_back(parsePresburgerSet(line));
     std::getline(file, line);
-    presburger::PresburgerSet setB{parsePoly(line)};
-    setsA.push_back(setA);
-    setsB.push_back(setB);
+    setsB.push_back(parsePresburgerSet(line));
+    std::getline(file, line);
   }
 
   file.close();
@@ -77,11 +76,10 @@ static void BM_PresburgerSetIntersect(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);
-    presburger::PresburgerSet setA{parsePoly(line)};
+    setsA.push_back(parsePresburgerSet(line));
     std::getline(file, line);
-    presburger::PresburgerSet setB{parsePoly(line)};
-    setsA.push_back(setA);
-    setsB.push_back(setB);
+    setsB.push_back(parsePresburgerSet(line));
+    std::getline(file, line);
   }
 
   file.close();
@@ -103,11 +101,10 @@ static void BM_PresburgerSetSubtract(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
-    presburger::PresburgerSet setA{parsePoly(line)};
+    setsA.push_back(parsePresburgerSet(line));
     std::getline(file, line);
-    presburger::PresburgerSet setB{parsePoly(line)};
-    setsA.push_back(setA);
-    setsB.push_back(setB);
+    setsB.push_back(parsePresburgerSet(line));
+    std::getline(file, line);
   }
 
   file.close();
@@ -129,8 +126,8 @@ static void BM_PresburgerSetComplement(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
-    presburger::PresburgerSet setA{parsePoly(line)};
-    setsA.push_back(setA);
+    setsA.push_back(parsePresburgerSet(line));
+    std::getline(file, line);    
   }
 
   file.close();
@@ -149,14 +146,13 @@ static void BM_PresburgerSetIsEqual(benchmark::State& state) {
   int num = stoi(line);
   std::vector<presburger::PresburgerSet> setsA;
   std::vector<presburger::PresburgerSet> setsB;
-  
+
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
-    presburger::PresburgerSet setA{parsePoly(line)};
+    setsA.push_back(parsePresburgerSet(line));
     std::getline(file, line);
-    presburger::PresburgerSet setB{parsePoly(line)};    
-    setsA.push_back(setA);
-    setsB.push_back(setB);
+    setsB.push_back(parsePresburgerSet(line));
+    std::getline(file, line);
   }
 
   file.close();
@@ -177,9 +173,8 @@ static void BM_PresburgerSetIsEmpty(benchmark::State& state) {
   
   for (int i = 0; i < num; i++) {
     std::getline(file, line);    
-    presburger::PresburgerSet setA = parsePresburgerSet(line);
+    setsA.push_back(parsePresburgerSet(line));
     std::getline(file, line);    
-    setsA.push_back(setA);
   }
 
   file.close();
