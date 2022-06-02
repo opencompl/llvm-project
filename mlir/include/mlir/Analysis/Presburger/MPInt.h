@@ -178,9 +178,10 @@ private:
     holdsAP = false;
   }
   __attribute__((always_inline)) void initAP(const detail::MPAPInt &o) {
-    if (LLVM_UNLIKELY(isLarge()))
-      valAP.detail::MPAPInt::~MPAPInt();
-    valAP = o;
+    // The data in the buffer could be in an arbitrary state, not necessarily
+    // corresponding to any valid state of valAP; we cannot call the
+    // assignment operator on it.
+    new (&valAP) APInt;
     holdsAP = true;
   }
 };
