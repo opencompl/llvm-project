@@ -18,6 +18,8 @@ Matrix::Matrix(unsigned rows, unsigned columns, unsigned reservedRows,
     : nRows(rows), nColumns(columns),
       nReservedColumns(std::max(nColumns, reservedColumns)),
       data(reservedRows * nReservedColumns) {
+  assert(nRows <= reservedRows);
+  data.truncate(nRows * nReservedColumns);
 }
 
 Matrix Matrix::identity(unsigned dimension) {
@@ -28,12 +30,11 @@ Matrix Matrix::identity(unsigned dimension) {
 }
 
 unsigned Matrix::getNumReservedRows() const {
-  return data.size() / nReservedColumns;
+  return data.capacity() / nReservedColumns;
 }
 
 void Matrix::reserveRows(unsigned rows) {
-  if (rows > getNumReservedRows())
-    data.resize(rows * nReservedColumns);
+  data.reserve(rows * nReservedColumns);
 }
 
 unsigned Matrix::appendExtraRow() {
@@ -62,11 +63,8 @@ void Matrix::resize(unsigned newNRows, unsigned newNColumns) {
 }
 
 void Matrix::resizeVertically(unsigned newNRows) {
-  if (newNRows > getNumReservedRows())
-    data.resize(newNRows * nReservedColumns);
-  if (newNRows > nRows)
-    fillZeroRows(nRows, newNRows - nRows);
   nRows = newNRows;
+  data.resize(nRows * nReservedColumns);
 }
 
 void Matrix::swapRows(unsigned row, unsigned otherRow) {
@@ -101,10 +99,9 @@ void Matrix::insertColumns(unsigned pos, unsigned count) {
     return;
   assert(pos <= nColumns);
   unsigned oldNReservedColumns = nReservedColumns;
-  unsigned oldNReservedRows = getNumReservedRows();
   if (nColumns + count > nReservedColumns) {
     nReservedColumns = llvm::NextPowerOf2(nColumns + count);
-    data.resize(oldNReservedRows * nReservedColumns);
+    data.resize(nRows * nReservedColumns);
   }
   nColumns += count;
 
@@ -196,9 +193,6 @@ void Matrix::fillZeroRow(unsigned row) {
   memset(&at(row, 0), 0, sizeof(MPInt)*nColumns);
 }
 
-void Matrix::fillZeroRows(unsigned row, unsigned numRowsToZero) {
-  memset(&at(row, 0), 0, sizeof(MPInt)*nReservedColumns*numRowsToZero);
-}
 
 void Matrix::addToRow(unsigned sourceRow, unsigned targetRow, const MPInt &scale) {
   if (scale == 0)
@@ -267,7 +261,7 @@ void Matrix::print(raw_ostream &os) const {
 void Matrix::dump() const { print(llvm::errs()); }
 
 bool Matrix::hasConsistentState() const {
-  if (data.size() < nRows * nReservedColumns)
+  if (data.size() != nRows * nReservedColumns)
     return false;
   if (nColumns > nReservedColumns)
     return false;
