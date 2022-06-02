@@ -172,10 +172,14 @@ private:
   unsigned holdsAP;
 
   __attribute__((always_inline)) void init64(int64_t o) {
+    if (LLVM_UNLIKELY(isLarge()))
+      valAP.detail::MPAPInt::~MPAPInt();
     val64 = o;
     holdsAP = false;
   }
   __attribute__((always_inline)) void initAP(const detail::MPAPInt &o) {
+    if (LLVM_UNLIKELY(isLarge()))
+      valAP.detail::MPAPInt::~MPAPInt();
     valAP = o;
     holdsAP = true;
   }
