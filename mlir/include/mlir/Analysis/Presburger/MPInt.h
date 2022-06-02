@@ -136,7 +136,7 @@ public:
 
 private:
   __attribute__((always_inline))
-  explicit MPInt(const detail::MPAPInt &val) : valAP(val) { assert(val.getBitWidth() > 0); }
+  explicit MPInt(const detail::MPAPInt &val) : valAP(val) { }
   __attribute__((always_inline)) bool isSmall() const { return !holdsAP; }
   __attribute__((always_inline)) bool isLarge() const { return holdsAP; }
   __attribute__((always_inline)) int64_t get64() const {
@@ -166,20 +166,16 @@ private:
   }
 
   union {
-    struct {
-      int64_t val64;
-      unsigned holdsAP;
-      uint32_t padding = 0;
-    };
+    int64_t val64;
     detail::MPAPInt valAP;
   };
+  unsigned holdsAP;
 
   __attribute__((always_inline)) void init64(int64_t o) {
     val64 = o;
     holdsAP = false;
   }
   __attribute__((always_inline)) void initAP(const detail::MPAPInt &o) {
-    assert(o.getBitWidth() > 0);
     valAP = o;
     holdsAP = true;
   }
