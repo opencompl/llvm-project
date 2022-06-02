@@ -42,12 +42,8 @@ public:
   /// and columns specified.
   ///
   /// Initially, the entries are initialized to ero.
-  Matrix(unsigned rows, unsigned columns, unsigned reservedRows,
-         unsigned reservedColumns);
-  Matrix(unsigned rows, unsigned columns, unsigned reservedRows)
-  : Matrix(rows, columns, reservedRows, columns) {}
-  Matrix(unsigned rows, unsigned columns)
-  : Matrix(rows, columns, rows, columns) {}
+  Matrix(unsigned rows, unsigned columns, unsigned reservedRows = 0,
+         unsigned reservedColumns = 0);
 
   /// Return the identity matrix of the specified dimension.
   static Matrix identity(unsigned dimension);
