@@ -748,98 +748,113 @@ TEST(SetTest, computeVolume) {
 // TEMP - PresburgerSetTestCase
 #include <fstream>
 TEST(SetTest, UnionFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetUnion");
   std::string line;
   std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setB{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setC{parsePoly(line)};
-  
-  PresburgerSet res = setA.unionSet(setB);
-  EXPECT_TRUE(res.isEqual(setC));
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.unionSet(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
 }
 
 TEST(SetTest, IntersectFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetIntersect");
   std::string line;
   std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setB{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setC{parsePoly(line)};
-  
-  PresburgerSet res = setA.intersect(setB);
-  EXPECT_TRUE(res.isEqual(setC));
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.intersect(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
 }
 
 TEST(SetTest, SubtractFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetSubtract");
   std::string line;
   std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setB{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setC{parsePoly(line)};
-  
-  PresburgerSet res = setA.subtract(setB);
-  EXPECT_TRUE(res.isEqual(setC));
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.subtract(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
 }
 
 TEST(SetTest, ComplementFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetComplement");
   std::string line;
   std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setB{parsePoly(line)};
-  
-  PresburgerSet res = setA.complement();
-  EXPECT_TRUE(res.isEqual(setB));
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    PresburgerSet res = setA.complement();
+    EXPECT_TRUE(res.isEqual(setB));
+  }
 }
 
-// TEST(SetTest, isEqualFile) {
-//   std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
-//   std::string line;
-//   std::getline(file, line);
-//   PresburgerSet setA{parsePoly(line)};
-//   std::getline(file, line);
-//   PresburgerSet setB{parsePoly(line)};
-  
-//   EXPECT_TRUE(setA.isEqual(setB));
-// }
-
 TEST(SetTest, isEqualFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetEqual");
   std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
   bool result;
-  std::getline(file, line);
-  std::istringstream(line) >> result;
-  std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
-  std::getline(file, line);
-  PresburgerSet setB{parsePoly(line)};
 
-  if (result)
-    EXPECT_TRUE(setA.isEqual(setB));
-  else
-    EXPECT_FALSE(setA.isEqual(setB));  
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    std::istringstream(line) >> result;
+    PresburgerSet res = setA.subtract(setB);
+    if (result)
+      EXPECT_TRUE(setA.isEqual(setB));
+    else
+      EXPECT_FALSE(setA.isEqual(setB));  
+  }
 }
 
 TEST(SetTest, isEmptyFile) {
-  std::ifstream file("../mlir/unittests/Analysis/Presburger/PresburgerSetTestCase");
+  std::ifstream file("../mlir/benchmark/PresburgerSetEmpty");
   std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
   bool result;
-  std::getline(file, line);
-  std::istringstream(line) >> result;
-  std::getline(file, line);
-  PresburgerSet setA{parsePoly(line)};
 
-  if (result)
-    EXPECT_TRUE(setA.isIntegerEmpty());
-  else
-    EXPECT_FALSE(setA.isIntegerEmpty());  
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet res = setA.complement();
+    std::istringstream(line) >> result;
+    if (result)
+      EXPECT_TRUE(setA.isIntegerEmpty());
+    else
+      EXPECT_FALSE(setA.isIntegerEmpty()); 
+  } 
 }
