@@ -782,14 +782,14 @@ mlir::parseMultipleIntegerSets(StringRef inputStr, MLIRContext *context,
 
   raw_ostream &os = printDiagnosticInfo ? llvm::errs() : llvm::nulls();
   SourceMgrDiagnosticHandler handler(sourceMgr, context, os);
-  SmallVector<IntegerSet> set;
+  SmallVector<IntegerSet, 4> set;
   if (parser.parseMultipleIntegerSetsReference(set))
-    return SmallVector<IntegerSet>();
+    return SmallVector<IntegerSet, 4>();
 
   Token endTok = parser.getToken();
   if (endTok.isNot(Token::eof)) {
     parser.emitError(endTok.getLoc(), "encountered unexpected token");
-    return SmallVector<IntegerSet>();
+    return SmallVector<IntegerSet, 4>();
   }
   return set;
 }
