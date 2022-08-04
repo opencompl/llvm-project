@@ -97,9 +97,8 @@ static PresburgerSet makeSetFromPoly(unsigned numDims,
 }
 
 TEST(SetTest, containsPoint) {
-  PresburgerSet setA = parsePresburgerSetFromPolyStrings(
-      1,
-      {"(x) : (x - 2 >= 0, -x + 8 >= 0)", "(x) : (x - 10 >= 0, -x + 20 >= 0)"});
+  PresburgerSet setA = parsePresburgerSet(
+      "(x) : (x - 2 >= 0, -x + 8 >= 0), (x - 10 >= 0, -x + 20 >= 0)");
   for (unsigned x = 0; x <= 21; ++x) {
     if ((2 <= x && x <= 8) || (10 <= x && x <= 20))
       EXPECT_TRUE(setA.containsPoint({x}));
@@ -109,10 +108,10 @@ TEST(SetTest, containsPoint) {
 
   // A parallelogram with vertices {(3, 1), (10, -6), (24, 8), (17, 15)} union
   // a square with opposite corners (2, 2) and (10, 10).
-  PresburgerSet setB = parsePresburgerSetFromPolyStrings(
-      2, {"(x,y) : (x + y - 4 >= 0, -x - y + 32 >= 0, "
-          "x - y - 2 >= 0, -x + y + 16 >= 0)",
-          "(x,y) : (x - 2 >= 0, y - 2 >= 0, -x + 10 >= 0, -y + 10 >= 0)"});
+  PresburgerSet setB = parsePresburgerSet(
+      "(x,y) : (x + y - 4 >= 0, -x - y + 32 >= 0, "
+      "x - y - 2 >= 0, -x + y + 16 >= 0),"
+      "(x - 2 >= 0, y - 2 >= 0, -x + 10 >= 0, -y + 10 >= 0)");
 
   for (unsigned x = 1; x <= 25; ++x) {
     for (unsigned y = -6; y <= 16; ++y) {
@@ -131,9 +130,8 @@ TEST(SetTest, containsPoint) {
 }
 
 TEST(SetTest, Union) {
-  PresburgerSet set = parsePresburgerSetFromPolyStrings(
-      1,
-      {"(x) : (x - 2 >= 0, -x + 8 >= 0)", "(x) : (x - 10 >= 0, -x + 20 >= 0)"});
+  PresburgerSet set = parsePresburgerSet(
+      "(x) : (x - 2 >= 0, -x + 8 >= 0), (x - 10 >= 0, -x + 20 >= 0)");
 
   // Universe union set.
   testUnionAtPoints(PresburgerSet::getUniverse(PresburgerSpace::getSetSpace(1)),
@@ -903,4 +901,116 @@ TEST(SetTest, subtractOutputSizeRegression) {
   // Previously, the subtraction result was producing several unnecessary empty
   // sets, which is correct, but bad for output size.
   EXPECT_EQ(subtractSelf.getNumDisjuncts(), 0u);
+// TEMP - PresburgerSetTestCase
+#include <fstream>
+TEST(SetTest, UnionFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetUnion");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.unionSet(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
+}
+
+TEST(SetTest, IntersectFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetIntersect");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.intersect(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
+}
+
+TEST(SetTest, SubtractFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetSubtract");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setC = parsePresburgerSet(line);
+    PresburgerSet res = setA.subtract(setB);
+    EXPECT_TRUE(res.isEqual(setC));
+  }
+}
+
+TEST(SetTest, ComplementFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetComplement");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    PresburgerSet res = setA.complement();
+    EXPECT_TRUE(res.isEqual(setB));
+  }
+}
+
+TEST(SetTest, isEqualFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetEqual");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+  bool result;
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet setB = parsePresburgerSet(line);
+    std::getline(file, line);
+    std::istringstream(line) >> result;
+    PresburgerSet res = setA.subtract(setB);
+    if (result)
+      EXPECT_TRUE(setA.isEqual(setB));
+    else
+      EXPECT_FALSE(setA.isEqual(setB));  
+  }
+}
+
+TEST(SetTest, isEmptyFile) {
+  std::ifstream file("../mlir/benchmark/PresburgerSetEmpty");
+  std::string line;
+  std::getline(file, line);
+  int num = stoi(line);
+  bool result;
+
+  for (int i = 0; i < num; i++) {
+    std::getline(file, line);
+    PresburgerSet setA = parsePresburgerSet(line);
+    std::getline(file, line);
+    PresburgerSet res = setA.complement();
+    std::istringstream(line) >> result;
+    if (result)
+      EXPECT_TRUE(setA.isIntegerEmpty());
+    else
+      EXPECT_FALSE(setA.isIntegerEmpty()); 
+  } 
 }
