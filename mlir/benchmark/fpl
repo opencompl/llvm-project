@@ -1,0 +1,45 @@
+----------------------------------------------------------------------------
+Benchmark                                  Time             CPU   Iterations
+----------------------------------------------------------------------------
+BM_PresburgerSetUnion              117591833 ns    117592117 ns            6
+BM_PresburgerSetUnion              117679283 ns    117678200 ns            6
+BM_PresburgerSetUnion              138678683 ns    138679183 ns            6
+BM_PresburgerSetUnion_mean         124649933 ns    124649833 ns            3
+BM_PresburgerSetUnion_median       117679283 ns    117678200 ns            3
+BM_PresburgerSetUnion_stddev        12149333 ns     12149850 ns            3
+BM_PresburgerSetUnion_cv                9.75 %          9.75 %             3
+BM_PresburgerSetIntersect         1920042300 ns   1919998800 ns            1
+BM_PresburgerSetIntersect         1921991600 ns   1921980800 ns            1
+BM_PresburgerSetIntersect         1914847300 ns   1914838900 ns            1
+BM_PresburgerSetIntersect_mean    1918960400 ns   1918939500 ns            3
+BM_PresburgerSetIntersect_median  1920042300 ns   1919998800 ns            3
+BM_PresburgerSetIntersect_stddev     3692985 ns      3686905 ns            3
+BM_PresburgerSetIntersect_cv            0.19 %          0.19 %             3
+BM_PresburgerSetSubtract          1345975000 ns   1345961600 ns            1
+BM_PresburgerSetSubtract          1356583900 ns   1356582600 ns            1
+BM_PresburgerSetSubtract          1364271800 ns   1364260300 ns            1
+BM_PresburgerSetSubtract_mean     1355610233 ns   1355601500 ns            3
+BM_PresburgerSetSubtract_median   1356583900 ns   1356582600 ns            3
+BM_PresburgerSetSubtract_stddev      9187178 ns      9188717 ns            3
+BM_PresburgerSetSubtract_cv             0.68 %          0.68 %             3
+BM_PresburgerSetComplement          11475048 ns     11474966 ns           62
+BM_PresburgerSetComplement          11225373 ns     11225384 ns           62
+BM_PresburgerSetComplement          11233231 ns     11233176 ns           62
+BM_PresburgerSetComplement_mean     11311217 ns     11311175 ns            3
+BM_PresburgerSetComplement_median   11233231 ns     11233176 ns            3
+BM_PresburgerSetComplement_stddev     141936 ns       141901 ns            3
+BM_PresburgerSetComplement_cv           1.25 %          1.25 %             3
+BM_PresburgerSetIsEqual              7591870 ns      7591802 ns           90
+BM_PresburgerSetIsEqual              7585322 ns      7585289 ns           90
+BM_PresburgerSetIsEqual              7691581 ns      7691597 ns           90
+BM_PresburgerSetIsEqual_mean         7622924 ns      7622896 ns            3
+BM_PresburgerSetIsEqual_median       7591870 ns      7591802 ns            3
+BM_PresburgerSetIsEqual_stddev         59548 ns        59586 ns            3
+BM_PresburgerSetIsEqual_cv              0.78 %          0.78 %             3
+BM_PresburgerSetIsEmpty           23775924000 ns   23775910000 ns            1
+BM_PresburgerSetIsEmpty           23806975000 ns   23806967100 ns            1
+BM_PresburgerSetIsEmpty           24482366900 ns   24482111300 ns            1
+BM_PresburgerSetIsEmpty_mean      24021755300 ns   24021662800 ns            3
+BM_PresburgerSetIsEmpty_median    23806975000 ns   23806967100 ns            3
+BM_PresburgerSetIsEmpty_stddev     399203364 ns    399062341 ns            3
+BM_PresburgerSetIsEmpty_cv              1.66 %          1.66 %             3
