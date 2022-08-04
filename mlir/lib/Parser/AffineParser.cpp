@@ -803,8 +803,9 @@ mlir::parseMultipleIntegerSets(StringRef inputStr, MLIRContext *context,
       /*RequiresNullTerminator=*/false);
   sourceMgr.AddNewSourceBuffer(std::move(memBuffer), SMLoc());
   SymbolState symbolState;
-  ParserState state(sourceMgr, context, symbolState, /*asmState=*/nullptr);
-  Parser parser(state);
+  ParserConfig config(context);
+  ParserState state(sourceMgr, config, symbolState, /*asmState=*/nullptr,
+                   /*codeCompleteContext=*/nullptr);  Parser parser(state);
 
   raw_ostream &os = printDiagnosticInfo ? llvm::errs() : llvm::nulls();
   SourceMgrDiagnosticHandler handler(sourceMgr, context, os);
