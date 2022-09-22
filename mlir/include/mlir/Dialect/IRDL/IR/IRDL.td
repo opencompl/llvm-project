@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_DIALECT_IRDL_IR_IRDL
-#define DYN_DIALECT_IRDL_IR_IRDL
+#ifndef MLIR_DIALECT_IRDL_IR_IRDL
+#define MLIR_DIALECT_IRDL_IR_IRDL
 
 include "mlir/IR/OpBase.td"
 
@@ -81,4 +81,4 @@ def IRDL_Dialect : Dialect {
   let cppNamespace = "::mlir::irdl";
 }
 
-#endif // DYN_DIALECT_IRDL_IR_IRDL
+#endif // MLIR_DIALECT_IRDL_IR_IRDL
