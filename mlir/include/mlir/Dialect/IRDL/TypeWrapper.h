@@ -22,6 +22,7 @@
 
 namespace mlir {
 namespace irdl {
+
 /// A wrapper around a C++-defined type to extract type parameters.
 /// For most cases, ConcreteTypeWrapper should be used instead.
 class TypeWrapper {
@@ -50,7 +51,7 @@ using TypeWrapperPtr = TypeWrapper *;
 
 /// A wrapper around a concrete C++-defined type.
 template <typename T>
-class ConcreteTypeWrapper : public TypeWrapper {
+class CppTypeWrapper : public TypeWrapper {
 public:
   /// Get the parameters of a type as attributes.
   virtual llvm::SmallVector<mlir::Attribute> getParameters(T t) = 0;
