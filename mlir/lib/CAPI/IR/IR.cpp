@@ -110,6 +110,28 @@ void mlirDialectRegistryDestroy(MlirDialectRegistry registry) {
   delete unwrap(registry);
 }
 
+namespace {
+class DynamicDialectPopulationFunctionWrapper {
+public:
+  MlirDynamicDialectPopulationFunction ctor;
+
+  ~DynamicDialectPopulationFunctionWrapper() {
+    ctor.destroyUserData(ctor.userData);
+  }
+};
+}; // namespace
+
+void mlirDialectRegistryInsertDynamic(
+    MlirDialectRegistry registry, MlirStringRef name,
+    MlirDynamicDialectPopulationFunction ctor) {
+  unwrap(registry)->insertDynamic(
+      unwrap(name), [ctor = DynamicDialectPopulationFunctionWrapper{ctor}](
+                        MLIRContext *ctx, DynamicDialect *dynDialect) {
+        ctor.ctor.populate(wrap(ctx), wrap((Dialect *)dynDialect),
+                           ctor.ctor.userData);
+      });
+}
+
 //===----------------------------------------------------------------------===//
 // Printing flags API.
 //===----------------------------------------------------------------------===//

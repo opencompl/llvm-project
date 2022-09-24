@@ -58,6 +58,9 @@ DEFINE_C_API_STRUCT(MlirRegion, void);
 DEFINE_C_API_STRUCT(MlirSymbolTable, void);
 
 DEFINE_C_API_STRUCT(MlirAttribute, const void);
+DEFINE_C_API_STRUCT(MlirDynamicAttrDefinition, const void);
+DEFINE_C_API_STRUCT(MlirDynamicTypeDefinition, const void);
+DEFINE_C_API_STRUCT(MlirDynamicOpDefinition, const void);
 DEFINE_C_API_STRUCT(MlirIdentifier, const void);
 DEFINE_C_API_STRUCT(MlirLocation, const void);
 DEFINE_C_API_STRUCT(MlirModule, const void);
@@ -218,6 +221,22 @@ static inline bool mlirDialectRegistryIsNull(MlirDialectRegistry registry) {
 /// Takes a dialect registry owned by the caller and destroys it.
 MLIR_CAPI_EXPORTED void
 mlirDialectRegistryDestroy(MlirDialectRegistry registry);
+
+/// Population function for a dynamic dialect.
+struct MlirDynamicDialectPopulationFunction {
+  void *userData;
+  void (*populate)(MlirContext ctx, MlirDialect dynDialect, void *userData);
+  void (*destroyUserData)(void *);
+};
+typedef struct MlirDynamicDialectPopulationFunction
+    MlirDynamicDialectPopulationFunction;
+
+/// Register a dynamic dialect in the dialect registry.
+/// The dialect registry takes ownership of the population function user data.
+MLIR_CAPI_EXPORTED void
+mlirDialectRegistryInsertDynamic(MlirDialectRegistry registry,
+                                 MlirStringRef name,
+                                 MlirDynamicDialectPopulationFunction ctor);
 
 //===----------------------------------------------------------------------===//
 // Location API.
