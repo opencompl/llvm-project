@@ -17,12 +17,16 @@
 
 #include "mlir/CAPI/Wrap.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Operation.h"
 
 DEFINE_C_API_PTR_METHODS(MlirContext, mlir::MLIRContext)
 DEFINE_C_API_PTR_METHODS(MlirDialect, mlir::Dialect)
 DEFINE_C_API_PTR_METHODS(MlirDialectRegistry, mlir::DialectRegistry)
+DEFINE_C_API_PTR_METHODS(MlirDynamicAttrDefinition, mlir::DynamicAttrDefinition)
+DEFINE_C_API_PTR_METHODS(MlirDynamicTypeDefinition, mlir::DynamicTypeDefinition)
+DEFINE_C_API_PTR_METHODS(MlirDynamicOpDefinition, mlir::DynamicOpDefinition)
 DEFINE_C_API_PTR_METHODS(MlirOperation, mlir::Operation)
 DEFINE_C_API_PTR_METHODS(MlirBlock, mlir::Block)
 DEFINE_C_API_PTR_METHODS(MlirOpPrintingFlags, mlir::OpPrintingFlags)

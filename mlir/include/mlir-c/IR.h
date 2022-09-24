@@ -51,6 +51,9 @@ extern "C" {
 DEFINE_C_API_STRUCT(MlirContext, void);
 DEFINE_C_API_STRUCT(MlirDialect, void);
 DEFINE_C_API_STRUCT(MlirDialectRegistry, void);
+DEFINE_C_API_STRUCT(MlirDynamicAttrDefinition, void);
+DEFINE_C_API_STRUCT(MlirDynamicTypeDefinition, void);
+DEFINE_C_API_STRUCT(MlirDynamicOpDefinition, void);
 DEFINE_C_API_STRUCT(MlirOperation, void);
 DEFINE_C_API_STRUCT(MlirOpPrintingFlags, void);
 DEFINE_C_API_STRUCT(MlirBlock, void);
@@ -58,9 +61,6 @@ DEFINE_C_API_STRUCT(MlirRegion, void);
 DEFINE_C_API_STRUCT(MlirSymbolTable, void);
 
 DEFINE_C_API_STRUCT(MlirAttribute, const void);
-DEFINE_C_API_STRUCT(MlirDynamicAttrDefinition, const void);
-DEFINE_C_API_STRUCT(MlirDynamicTypeDefinition, const void);
-DEFINE_C_API_STRUCT(MlirDynamicOpDefinition, const void);
 DEFINE_C_API_STRUCT(MlirIdentifier, const void);
 DEFINE_C_API_STRUCT(MlirLocation, const void);
 DEFINE_C_API_STRUCT(MlirModule, const void);
@@ -205,6 +205,59 @@ MLIR_CAPI_EXPORTED void mlirDialectHandleRegisterDialect(MlirDialectHandle,
 /// Loads the dialect associated with the provided dialect handle.
 MLIR_CAPI_EXPORTED MlirDialect mlirDialectHandleLoadDialect(MlirDialectHandle,
                                                             MlirContext);
+
+//===----------------------------------------------------------------------===//
+// ExtensibleDialect API.
+//===----------------------------------------------------------------------===//
+
+/// Returns 1 if the value is a block argument, 0 otherwise.
+MLIR_CAPI_EXPORTED bool MlirDialectIsAExtensibleDialect(MlirDialect dialect);
+
+/// Register a dynamic type to the dialect.
+/// The ownership of the type definition is given to the dialect.
+MLIR_CAPI_EXPORTED void
+MlirExtensibleDialectRegisterDynamicType(MlirDialect dialect,
+                                         MlirDynamicTypeDefinition typeDef);
+
+/// Register a dynamic attribute to the dialect.
+/// The ownership of the attribute definition is given to the dialect.
+MLIR_CAPI_EXPORTED void
+MlirExtensibleDialectRegisterDynamicAttr(MlirDialect dialect,
+                                         MlirDynamicAttrDefinition typeDef);
+
+/// Register a dynamic operation to the dialect.
+/// The ownership of the operation definition is given to the dialect.
+MLIR_CAPI_EXPORTED void
+MlirExtensibleDialectRegisterDynamicOp(MlirDialect dialect,
+                                       MlirDynamicOpDefinition typeDef);
+
+/// Get a type definition of the given name.
+/// The ownership of the type definition is held by the dialect.
+/// Returns null if the definition was not found.
+MLIR_CAPI_EXPORTED MlirDynamicTypeDefinition
+MlirExtensibleDialectLookupTypeDefinitionFromName(MlirDialect dialect,
+                                                  MlirStringRef name);
+
+/// Get a type definition of the given typeID.
+/// The ownership of the type definition is held by the dialect.
+/// Returns null if the definition was not found.
+MLIR_CAPI_EXPORTED MlirDynamicTypeDefinition
+MlirExtensibleDialectLookupTypeDefinitionFromTypeID(MlirDialect dialect,
+                                                    MlirTypeID typeID);
+
+/// Get an attribute definition of the given name.
+/// The ownership of the attribute definition is held by the dialect.
+/// Returns null if the definition was not found.
+MLIR_CAPI_EXPORTED MlirDynamicAttrDefinition
+MlirExtensibleDialectLookupAttrDefinitionFromName(MlirDialect dialect,
+                                                  MlirStringRef name);
+
+/// Get an attribute definition of the given typeID.
+/// The ownership of the attribute definition is held by the dialect.
+/// Returns null if the definition was not found.
+MLIR_CAPI_EXPORTED MlirDynamicAttrDefinition
+MlirExtensibleDialectLookupAttrDefinitionFromTypeID(MlirDialect dialect,
+                                                    MlirTypeID typeID);
 
 //===----------------------------------------------------------------------===//
 // DialectRegistry API.

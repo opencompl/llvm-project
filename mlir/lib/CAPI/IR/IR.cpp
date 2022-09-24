@@ -17,6 +17,7 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dialect.h"
+#include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/Types.h"
@@ -99,6 +100,63 @@ MlirStringRef mlirDialectGetNamespace(MlirDialect dialect) {
 }
 
 //===----------------------------------------------------------------------===//
+// ExtensibleDialect API.
+//===----------------------------------------------------------------------===//
+
+bool MlirDialectIsAExtensibleDialect(MlirDialect dialect) {
+  return isa<ExtensibleDialect>(unwrap(dialect));
+}
+
+void MlirExtensibleDialectRegisterDynamicType(
+    MlirDialect dialect, MlirDynamicTypeDefinition typeDef) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  extensibleDialect->registerDynamicType(
+      std::unique_ptr<DynamicTypeDefinition>(unwrap(typeDef)));
+}
+
+void MlirExtensibleDialectRegisterDynamicAttr(
+    MlirDialect dialect, MlirDynamicAttrDefinition attrDef) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  extensibleDialect->registerDynamicAttr(
+      std::unique_ptr<DynamicAttrDefinition>(unwrap(attrDef)));
+}
+
+void MlirExtensibleDialectRegisterDynamicOp(MlirDialect dialect,
+                                            MlirDynamicOpDefinition opDef) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  extensibleDialect->registerDynamicOp(
+      std::unique_ptr<DynamicOpDefinition>(unwrap(opDef)));
+}
+
+MlirDynamicTypeDefinition
+MlirExtensibleDialectLookupTypeDefinitionFromName(MlirDialect dialect,
+                                                  MlirStringRef name) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  return wrap(extensibleDialect->lookupTypeDefinition(unwrap(name)));
+}
+
+MlirDynamicTypeDefinition
+MlirExtensibleDialectLookupTypeDefinitionFromTypeID(MlirDialect dialect,
+                                                    MlirTypeID typeID) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  return wrap(extensibleDialect->lookupTypeDefinition(unwrap(typeID)));
+}
+
+MlirDynamicAttrDefinition
+MlirExtensibleDialectLookupAttrDefinitionFromName(MlirDialect dialect,
+                                                  MlirStringRef name) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  return wrap(extensibleDialect->lookupAttrDefinition(unwrap(name)));
+}
+
+MlirDynamicAttrDefinition
+MlirExtensibleDialectLookupAttrDefinitionFromTypeID(MlirDialect dialect,
+                                                    MlirTypeID typeID) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dialect));
+  return wrap(extensibleDialect->lookupAttrDefinition(unwrap(typeID)));
+}
+
+//===----------------------------------------------------------------------===//
 // DialectRegistry API.
 //===----------------------------------------------------------------------===//
 
@@ -119,7 +177,7 @@ public:
     ctor.destroyUserData(ctor.userData);
   }
 };
-}; // namespace
+} // namespace
 
 void mlirDialectRegistryInsertDynamic(
     MlirDialectRegistry registry, MlirStringRef name,
