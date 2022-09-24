@@ -121,6 +121,11 @@ mlirContextAppendDialectRegistry(MlirContext ctx, MlirDialectRegistry registry);
 MLIR_CAPI_EXPORTED intptr_t
 mlirContextGetNumLoadedDialects(MlirContext context);
 
+/// Get (or create) a dynamic dialect for the given name.
+MLIR_CAPI_EXPORTED MlirDialect mlirContextGetOrLoadDynamicDialect(
+    MlirContext context, MlirStringRef name,
+    void (*ctor)(MlirDialect *dynDialect, void *userData), void *userData);
+
 /// Gets the dialect instance owned by the given context using the dialect
 /// namespace to identify it, loads (i.e., constructs the instance of) the
 /// dialect if necessary. If the dialect is not registered with the context,

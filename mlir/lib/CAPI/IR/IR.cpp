@@ -71,6 +71,15 @@ MlirDialect mlirContextGetOrLoadDialect(MlirContext context,
   return wrap(unwrap(context)->getOrLoadDialect(unwrap(name)));
 }
 
+MlirDialect mlirContextGetOrLoadDynamicDialect(
+    MlirContext context, MlirStringRef name,
+    void (*ctor)(MlirDialect dynDialect, void *userData), void *userData) {
+  return wrap(unwrap(context)->getOrLoadDynamicDialect(
+      unwrap(name), [ctor, userData](DynamicDialect *dialect) {
+        ctor(wrap(dialect), userData);
+      }));
+}
+
 bool mlirContextIsRegisteredOperation(MlirContext context, MlirStringRef name) {
   return unwrap(context)->isOperationRegistered(unwrap(name));
 }
