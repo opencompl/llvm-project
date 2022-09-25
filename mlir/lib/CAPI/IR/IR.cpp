@@ -166,6 +166,86 @@ MlirExtensibleDialectLookupAttrDefinitionFromTypeID(MlirDialect dialect,
 }
 
 //===----------------------------------------------------------------------===//
+// DynamicAttrDefinition API.
+//===----------------------------------------------------------------------===//
+
+MlirDynamicAttrDefinition
+MlirDynamicAttrDefinitionCreate(MlirStringRef name, MlirDialect dynDialect,
+                                MlirDynamicAttrOrTypeVerifierFn verifierFn) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dynDialect));
+  auto *context = extensibleDialect->getContext();
+  auto attr = DynamicAttrDefinition::get(
+      unwrap(name), extensibleDialect,
+      // We do not have C bindings for the
+      // InFlightDiagnostic, so we just ignore it.
+      [context, verifierFn](function_ref<InFlightDiagnostic()>,
+                            ArrayRef<Attribute> params) {
+        auto cParams = std::vector<MlirAttribute>(params.size());
+        for (auto it : llvm::enumerate(params))
+          cParams[it.index()] = wrap(it.value());
+        return unwrap(verifierFn.verify(wrap(context), params.size(),
+                                        cParams.data(), verifierFn.userData));
+      });
+  return wrap(attr.release());
+}
+
+void MlirDynamicAttrDefinitionDestroy(MlirDynamicAttrDefinition def) {
+  delete unwrap(def);
+}
+
+MlirContext MlirDynamicAttrDefinitionGetContext(MlirDynamicAttrDefinition def) {
+  return wrap(&unwrap(def)->getContext());
+}
+
+MlirStringRef MlirDynamicAttrDefinitionGetName(MlirDynamicAttrDefinition def) {
+  return wrap(unwrap(def)->getName());
+}
+
+MlirDialect MlirDynamicAttrDefinitionGetDialect(MlirDynamicAttrDefinition def) {
+  return wrap(unwrap(def)->getDialect());
+}
+
+//===----------------------------------------------------------------------===//
+// DynamicTypeDefinition API.
+//===----------------------------------------------------------------------===//
+
+MlirDynamicTypeDefinition
+MlirDynamicTypeDefinitionCreate(MlirStringRef name, MlirDialect dynDialect,
+                                MlirDynamicAttrOrTypeVerifierFn verifierFn) {
+  auto *extensibleDialect = cast<ExtensibleDialect>(unwrap(dynDialect));
+  auto *context = extensibleDialect->getContext();
+  auto type = DynamicTypeDefinition::get(
+      unwrap(name), extensibleDialect,
+      // We do not have C bindings for the
+      // InFlightDiagnostic, so we just ignore it.
+      [context, verifierFn](function_ref<InFlightDiagnostic()>,
+                            ArrayRef<Attribute> params) {
+        auto cParams = std::vector<MlirAttribute>(params.size());
+        for (auto it : llvm::enumerate(params))
+          cParams[it.index()] = wrap(it.value());
+        return unwrap(verifierFn.verify(wrap(context), params.size(),
+                                        cParams.data(), verifierFn.userData));
+      });
+  return wrap(type.release());
+}
+
+void MlirDynamicTypeDefinitionDestroy(MlirDynamicTypeDefinition def) {
+  delete unwrap(def);
+}
+
+MlirContext MlirDynamicTypeDefinitionGetContext(MlirDynamicTypeDefinition def) {
+  return wrap(&unwrap(def)->getContext());
+}
+
+MlirStringRef MlirDynamicTypeDefinitionGetName(MlirDynamicTypeDefinition def) {
+  return wrap(unwrap(def)->getName());
+}
+
+MlirDialect MlirDynamicTypeDefinitionGetDialect(MlirDynamicTypeDefinition def) {
+  return wrap(unwrap(def)->getDialect());
+}
+
+//===----------------------------------------------------------------------===//
 // DialectRegistry API.
 //===----------------------------------------------------------------------===//
 

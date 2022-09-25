@@ -265,6 +265,73 @@ MlirExtensibleDialectLookupAttrDefinitionFromTypeID(MlirDialect dialect,
                                                     MlirTypeID typeID);
 
 //===----------------------------------------------------------------------===//
+// DynamicAttrDefinition and DynamicTypeDefinition shared API.
+//===----------------------------------------------------------------------===//
+
+/// The verifier type of a dynamic attribet or type.
+/// Note that the emitError argument is missing, since there is currently
+/// no C bindings for InFlightDiagnostic.
+struct MlirDynamicAttrOrTypeVerifierFn {
+  MlirLogicalResult (*verify)(MlirContext ctx, intptr_t nParams,
+                              MlirAttribute const *params, void *userData);
+  void *userData;
+  void (*destroyUserData)(void *);
+};
+typedef struct MlirDynamicAttrOrTypeVerifierFn MlirDynamicAttrOrTypeVerifierFn;
+
+//===----------------------------------------------------------------------===//
+// DynamicAttrDefinition API.
+//===----------------------------------------------------------------------===//
+
+/// Create a new attribute definition in an extensible dialect.
+/// The ownership of the verifier is given to the definition.
+MLIR_CAPI_EXPORTED MlirDynamicAttrDefinition
+MlirDynamicAttrDefinitionCreate(MlirStringRef name, MlirDialect extDialect,
+                                MlirDynamicAttrOrTypeVerifierFn verifierFn);
+
+/// Takes a dynamic attribute definition owned by the caller and destroys it.
+MLIR_CAPI_EXPORTED
+void MlirDynamicAttrDefinitionDestroy(MlirDynamicAttrDefinition def);
+
+/// Gets the context that the definition was created with.
+MLIR_CAPI_EXPORTED MlirContext
+MlirDynamicAttrDefinitionGetContext(MlirDynamicAttrDefinition def);
+
+/// Gets the name of the attribute definition.
+MLIR_CAPI_EXPORTED MlirStringRef
+MlirDynamicAttrDefinitionGetName(MlirDynamicAttrDefinition def);
+
+/// Gets the dialect defining the attribute.
+MLIR_CAPI_EXPORTED MlirDialect
+MlirDynamicAttrDefinitionGetDialect(MlirDynamicAttrDefinition def);
+
+//===----------------------------------------------------------------------===//
+// DynamicTypeDefinition API.
+//===----------------------------------------------------------------------===//
+
+/// Create a new type definition in an extensible dialect.
+/// The ownership of the verifier is given to the definition.
+MLIR_CAPI_EXPORTED MlirDynamicTypeDefinition
+MlirDynamicTypeDefinitionCreate(MlirStringRef name, MlirDialect extDialect,
+                                MlirDynamicAttrOrTypeVerifierFn verifierFn);
+
+/// Takes a dynamic type definition owned by the caller and destroys it.
+MLIR_CAPI_EXPORTED
+void MlirDynamicTypeDefinitionDestroy(MlirDynamicTypeDefinition def);
+
+/// Gets the context that the definition was created with.
+MLIR_CAPI_EXPORTED MlirContext
+MlirDynamicTypeDefinitionGetContext(MlirDynamicTypeDefinition def);
+
+/// Gets the name of the type definition.
+MLIR_CAPI_EXPORTED MlirStringRef
+MlirDynamicTypeDefinitionGetName(MlirDynamicTypeDefinition def);
+
+/// Gets the dialect defining the type.
+MLIR_CAPI_EXPORTED MlirDialect
+MlirDynamicTypeDefinitionGetDialect(MlirDynamicTypeDefinition def);
+
+//===----------------------------------------------------------------------===//
 // DialectRegistry API.
 //===----------------------------------------------------------------------===//
 
@@ -282,8 +349,8 @@ mlirDialectRegistryDestroy(MlirDialectRegistry registry);
 
 /// Population function for a dynamic dialect.
 struct MlirDynamicDialectPopulationFunction {
-  void *userData;
   void (*populate)(MlirContext ctx, MlirDialect dynDialect, void *userData);
+  void *userData;
   void (*destroyUserData)(void *);
 };
 typedef struct MlirDynamicDialectPopulationFunction
