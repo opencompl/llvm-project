@@ -127,8 +127,10 @@ processBuffer(raw_ostream &os, std::unique_ptr<MemoryBuffer> ownedBuffer,
   // Create a context just for the current buffer. Disable threading on creation
   // since we'll inject the thread-pool separately.
   MLIRContext bufferContext(registry, MLIRContext::Threading::DISABLED);
-  if (!context)
+  if (!context) {
     context = &bufferContext;
+    context->appendDialectRegistry(registry);
+  }
 
   if (threadPool)
     context->setThreadPool(*threadPool);
@@ -179,9 +181,11 @@ LogicalResult mlir::MlirOptMain(
   // --mlir-disable-threading was passed on the command line.
   // We use the thread-pool this context is creating, and avoid
   // creating any thread when disabled.
+  // We only do this if the context is not provided.
   MLIRContext threadPoolCtx;
-  if (threadPoolCtx.isMultithreadingEnabled())
+  if (!context && threadPoolCtx.isMultithreadingEnabled()) {
     threadPool = &threadPoolCtx.getThreadPool();
+  }
 
   auto chunkFn = [&](std::unique_ptr<MemoryBuffer> chunkBuffer,
                      raw_ostream &os) {
