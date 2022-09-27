@@ -332,6 +332,56 @@ MLIR_CAPI_EXPORTED MlirDialect
 MlirDynamicTypeDefinitionGetDialect(MlirDynamicTypeDefinition def);
 
 //===----------------------------------------------------------------------===//
+// DynamicAttr API.
+//===----------------------------------------------------------------------===//
+
+/// Returns 1 if the attribute is a dynamic attribute, 0 otherwise.
+MLIR_CAPI_EXPORTED bool MlirAttributeIsADynamicAttr(MlirAttribute attr);
+
+/// Return an instance of a dynamic attribute given a dynamic attribute
+/// definition and a list of parameters.
+/// This asserts that the attribute verifier succeeded.
+MLIR_CAPI_EXPORTED MlirAttribute
+MlirDynamicAttrGet(MlirDynamicAttrDefinition attrDef, intptr_t nParams,
+                   MlirAttribute const *params);
+
+/// Return the attribute definition of the given dynamic attribute.
+MLIR_CAPI_EXPORTED MlirDynamicAttrDefinition
+MlirDynamicAttrGetAttrDef(MlirAttribute attr);
+
+/// Return the number of parameters of the given dynamic attribute.
+MLIR_CAPI_EXPORTED intptr_t MlirDynamicAttrGetNumParams(MlirAttribute attr);
+
+/// Returns the `pos`-th parameter of the dynamic attribute.
+MLIR_CAPI_EXPORTED MlirAttribute MlirDynamicAttrGetParam(MlirAttribute attr,
+                                                         intptr_t pos);
+
+//===----------------------------------------------------------------------===//
+// DynamicType API.
+//===----------------------------------------------------------------------===//
+
+/// Returns 1 if the type is a dynamic type, 0 otherwise.
+MLIR_CAPI_EXPORTED bool MlirTypeIsADynamicType(MlirType type);
+
+/// Return an instance of a dynamic type given a dynamic type
+/// definition and a list of parameters.
+/// This asserts that the type verifier succeeded.
+MLIR_CAPI_EXPORTED MlirType
+MlirDynamicTypeGet(MlirDynamicTypeDefinition attrDef, intptr_t nParams,
+                   MlirAttribute const *params);
+
+/// Return the type definition of the given dynamic type.
+MLIR_CAPI_EXPORTED MlirDynamicTypeDefinition
+MlirDynamicTypeGetTypeDef(MlirType attr);
+
+/// Return the number of parameters of the given dynamic type.
+MLIR_CAPI_EXPORTED intptr_t MlirDynamicTypeGetNumParams(MlirType attr);
+
+/// Returns the `pos`-th parameter of the dynamic type.
+MLIR_CAPI_EXPORTED MlirAttribute MlirDynamicTypeGetParam(MlirType attr,
+                                                         intptr_t pos);
+
+//===----------------------------------------------------------------------===//
 // DialectRegistry API.
 //===----------------------------------------------------------------------===//
 

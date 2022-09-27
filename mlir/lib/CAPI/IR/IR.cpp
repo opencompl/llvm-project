@@ -246,6 +246,63 @@ MlirDialect MlirDynamicTypeDefinitionGetDialect(MlirDynamicTypeDefinition def) {
 }
 
 //===----------------------------------------------------------------------===//
+// DynamicAttr API.
+//===----------------------------------------------------------------------===//
+
+bool MlirAttributeIsADynamicAttr(MlirAttribute attr) {
+  return unwrap(attr).isa<DynamicAttr>();
+}
+
+MlirAttribute MlirDynamicAttrGet(MlirDynamicAttrDefinition attrDef,
+                                 intptr_t nParams,
+                                 MlirAttribute const *params) {
+  std::vector<Attribute> paramsVec(nParams);
+  for (intptr_t i = 0; i < nParams; ++i)
+    paramsVec[i] = unwrap(params[i]);
+  return wrap(DynamicAttr::get(unwrap(attrDef), paramsVec));
+}
+
+MlirDynamicAttrDefinition MlirDynamicAttrGetAttrDef(MlirAttribute attr) {
+  return wrap(unwrap(attr).cast<DynamicAttr>().getAttrDef());
+}
+
+intptr_t MlirDynamicAttrGetNumParams(MlirAttribute attr) {
+  return unwrap(attr).cast<DynamicAttr>().getParams().size();
+}
+
+MlirAttribute MlirDynamicAttrGetParam(MlirAttribute attr, intptr_t pos) {
+  return wrap(unwrap(attr).cast<DynamicAttr>().getParams()[pos]);
+}
+
+//===----------------------------------------------------------------------===//
+// DynamicType API.
+//===----------------------------------------------------------------------===//
+
+bool MlirTypeIsADynamicType(MlirType type) {
+  return unwrap(type).isa<DynamicType>();
+}
+
+MlirType MlirDynamicTypeGet(MlirDynamicTypeDefinition typeDef, intptr_t nParams,
+                            MlirAttribute const *params) {
+  std::vector<Attribute> paramsVec(nParams);
+  for (intptr_t i = 0; i < nParams; ++i)
+    paramsVec[i] = unwrap(params[i]);
+  return wrap(DynamicType::get(unwrap(typeDef), paramsVec));
+}
+
+MlirDynamicTypeDefinition MlirDynamicTypeGetTypeDef(MlirType type) {
+  return wrap(unwrap(type).cast<DynamicType>().getTypeDef());
+}
+
+intptr_t MlirDynamicTypeGetNumParams(MlirType type) {
+  return unwrap(type).cast<DynamicType>().getParams().size();
+}
+
+MlirAttribute MlirDynamicTypeGetParam(MlirType type, intptr_t pos) {
+  return wrap(unwrap(type).cast<DynamicType>().getParams()[pos]);
+}
+
+//===----------------------------------------------------------------------===//
 // DialectRegistry API.
 //===----------------------------------------------------------------------===//
 
