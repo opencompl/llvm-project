@@ -15,6 +15,7 @@
 #ifndef LLVM_LIB_TRANSFORMS_INSTCOMBINE_INSTCOMBINEINTERNAL_H
 #define LLVM_LIB_TRANSFORMS_INSTCOMBINE_INSTCOMBINEINTERNAL_H
 
+#include <map>
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/TargetFolder.h"
@@ -27,7 +28,10 @@
 #include "llvm/Support/KnownBits.h"
 #include "llvm/Transforms/InstCombine/InstCombiner.h"
 #include "llvm/Transforms/Utils/Local.h"
+#include "llvm/Transforms/Utils/ValueMapper.h"
+#include "llvm/Support/raw_ostream.h"
 #include <cassert>
+#include <llvm/Support/ErrorHandling.h>
 
 #define DEBUG_TYPE "instcombine"
 #include "llvm/Transforms/Utils/InstructionWorklist.h"
@@ -400,6 +404,68 @@ public:
     return InsertNewInstBefore(New, Old);
   }
 
+
+  class Extractor {
+      
+      llvm::SmallVector<Argument *> Args;
+      llvm::SmallVector<Instruction *> Insts;
+      llvm::ValueToValueMapTy Mapper;
+
+      public:
+      void extractInstructionDAG(Instruction *I) {
+          if (I->mayHaveSideEffects()) {
+              dbgs() << "extracting instruction with side effects: '" << *I << "'\n";
+          }
+          assert(!I->mayHaveSideEffects());
+          for(Use &U : I->operands()) {
+              extractValueDAG(U.get());
+          }
+          Insts.push_back(I);
+      }
+
+      void extractValueDAG(Value *V) {
+          if (auto *I = dyn_cast<Instruction>(V)) {
+              extractInstructionDAG(I);
+          } 
+          else if (auto *C = dyn_cast<Constant>(V)) {
+              /* do nothing */
+          }
+          else if (auto *A = dyn_cast<Argument>(V)) {
+              Args.push_back(A);
+          } else {
+              dbgs() << "ERROR: Unknown value: '" << *V << "'\n";
+              assert(false && "unknown value kind");
+          }
+      }
+
+      void print(std::string Name, llvm::Module &M, llvm::IRBuilderBase &Builder, llvm::raw_ostream &Out) {
+          assert(this->Insts.size() > 0);
+          auto *Retty = Insts[this->Insts.size() - 1]->getType();
+          llvm::SmallVector<llvm::Type *, 4> ArgTys;
+          for (Argument * A : this->Args) { ArgTys.push_back(A->getType()); }
+          FunctionCallee Callee = M.getOrInsertFunction(Name, FunctionType::get(Retty, ArgTys, /*isVarArg=*/false));
+          Function *F = cast<Function>(Callee.getCallee());
+
+          for(int i = 0; i < Args.size(); ++i) {
+              Mapper[Args[i]] = F->getArg(i);
+              // Old2New[Args[i]] = F->getArg(i);
+          }
+          BasicBlock *Entry = BasicBlock::Create(M.getContext(), "entry", F);
+
+          Instruction *LastJ = nullptr;
+          for(Instruction *I : this->Insts) {
+              LastJ = I->clone();
+              Mapper[I] = LastJ;
+              llvm::errs() << "Instruction: '" << *I << "'\n";
+              llvm::RemapInstruction(LastJ, Mapper, RF_NoModuleLevelChanges);
+              Entry->getInstList().push_back(LastJ);
+
+          }
+          Entry->getInstList().push_back(llvm::ReturnInst::Create(M.getContext(), LastJ));
+          F->print(Out, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
+      }
+  };
+
   /// A combiner-aware RAUW-like routine.
   ///
   /// This method is to be used when an instruction is found to be dead,
@@ -420,6 +486,38 @@ public:
 
     LLVM_DEBUG(dbgs() << "IC: Replacing " << I << "\n"
                       << "    with " << *V << '\n');
+
+    static int FILECOUNT = 1; 
+    const std::string OUTDIR = "/tmp/instcombine/";
+    {
+        const std::string NAME = std::to_string(FILECOUNT) + "_lhs" + ".ll";
+        std::error_code EC;
+        llvm::raw_fd_ostream OutFile(OUTDIR + NAME, EC);
+        llvm::dbgs() << "opening file " << (OUTDIR + NAME) << ". error: '" << EC.value() << "'\n";
+        assert((EC.value() == 0) && "unable to open LHS file");
+
+        Extractor E;
+        llvm::Module M(std::to_string(FILECOUNT) + "_lhs", I.getContext());
+        llvm::IRBuilder<> B(I.getContext());
+        E.extractInstructionDAG(&I);
+        E.print("main", M, B, OutFile);
+    }
+
+
+    {
+        const std::string NAME = std::to_string(FILECOUNT) + "_rhs" + ".ll";
+        std::error_code EC;
+        llvm::raw_fd_ostream OutFile(OUTDIR + NAME, EC);
+        llvm::dbgs() << "opening file " << (OUTDIR + NAME) << ". error: '" << EC.value() << "'\n";
+        assert((EC.value() == 0) && "unable to open RHS file");
+
+        Extractor E;
+        llvm::Module M(std::to_string(FILECOUNT) + "_rhs", I.getContext());
+        llvm::IRBuilder<> B(I.getContext());
+        E.extractValueDAG(V);
+        E.print("main", M, B, OutFile);
+    }
+    FILECOUNT++;
 
     I.replaceAllUsesWith(V);
     MadeIRChange = true;
