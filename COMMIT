@@ -1,0 +1,397 @@
+commit f52ca0926cf99b513666b4a88a5a67c78048e6f7
+Author: Guillaume Chatelet <gchatelet@google.com>
+Date:   Fri Dec 9 14:30:40 2022 +0000
+
+    [libc] Add compiler, builtin and feature detection
+    
+    This is a first step to support GCC. This patch adds support for builtin and feature detection.
+    
+    Differential Revision: https://reviews.llvm.org/D139712
+
+diff --git a/libc/src/__support/CMakeLists.txt b/libc/src/__support/CMakeLists.txt
+index ff9a20d1590f..3ca589b71781 100644
+--- a/libc/src/__support/CMakeLists.txt
++++ b/libc/src/__support/CMakeLists.txt
+@@ -13,12 +13,17 @@ add_header_library(
+ )
+ 
+ add_header_library(
+-  builtin_wrappers
++  compiler_features
+   HDRS
+-    builtin_wrappers.h
++    compiler_features.h
++)
++
++add_header_library(
++  sanitizer
++  HDRS
++    sanitizer.h
+   DEPENDS
+-    .named_pair
+-    libc.src.__support.CPP.type_traits
++    libc.src.__support.compiler_features
+ )
+ 
+ add_header_library(
+@@ -27,7 +32,17 @@ add_header_library(
+     architectures.h
+     common.h
+     endian.h
+-    sanitizer.h
++)
++
++add_header_library(
++  builtin_wrappers
++  HDRS
++    builtin_wrappers.h
++  DEPENDS
++    .named_pair
++    libc.src.__support.common
++    libc.src.__support.compiler_features
++    libc.src.__support.CPP.type_traits
+ )
+ 
+ add_header_library(
+diff --git a/libc/src/__support/CPP/CMakeLists.txt b/libc/src/__support/CPP/CMakeLists.txt
+index c6e3733d3186..d84492fd0195 100644
+--- a/libc/src/__support/CPP/CMakeLists.txt
++++ b/libc/src/__support/CPP/CMakeLists.txt
+@@ -8,6 +8,8 @@ add_header_library(
+   bit
+   HDRS
+     bit.h
++  DEPENDS
++    libc.src.__support.compiler_features
+ )
+ 
+ add_header_library(
+diff --git a/libc/src/__support/CPP/bit.h b/libc/src/__support/CPP/bit.h
+index 0ff946ca3cc7..4617e25d6dee 100644
+--- a/libc/src/__support/CPP/bit.h
++++ b/libc/src/__support/CPP/bit.h
+@@ -9,19 +9,17 @@
+ #ifndef LLVM_LIBC_SUPPORT_CPP_BIT_H
+ #define LLVM_LIBC_SUPPORT_CPP_BIT_H
+ 
++#include "src/__support/compiler_features.h"
++
+ namespace __llvm_libc::cpp {
+ 
+-#if defined __has_builtin
+-#if __has_builtin(__builtin_bit_cast)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_bit_cast)
+ #define LLVM_LIBC_HAS_BUILTIN_BIT_CAST
+ #endif
+-#endif
+ 
+-#if defined __has_builtin
+-#if __has_builtin(__builtin_memcpy_inline)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_memcpy_inline)
+ #define LLVM_LIBC_HAS_BUILTIN_MEMCPY_INLINE
+ #endif
+-#endif
+ 
+ // This function guarantees the bitcast to be optimized away by the compiler for
+ // GCC >= 8 and Clang >= 6.
+diff --git a/libc/src/__support/FPUtil/CMakeLists.txt b/libc/src/__support/FPUtil/CMakeLists.txt
+index a3b085040a3d..3377fab42345 100644
+--- a/libc/src/__support/FPUtil/CMakeLists.txt
++++ b/libc/src/__support/FPUtil/CMakeLists.txt
+@@ -5,6 +5,7 @@ add_header_library(
+   DEPENDS
+     libc.include.fenv
+     libc.src.__support.common
++    libc.src.__support.compiler_features
+ )
+ 
+ add_header_library(
+diff --git a/libc/src/__support/builtin_wrappers.h b/libc/src/__support/builtin_wrappers.h
+index 156b24a3b20e..426d7b43cd1f 100644
+--- a/libc/src/__support/builtin_wrappers.h
++++ b/libc/src/__support/builtin_wrappers.h
+@@ -12,6 +12,7 @@
+ 
+ #include "named_pair.h"
+ #include "src/__support/CPP/type_traits.h"
++#include "src/__support/compiler_features.h"
+ 
+ namespace __llvm_libc {
+ 
+@@ -80,7 +81,7 @@ add_with_carry(T a, T b, T carry_in) {
+   return {sum, carry_out};
+ }
+ 
+-#if __has_builtin(__builtin_addc)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_addc)
+ // https://clang.llvm.org/docs/LanguageExtensions.html#multiprecision-arithmetic-builtins
+ 
+ template <>
+@@ -128,7 +129,7 @@ add_with_carry<unsigned long long>(unsigned long long a, unsigned long long b,
+   return result;
+ }
+ 
+-#endif // __has_builtin(__builtin_addc)
++#endif // LLVM_LIBC_HAS_BUILTIN(__builtin_addc)
+ 
+ // Subtract with borrow
+ DEFINE_NAMED_PAIR_TEMPLATE(DiffBorrow, diff, borrow);
+@@ -143,7 +144,7 @@ sub_with_borrow(T a, T b, T borrow_in) {
+   return {diff, borrow_out};
+ }
+ 
+-#if __has_builtin(__builtin_subc)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_subc)
+ // https://clang.llvm.org/docs/LanguageExtensions.html#multiprecision-arithmetic-builtins
+ 
+ template <>
+@@ -191,7 +192,7 @@ sub_with_borrow<unsigned long long>(unsigned long long a, unsigned long long b,
+   return result;
+ }
+ 
+-#endif // __has_builtin(__builtin_subc)
++#endif // LLVM_LIBC_HAS_BUILTIN(__builtin_subc)
+ 
+ } // namespace __llvm_libc
+ 
+diff --git a/libc/src/__support/compiler_features.h b/libc/src/__support/compiler_features.h
+new file mode 100644
+index 000000000000..a30d2a212d32
+--- /dev/null
++++ b/libc/src/__support/compiler_features.h
+@@ -0,0 +1,41 @@
++//===-- Compile time compiler detection -------------------------*- C++ -*-===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef LLVM_LIBC_SUPPORT_COMPILER_FEATURES_H
++#define LLVM_LIBC_SUPPORT_COMPILER_FEATURES_H
++
++#if defined(__clang__)
++#define LLVM_LIBC_COMPILER_CLANG
++#endif
++
++#if defined(__GNUC__) && !defined(__clang__)
++#define LLVM_LIBC_COMPILER_GCC
++#endif
++
++#if defined(_MSC_VER)
++#define LLVM_LIBC_COMPILER_MSC
++#endif
++
++// Compiler builtin-detection.
++// clang.llvm.org/docs/LanguageExtensions.html#has-builtin
++#if defined(LLVM_LIBC_COMPILER_CLANG) ||                                       \
++    (defined(LLVM_LIBC_COMPILER_GCC) && (__GNUC__ >= 10))
++#define LLVM_LIBC_HAS_BUILTIN(BUILTIN) __has_builtin(BUILTIN)
++#else
++#define LLVM_LIBC_HAS_BUILTIN(BUILTIN) 0
++#endif
++
++// Compiler feature-detection.
++// clang.llvm.org/docs/LanguageExtensions.html#has-feature-and-has-extension
++#if defined(LLVM_LIBC_COMPILER_CLANG)
++#define LLVM_LIBC_HAS_FEATURE(FEATURE) __has_feature(FEATURE)
++#else
++#define LLVM_LIBC_HAS_FEATURE(FEATURE) 0
++#endif
++
++#endif // LLVM_LIBC_SUPPORT_COMPILER_FEATURES_H
+diff --git a/libc/src/__support/sanitizer.h b/libc/src/__support/sanitizer.h
+index 509109a1c694..186e765abcaf 100644
+--- a/libc/src/__support/sanitizer.h
++++ b/libc/src/__support/sanitizer.h
+@@ -9,11 +9,7 @@
+ #ifndef LLVM_LIBC_SRC_SUPPORT_SANITIZER_H
+ #define LLVM_LIBC_SRC_SUPPORT_SANITIZER_H
+ 
+-#ifdef __has_feature
+-#define LLVM_LIBC_HAVE_FEATURE(f) __has_feature(f)
+-#else
+-#define LLVM_LIBC_HAVE_FEATURE(f) 0
+-#endif
++#include "src/__support/compiler_features.h"
+ 
+ // MemorySanitizer (MSan) is a detector of uninitialized reads. It consists of
+ // a compiler instrumentation module and a run-time library.
+@@ -25,7 +21,7 @@
+ #define LLVM_LIBC_HAVE_MEMORY_SANITIZER 1
+ #elif defined(__SANITIZE_MEMORY__)
+ #define LLVM_LIBC_HAVE_MEMORY_SANITIZER 1
+-#elif !defined(__native_client__) && LLVM_LIBC_HAVE_FEATURE(memory_sanitizer)
++#elif !defined(__native_client__) && LLVM_LIBC_HAS_FEATURE(memory_sanitizer)
+ #define LLVM_LIBC_HAVE_MEMORY_SANITIZER 1
+ #endif
+ 
+@@ -38,14 +34,14 @@
+ #define LLVM_LIBC_HAVE_ADDRESS_SANITIZER 1
+ #elif defined(__SANITIZE_ADDRESS__)
+ #define LLVM_LIBC_HAVE_ADDRESS_SANITIZER 1
+-#elif LLVM_LIBC_HAVE_FEATURE(address_sanitizer)
++#elif LLVM_LIBC_HAS_FEATURE(address_sanitizer)
+ #define LLVM_LIBC_HAVE_ADDRESS_SANITIZER 1
+ #endif
+ 
+ // HWAddressSanitizer (HWASan) is a fast, low memory overhead error detector.
+ #ifdef LLVM_LIBC_HAVE_HWADDRESS_SANITIZER
+ #error "LLVM_LIBC_HAVE_HWADDRESS_SANITIZER cannot be directly set."
+-#elif LLVM_LIBC_HAVE_FEATURE(hwaddress_sanitizer)
++#elif LLVM_LIBC_HAS_FEATURE(hwaddress_sanitizer)
+ #define LLVM_LIBC_HAVE_HWADDRESS_SANITIZER 1
+ #endif
+ 
+diff --git a/libc/src/string/memory_utils/CMakeLists.txt b/libc/src/string/memory_utils/CMakeLists.txt
+index 1436f7c677cf..3bf81e931ae8 100644
+--- a/libc/src/string/memory_utils/CMakeLists.txt
++++ b/libc/src/string/memory_utils/CMakeLists.txt
+@@ -15,6 +15,7 @@ add_header_library(
+     utils.h
+   DEPS
+     libc.src.__support.common
++    libc.src.__support.compiler_features
+     libc.src.__support.CPP.bit
+     libc.src.__support.CPP.cstddef
+     libc.src.__support.CPP.type_traits
+diff --git a/libc/src/string/memory_utils/utils.h b/libc/src/string/memory_utils/utils.h
+index 683bddadd433..6abc85d390dd 100644
+--- a/libc/src/string/memory_utils/utils.h
++++ b/libc/src/string/memory_utils/utils.h
+@@ -12,6 +12,7 @@
+ #include "src/__support/CPP/bit.h"
+ #include "src/__support/CPP/cstddef.h"
+ #include "src/__support/CPP/type_traits.h"
++#include "src/__support/compiler_features.h"
+ 
+ #include <stddef.h> // size_t
+ #include <stdint.h> // intptr_t / uintptr_t
+@@ -80,17 +81,13 @@ template <size_t alignment, typename T> static T *assume_aligned(T *ptr) {
+   return reinterpret_cast<T *>(__builtin_assume_aligned(ptr, alignment));
+ }
+ 
+-#if defined __has_builtin
+-#if __has_builtin(__builtin_memcpy_inline)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_memcpy_inline)
+ #define LLVM_LIBC_HAS_BUILTIN_MEMCPY_INLINE
+ #endif
+-#endif
+ 
+-#if defined __has_builtin
+-#if __has_builtin(__builtin_memset_inline)
++#if LLVM_LIBC_HAS_BUILTIN(__builtin_memset_inline)
+ #define LLVM_LIBC_HAS_BUILTIN_MEMSET_INLINE
+ #endif
+-#endif
+ 
+ // Performs a constant count copy.
+ template <size_t Size>
+diff --git a/libc/src/string/stpcpy.cpp b/libc/src/string/stpcpy.cpp
+index dd48f3cfb5e8..22de619ae2ae 100644
+--- a/libc/src/string/stpcpy.cpp
++++ b/libc/src/string/stpcpy.cpp
+@@ -11,7 +11,6 @@
+ #include "src/string/string_utils.h"
+ 
+ #include "src/__support/common.h"
+-#include "src/__support/sanitizer.h"
+ 
+ namespace __llvm_libc {
+ 
+diff --git a/libc/test/src/string/memory_utils/CMakeLists.txt b/libc/test/src/string/memory_utils/CMakeLists.txt
+index a65157175284..c06058e04b7d 100644
+--- a/libc/test/src/string/memory_utils/CMakeLists.txt
++++ b/libc/test/src/string/memory_utils/CMakeLists.txt
+@@ -9,8 +9,9 @@ add_libc_unittest(
+     ${LIBC_COMPILE_OPTIONS_NATIVE}
+     -ffreestanding
+   DEPENDS
+-    libc.src.string.memory_utils.memory_utils
++    libc.src.__support.compiler_features
+     libc.src.__support.CPP.array
+-    libc.src.__support.CPP.span
+     libc.src.__support.CPP.cstddef
++    libc.src.__support.CPP.span
++    libc.src.string.memory_utils.memory_utils
+ )
+diff --git a/libc/test/src/string/memory_utils/memory_check_utils.h b/libc/test/src/string/memory_utils/memory_check_utils.h
+index 19cd01045bcb..4fd565aa0e97 100644
+--- a/libc/test/src/string/memory_utils/memory_check_utils.h
++++ b/libc/test/src/string/memory_utils/memory_check_utils.h
+@@ -10,13 +10,14 @@
+ #define LIBC_TEST_SRC_STRING_MEMORY_UTILS_MEMORY_CHECK_UTILS_H
+ 
+ #include "src/__support/CPP/span.h"
++#include "src/__support/compiler_features.h"
+ #include "src/string/memory_utils/utils.h"
+ #include <assert.h> // assert
+ #include <stddef.h> // size_t
+ #include <stdint.h> // uintxx_t
+ #include <stdlib.h> // malloc/free
+ 
+-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
++#if LLVM_LIBC_HAS_FEATURE(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+ #include <sanitizer/asan_interface.h>
+ #define ASAN_POISON_MEMORY_REGION(addr, size)                                  \
+   __asan_poison_memory_region((addr), (size))
+diff --git a/utils/bazel/llvm-project-overlay/libc/BUILD.bazel b/utils/bazel/llvm-project-overlay/libc/BUILD.bazel
+index bf8e4de1f9f8..1b7aa1f38fdb 100644
+--- a/utils/bazel/llvm-project-overlay/libc/BUILD.bazel
++++ b/utils/bazel/llvm-project-overlay/libc/BUILD.bazel
+@@ -60,13 +60,23 @@ cc_library(
+ 
+ ############################## Support libraries #############################
+ 
++libc_support_library(
++    name = "__support_compiler_features",
++    hdrs = ["src/__support/compiler_features.h"],
++)
++
++libc_support_library(
++    name = "__support_sanitizer",
++    hdrs = ["src/__support/sanitizer.h"],
++    deps = [":__support_compiler_features"],
++)
++
+ libc_support_library(
+     name = "__support_common",
+     hdrs = [
+         "src/__support/architectures.h",
+         "src/__support/common.h",
+         "src/__support/endian.h",
+-        "src/__support/sanitizer.h",
+     ],
+ )
+ 
+@@ -79,7 +89,10 @@ libc_support_library(
+ libc_support_library(
+     name = "__support_cpp_bit",
+     hdrs = ["src/__support/CPP/bit.h"],
+-    deps = [":libc_root"],
++    deps = [
++        ":__support_compiler_features",
++        ":libc_root",
++    ],
+ )
+ 
+ libc_support_library(
+@@ -255,6 +268,7 @@ libc_support_library(
+     name = "__support_builtin_wrappers",
+     hdrs = ["src/__support/builtin_wrappers.h"],
+     deps = [
++        ":__support_common",
+         ":__support_cpp_type_traits",
+         ":__support_named_pair",
+         ":libc_root",
+@@ -294,7 +308,9 @@ libc_support_library(
+     ],
+     deps = [
+         ":__support_common",
++        ":__support_compiler_features",
+         ":__support_fputil_fp_bits",
++        ":__support_sanitizer",
+         ":libc_root",
+     ],
+ )
