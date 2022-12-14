@@ -412,16 +412,19 @@ public:
       std::map<Value*, Value *> Mapper;
       std::set<PHINode *> NewPhis;
       llvm::Module *NewM = nullptr;
+      bool Error = false;
 
       public:
       ~Extractor() {};
       void extractInstructionDAG(Instruction *I) {
           if (InstsSet.count(I)) { return; }
           InstsSet.insert(I);
-          if (I->mayHaveSideEffects()) {
-              dbgs() << "extracting instruction with side effects: '" << *I << "'\n";
-          }
-          assert(!I->mayHaveSideEffects());
+          // TODO: quit if we find I->hasSideEffects();
+          // if (I->mayWriteToMemory()) {
+          //     dbgs() << "extracting instruction which writes to memory: '" << *I << "'\n";
+          // }
+          // assert(!I->mayWriteToMemory());
+          if (I->mayHaveSideEffects()) { Error = true; }
           for(Use &U : I->operands()) {
               extractValueDAG(U.get());
           }
@@ -475,6 +478,8 @@ public:
               if (ConstantInt *I = llvm::dyn_cast<ConstantInt>(Old)) {
                   return I;
               }
+              // TODO: add a way to bail out when mapping doesn't work.
+              Error = true;
               llvm::errs() << "**ERROR: Unable to remap '" << *Old << "'\n";
           }
           assert(It != Mapper.end());
