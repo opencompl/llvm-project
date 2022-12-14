@@ -406,13 +406,18 @@ public:
 
 
   class Extractor {
-      
       llvm::SmallVector<Argument *> Args;
+      std::set<Instruction *> InstsSet;
       llvm::SmallVector<Instruction *> Insts;
-      llvm::ValueToValueMapTy Mapper;
+      std::map<Value*, Value *> Mapper;
+      std::set<PHINode *> NewPhis;
+      llvm::Module *NewM = nullptr;
 
       public:
+      ~Extractor() {};
       void extractInstructionDAG(Instruction *I) {
+          if (InstsSet.count(I)) { return; }
+          InstsSet.insert(I);
           if (I->mayHaveSideEffects()) {
               dbgs() << "extracting instruction with side effects: '" << *I << "'\n";
           }
@@ -425,6 +430,7 @@ public:
 
       void extractValueDAG(Value *V) {
           if (auto *I = dyn_cast<Instruction>(V)) {
+              llvm::errs() << __FUNCTION__ << ":" << __LINE__ << " I:" << *I << "\n";
               extractInstructionDAG(I);
           } 
           else if (auto *C = dyn_cast<Constant>(V)) {
@@ -438,31 +444,117 @@ public:
           }
       }
 
-      void print(std::string Name, llvm::Module &M, llvm::IRBuilderBase &Builder, llvm::raw_ostream &Out) {
+      BasicBlock *cloneBB(Function *NewF, BasicBlock *OldBB) {
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          if (Mapper.count(OldBB)) { 
+              llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+              return cast<BasicBlock>(Mapper[OldBB]);
+          }
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          BasicBlock *NewBB = BasicBlock::Create(NewF->getContext(), OldBB->getName(), NewF);
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          Mapper[OldBB] = NewBB;
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          return NewBB;
+      }
+
+      Value *findMappedValue(Value *Old) {
+          auto It = Mapper.find(Old);
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+
+          if (It == Mapper.end()) {
+              llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+              if (Function *OldF = llvm::dyn_cast<Function>(Old)) {
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+                  FunctionCallee Callee = NewM->getOrInsertFunction(OldF->getName(), OldF->getFunctionType());
+                  Function *NewF = cast<Function>(Callee.getCallee());
+                  Mapper[OldF] = NewF;
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+                  return NewF;
+              }
+              if (ConstantInt *I = llvm::dyn_cast<ConstantInt>(Old)) {
+                  return I;
+              }
+              llvm::errs() << "**ERROR: Unable to remap '" << *Old << "'\n";
+          }
+          assert(It != Mapper.end());
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          return  It->second; 
+      }
+
+      void print(std::string Name, llvm::Module *NewM,  llvm::raw_ostream &Out) {
+          this->NewM = NewM;
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
           assert(this->Insts.size() > 0);
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
           auto *Retty = Insts[this->Insts.size() - 1]->getType();
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
           llvm::SmallVector<llvm::Type *, 4> ArgTys;
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
           for (Argument * A : this->Args) { ArgTys.push_back(A->getType()); }
-          FunctionCallee Callee = M.getOrInsertFunction(Name, FunctionType::get(Retty, ArgTys, /*isVarArg=*/false));
-          Function *F = cast<Function>(Callee.getCallee());
-
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          FunctionCallee Callee = NewM->getOrInsertFunction(Name, FunctionType::get(Retty, ArgTys, /*isVarArg=*/false));
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << " | Callee: " << *Callee.getCallee() << "\n";
+          Function *NewF = cast<Function>(Callee.getCallee());
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          // Step 0: Clone Args [TODO: check which args are used].
           for(int i = 0; i < Args.size(); ++i) {
-              Mapper[Args[i]] = F->getArg(i);
-              // Old2New[Args[i]] = F->getArg(i);
+              Mapper[Args[i]] = NewF->getArg(i);
           }
-          BasicBlock *Entry = BasicBlock::Create(M.getContext(), "entry", F);
 
-          Instruction *LastJ = nullptr;
+
+          // Step 1: Clone BBs. Order is important, entry must be entry!
           for(Instruction *I : this->Insts) {
-              LastJ = I->clone();
-              Mapper[I] = LastJ;
-              llvm::errs() << "Instruction: '" << *I << "'\n";
-              llvm::RemapInstruction(LastJ, Mapper, RF_NoModuleLevelChanges);
-              Entry->getInstList().push_back(LastJ);
-
+              cloneBB(NewF, I->getParent());
+              if (PHINode *PN = dyn_cast<PHINode>(I)) {
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+                  for (unsigned i = 0, e = PN->getNumIncomingValues(); i != e; ++i) {
+                      cloneBB(NewF, PN->getIncomingBlock(i));
+                  }
+              } 
           }
-          Entry->getInstList().push_back(llvm::ReturnInst::Create(M.getContext(), LastJ));
-          F->print(Out, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
+
+          // Step 2: Clone Instructions
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          for(Instruction *I : this->Insts) {
+              llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+              BasicBlock *NewBB = cloneBB(NewF, I->getParent());
+              Instruction *J = I->clone();
+              if (PHINode *PN = dyn_cast<PHINode>(J)) {
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+                  for (unsigned i = 0, e = PN->getNumIncomingValues(); i != e; ++i) {
+                      BasicBlock *NewBB = cloneBB(NewF, PN->getIncomingBlock(i));
+                      PN->setIncomingBlock(i, NewBB);
+                  }
+              } 
+              Mapper[I] = J;
+              NewBB->getInstList().push_back(J);
+          }
+
+          // Step 2: Setup Operands
+          for(Instruction *I : this->Insts) {
+              Instruction *J = cast<Instruction>(findMappedValue(I));
+              for (Use &Op : J->operands()) {
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+                  Op = findMappedValue(Op);
+                  llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+              }
+          }
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          // return final instruction
+          Instruction *FinalInst = llvm::cast<Instruction>(Mapper[this->Insts[this->Insts.size() - 1]]);
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          llvm::errs() << "FinalInst: '" << *FinalInst << "'\n";
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          BasicBlock *FinalBB = FinalInst->getParent();
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          FinalBB->getInstList().push_back(llvm::ReturnInst::Create(NewM->getContext(), FinalInst));
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
+          llvm::errs() << "====Module====\n";
+          NewM->print(Out, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
+          llvm::errs () << *NewM << "\n";
+          llvm::errs() << "====Module====\n";
+          llvm::errs() << __FUNCTION__ << ":" << __LINE__ << "\n";
       }
   };
 
@@ -490,32 +582,33 @@ public:
     static int FILECOUNT = 1; 
     const std::string OUTDIR = "/tmp/instcombine/";
     {
-        const std::string NAME = std::to_string(FILECOUNT) + "_lhs" + ".ll";
+        const std::string BASENAME = std::to_string(FILECOUNT) + "_lhs";
+        const std::string FILENAME = BASENAME + ".ll";
         std::error_code EC;
-        llvm::raw_fd_ostream OutFile(OUTDIR + NAME, EC);
-        llvm::dbgs() << "opening file " << (OUTDIR + NAME) << ". error: '" << EC.value() << "'\n";
+        llvm::raw_fd_ostream OutFile(OUTDIR + FILENAME, EC);
+        llvm::dbgs() << "opening file " << (OUTDIR + FILENAME) << ". error: '" << EC.value() << "'\n";
         assert((EC.value() == 0) && "unable to open LHS file");
 
         Extractor E;
-        llvm::Module M(std::to_string(FILECOUNT) + "_lhs", I.getContext());
-        llvm::IRBuilder<> B(I.getContext());
+        llvm::Module M(BASENAME, I.getContext());
         E.extractInstructionDAG(&I);
-        E.print("main", M, B, OutFile);
+        E.print(BASENAME, &M,  OutFile);
     }
 
 
     {
-        const std::string NAME = std::to_string(FILECOUNT) + "_rhs" + ".ll";
+        const std::string BASENAME = std::to_string(FILECOUNT) + "_rhs";
+        const std::string FILENAME = BASENAME + ".ll";
         std::error_code EC;
-        llvm::raw_fd_ostream OutFile(OUTDIR + NAME, EC);
-        llvm::dbgs() << "opening file " << (OUTDIR + NAME) << ". error: '" << EC.value() << "'\n";
+        llvm::raw_fd_ostream OutFile(OUTDIR + FILENAME, EC);
+        llvm::dbgs() << "opening file " << (OUTDIR + FILENAME) << ". error: '" << EC.value() << "'\n";
         assert((EC.value() == 0) && "unable to open RHS file");
 
         Extractor E;
-        llvm::Module M(std::to_string(FILECOUNT) + "_rhs", I.getContext());
+        llvm::Module M(BASENAME, I.getContext());
         llvm::IRBuilder<> B(I.getContext());
         E.extractValueDAG(V);
-        E.print("main", M, B, OutFile);
+        E.print(BASENAME, &M, OutFile);
     }
     FILECOUNT++;
 
