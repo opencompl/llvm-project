@@ -140,6 +140,11 @@ static cl::opt<bool>
 EnableCodeSinking("instcombine-code-sinking", cl::desc("Enable code sinking"),
                                               cl::init(true));
 
+// static cl::opt<std::string, true>
+//     InstcombineLogDirectoryXX("instcombine-log-directory",
+//             cl::value_desc("dirpath"),
+//             cl::desc("specify output log directory"), cl::location(llvm::ClOptionInstCombineLogDirectory));
+
 static cl::opt<unsigned> MaxSinkNumUsers(
     "instcombine-max-sink-users", cl::init(32),
     cl::desc("Maximum number of undroppable users for instruction sinking"));

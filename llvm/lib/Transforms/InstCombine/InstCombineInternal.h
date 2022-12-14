@@ -16,6 +16,8 @@
 #define LLVM_LIB_TRANSFORMS_INSTCOMBINE_INSTCOMBINEINTERNAL_H
 
 #include <map>
+#include "llvm/Support/Path.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/TargetFolder.h"
@@ -47,6 +49,9 @@ static constexpr unsigned NegatorDefaultMaxDepth = ~0U;
 static constexpr unsigned NegatorMaxNodesSSO = 16;
 
 namespace llvm {
+
+// std::string ClOptionInstCombineLogDirectory;
+
 
 class AAResults;
 class APInt;
@@ -529,49 +534,33 @@ public:
     LLVM_DEBUG(dbgs() << "IC: Replacing " << I << "\n"
                       << "    with " << *V << '\n');
 
-    static int FILECOUNT = 1; 
-    const std::string OUTDIR = "/tmp/instcombine/";
-    // If LHS or RHS error, then don't extract pattern.
+    std::string ClOptionInstCombineLogDirectory = "/tmp/instcombine/";
+    if (ClOptionInstCombineLogDirectory != "") {
+        std::error_code EC = llvm::sys::fs::create_directory(ClOptionInstCombineLogDirectory);
+        assert((EC.value() == 0) && "unable to create logging directory");
 
-    llvm::Module MLHS(std::to_string(FILECOUNT) + "_lhs", I.getContext());
-    llvm::Module MRHS(std::to_string(FILECOUNT) + "_rhs", I.getContext());
-    bool Success = true;
+        llvm::Module MOUT("pattern", I.getContext());
+        bool Success = true;
+        {
+            Extractor E; Success = Success && E.Extract(&I, &MOUT, "src");
+        }
 
+        {
+            Extractor E; Success = Success && E.Extract(V, &MOUT, "tgt");
+        }
 
-    const std::string BASENAME_LHS = std::to_string(FILECOUNT) + "_lhs";
-    const std::string BASENAME_RHS = std::to_string(FILECOUNT) + "_rhs";
-    {
-        Extractor E;
-        Success = Success && E.Extract(&I, &MLHS, BASENAME_LHS);
+        if (Success) {
+            llvm::errs() << "===Pattern:===\n" << MOUT <<"\n";
+            std::error_code EC; int ResultFD; SmallVector<char> ResultPath;
+            // TODO: consider using llvm/IR/StructuralHashing.h to check if module exists
+            // via structural hash.
+            EC = llvm::sys::fs::createUniqueFile(ClOptionInstCombineLogDirectory + "pattern-%%-%%-%%-%%-%%-%%-%%.ll", ResultFD, ResultPath);
+            llvm::errs() << "writing to '" << ResultPath << "'\n";
+            assert((EC.value() == 0) && "unable to open pattern file");
+            llvm::raw_fd_ostream Out(ResultFD, /*shouldClose=*/true);
+            MOUT.print(Out, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
+        }
     }
-
-
-    {
-        Extractor E;
-        Success = Success && E.Extract(V, &MRHS, BASENAME_RHS);
-    }
-
-    if (Success) {
-
-        llvm::errs() << "vvvLHS===\n" << MLHS << "\n===RHS===\n" << MRHS << "^^^\n\n";
-
-        std::error_code EC;
-        const std::string FILENAME_LHS = BASENAME_LHS + ".ll";
-
-        llvm::dbgs() << "opening file " << (OUTDIR + FILENAME_LHS) << "\n";
-        llvm::raw_fd_ostream OutLHS(OUTDIR + FILENAME_LHS, EC);
-        assert((EC.value() == 0) && "unable to open LHS file");
-
-        const std::string FILENAME_RHS = BASENAME_RHS + ".ll";
-
-        llvm::raw_fd_ostream OutRHS(OUTDIR + FILENAME_RHS, EC);
-        llvm::dbgs() << "opening file " << (OUTDIR + FILENAME_RHS) << "\n";
-        assert((EC.value() == 0) && "unable to open RHS file");
-
-        MLHS.print(OutLHS, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
-        MRHS.print(OutRHS, nullptr, /*shouldPreserveUseListOrder=*/true, /*IsforDebug=*/true);
-    }
-    FILECOUNT++;
 
     I.replaceAllUsesWith(V);
     MadeIRChange = true;
