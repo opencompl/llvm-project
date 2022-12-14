@@ -28,6 +28,7 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/KnownBits.h"
+#include "llvm/IR/StructuralHash.h"
 #include "llvm/Transforms/InstCombine/InstCombiner.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
@@ -553,7 +554,8 @@ public:
             llvm::errs() << "===Pattern:===\n" << MOUT <<"\n";
             std::error_code EC; int ResultFD; SmallVector<char> ResultPath;
             // TODO: consider using llvm/IR/StructuralHashing.h to check if module exists
-            // via structural hash.
+            // via structural hash. SAdly, this does not work on a vanilla build because
+            // the header only exists when expensive checks is on...
             EC = llvm::sys::fs::createUniqueFile(ClOptionInstCombineLogDirectory + "pattern-%%-%%-%%-%%-%%-%%-%%.ll", ResultFD, ResultPath);
             llvm::errs() << "writing to '" << ResultPath << "'\n";
             assert((EC.value() == 0) && "unable to open pattern file");
