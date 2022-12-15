@@ -412,7 +412,6 @@ public:
 
 
   class Extractor {
-      llvm::SmallVector<Argument *> Args;
       llvm::SmallVector<Value *> Vals;
       llvm::SmallVector<Value *> Frontier;
 
@@ -433,7 +432,7 @@ public:
                   /* do nothing */
               }
               else if (auto *A = dyn_cast<Argument>(V)) {
-                  Args.push_back(A);
+                  /* do nothing */
               } else {
                   dbgs() << "ERROR: Unknown value: '" << *V << "'\n";
                   return false;
@@ -470,23 +469,15 @@ public:
       ~Extractor() {};
 
       // create a new function with name 'name' that extracts out the module.
-      bool Extract(Value *V, Module *NewM, std::string Name) {
+      bool Extract(Value *V, Function *NewF, const std::map<Value *, Value*> &ArgMap, std::string Name) {
+          // Step 0: Clone Args [TODO: check which args are used].
           Frontier.push_back(V);
           const bool Success = ScanLoop();
           if (!Success) { return false; }
 
-          Function *NewF = [&]() {
-              llvm::SmallVector<llvm::Type *> ArgTys;
-              for (Argument * A : this->Args) { ArgTys.push_back(A->getType()); }
-              FunctionCallee Callee = NewM->getOrInsertFunction(Name, FunctionType::get(V->getType(), ArgTys, /*isVarArg=*/false));
-              return cast<Function>(Callee.getCallee());
-          }();
           BasicBlock *Entry = BasicBlock::Create(NewF->getContext(), "entry", NewF);
 
-          // Step 0: Clone Args [TODO: check which args are used].
-          std::map<Value *, Value *> Mapper;
-          for(int i = 0; i < Args.size(); ++i) { Mapper[Args[i]] = NewF->getArg(i); }
-
+          std::map<Value *, Value *> Mapper = ArgMap;
            // step 1: copy instructions
           for(Value *V : this->Vals) {
               Instruction *I = dyn_cast<Instruction>(V);
@@ -497,14 +488,15 @@ public:
               Entry->getInstList().push_front(J);
           }
           // return the final (old) value, will be remapped in the next step.
-          Entry->getInstList().push_back(llvm::ReturnInst::Create(NewM->getContext(), V));
+          Entry->getInstList().push_back(llvm::ReturnInst::Create(NewF->getContext(), V));
 
           llvm::errs() << "---New entry:---\n" << *Entry << "\n---\n";
 
           // step 2: fixup instructions
           for(Instruction &J : Entry->getInstList()) {
               for (Use &OldOp : J.operands()) {
-                  llvm::Optional<Value *> ONewOp =  findMappedValue(Mapper, NewM, OldOp);
+                  llvm::Optional<Value *> ONewOp = 
+                      findMappedValue(Mapper, NewF->getParent(), OldOp);
                   if (!ONewOp) { return false; }
                   OldOp = *ONewOp; 
               }
@@ -542,12 +534,32 @@ public:
 
         llvm::Module MOUT("pattern", I.getContext());
         bool Success = true;
+        Function *F = I.getParent()->getParent();
+        assert(F && "unable to find parent of I");
         {
-            Extractor E; Success = Success && E.Extract(&I, &MOUT, "src");
+          Function *NewF = cast<Function>(
+              MOUT.getOrInsertFunction("src", F->getFunctionType(),
+                                       AttributeList())
+                  .getCallee());
+          std::map<Value*, Value*> ArgMap;
+          for(int i = 0; i < F->arg_size(); ++i) {
+              ArgMap[F->getArg(i)] = NewF->getArg(i);
+          }
+          Extractor E;
+          Success = Success && E.Extract(&I, NewF, ArgMap, "src");
         }
 
         {
-            Extractor E; Success = Success && E.Extract(V, &MOUT, "tgt");
+          Function *NewF = cast<Function>(
+              MOUT.getOrInsertFunction("tgt", F->getFunctionType(),
+                                       AttributeList())
+                  .getCallee());
+          std::map<Value*, Value*> ArgMap;
+          for(int i = 0; i < F->arg_size(); ++i) {
+              ArgMap[F->getArg(i)] = NewF->getArg(i);
+          }
+          Extractor E;
+          Success = Success && E.Extract(V, NewF, ArgMap, "src");
         }
 
         if (Success) {
