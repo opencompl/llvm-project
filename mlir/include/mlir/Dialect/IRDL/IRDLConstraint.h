@@ -1,4 +1,4 @@
-//===- TypeConstraint.h - IRDL type constraint definition -------*- C++ -*-===//
+//===- IRDLConstraint.h - IRDL constraints definition -----------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_IRDL_IR_TYPECONSTRAINT_H_
-#define MLIR_DIALECT_IRDL_IR_TYPECONSTRAINT_H_
+#ifndef MLIR_DIALECT_IRDL_IR_IRDLCONSTRAINT_H_
+#define MLIR_DIALECT_IRDL_IR_IRDLCONSTRAINT_H_
 
 #include "mlir/Dialect/IRDL/IR/IRDL.h"
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
@@ -225,4 +225,4 @@ private:
 } // namespace irdl
 } // namespace mlir
 
-#endif // MLIR_DIALECT_IRDL_IR_TYPECONSTRAINT_H_
+#endif // MLIR_DIALECT_IRDL_IR_IRDLCONSTRAINT_H_

@@ -14,7 +14,7 @@
 #include "mlir/Dialect/IRDL/IR/IRDL.h"
 #include "mlir/Dialect/IRDL/IR/IRDLAttributes.h"
 #include "mlir/Dialect/IRDL/IR/IRDLInterfaces.h"
-#include "mlir/Dialect/IRDL/TypeConstraint.h"
+#include "mlir/Dialect/IRDL/IRDLConstraint.h"
 #include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LogicalResult.h"

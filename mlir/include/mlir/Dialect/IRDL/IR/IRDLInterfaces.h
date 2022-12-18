@@ -14,7 +14,7 @@
 #define MLIR_DIALECT_IRDL_IR_IRDLINTERFACES_H_
 
 #include "mlir/Dialect/IRDL/IRDLContext.h"
-#include "mlir/Dialect/IRDL/TypeConstraint.h"
+#include "mlir/Dialect/IRDL/IRDLConstraint.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/Transforms/DialectConversion.h"
