@@ -32,8 +32,8 @@ namespace {
 // Verifier used for dynamic types.
 LogicalResult irdlTypeVerifier(
     function_ref<InFlightDiagnostic()> emitError, ArrayRef<Attribute> params,
-    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> constraintVars,
-    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints) {
+    ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
+    ArrayRef<std::unique_ptr<Constraint<Type>>> paramConstraints) {
   if (params.size() != paramConstraints.size()) {
     emitError().append("expected ", paramConstraints.size(),
                        " type arguments, but had ", params.size());
@@ -59,9 +59,9 @@ namespace {
 
 LogicalResult verifyOpDefConstraints(
     Operation *op,
-    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> constraintVars,
-    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> operandConstrs,
-    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> resultConstrs) {
+    ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
+    ArrayRef<std::unique_ptr<Constraint<Type>>> operandConstrs,
+    ArrayRef<std::unique_ptr<Constraint<Type>>> resultConstrs) {
   /// Check that we have the right number of operands.
   auto numOperands = op->getNumOperands();
   auto numExpectedOperands = operandConstrs.size();
@@ -107,10 +107,10 @@ namespace irdl {
 /// Register an operation represented by a `irdl.operation` operation.
 void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
                        OperationOp op) {
-  llvm::SmallMapVector<StringRef, std::unique_ptr<IRDLConstraint<Type>>, 4>
+  llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4>
       constraintVars;
-  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> operandConstraints;
-  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> resultConstraints;
+  SmallVector<std::unique_ptr<Constraint<Type>>> operandConstraints;
+  SmallVector<std::unique_ptr<Constraint<Type>>> resultConstraints;
 
   auto constraintVarsOp = op.getOp<ConstraintVarsOp>();
   if (constraintVarsOp) {
@@ -162,7 +162,7 @@ void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
     printer.printGenericOp(op);
   };
 
-  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> constraintVarsConstrs;
+  SmallVector<std::unique_ptr<Constraint<Type>>> constraintVarsConstrs;
   for (auto &constrVar : constraintVars) {
     constraintVarsConstrs.emplace_back(std::move(constrVar.second));
   }
@@ -189,7 +189,7 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
                          TypeOp op) {
   auto params = op.getOp<ParametersOp>();
 
-  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints;
+  SmallVector<std::unique_ptr<Constraint<Type>>> paramConstraints;
   if (params.has_value()) {
     for (auto param : params->getParams().getValue()) {
       paramConstraints.push_back(param.cast<NamedTypeConstraintAttr>()
@@ -199,7 +199,7 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
     }
   }
 
-  llvm::SmallMapVector<StringRef, std::unique_ptr<IRDLConstraint<Type>>, 4>
+  llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4>
       constraintVars;
   auto constraintVarsOp = op.getOp<ConstraintVarsOp>();
   if (constraintVarsOp) {
@@ -223,7 +223,7 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
     }
   }
 
-  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> constraintVarsConstrs;
+  SmallVector<std::unique_ptr<Constraint<Type>>> constraintVarsConstrs;
   for (auto &constrVar : constraintVars) {
     constraintVarsConstrs.emplace_back(std::move(constrVar.second));
   }

@@ -26,7 +26,7 @@ namespace irdl {
 // Forward declaration.
 class OperationOp;
 template <class Item>
-class IRDLConstraint;
+class Constraint;
 
 /// Stores the definition of constraint variables with their associated
 /// constraints.
@@ -36,18 +36,18 @@ class IRDLConstraint;
 class VarConstraints {
 public:
   VarConstraints(
-      ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> typeConstr,
-      ArrayRef<std::unique_ptr<IRDLConstraint<Attribute>>> attrConstr)
+      ArrayRef<std::unique_ptr<Constraint<Type>>> typeConstr,
+      ArrayRef<std::unique_ptr<Constraint<Attribute>>> attrConstr)
       : typeConstr(typeConstr), attrConstr(attrConstr) {}
 
   /// Returns the value of a constraint variable. Returns an empty
   /// item if the value is not yet set.
   template <class Item>
-  IRDLConstraint<Item> const &getVariableConstraint(size_t id) const;
+  Constraint<Item> const &getVariableConstraint(size_t id) const;
 
 private:
-  ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> typeConstr;
-  ArrayRef<std::unique_ptr<IRDLConstraint<Attribute>>> attrConstr;
+  ArrayRef<std::unique_ptr<Constraint<Type>>> typeConstr;
+  ArrayRef<std::unique_ptr<Constraint<Attribute>>> attrConstr;
 };
 
 /// Stores the value of constraint variables during verification.
@@ -72,7 +72,7 @@ private:
 
 /// A generic type constraint.
 template <class Item>
-class IRDLConstraint {
+class Constraint {
 public:
   /// Check that an item is satisfying the constraint.
   /// `cstrs` are the constraints associated to the variables. They
@@ -83,15 +83,18 @@ public:
   verify(Optional<function_ref<InFlightDiagnostic()>> emitError, Item item,
          VarConstraints const &cstrs, VarStore &store) const = 0;
 
-  virtual ~IRDLConstraint(){};
+  virtual ~Constraint(){};
 };
+
+using TypeConstraint = Constraint<Type>;
+using AttrConstraint = Constraint<Attribute>;
 
 //===----------------------------------------------------------------------===//
 // Equality constraint
 //===----------------------------------------------------------------------===//
 
 template <class Item>
-class EqConstraint : public IRDLConstraint<Item> {
+class EqConstraint : public Constraint<Item> {
 public:
   EqConstraint(Item expectedItem) : expectedItem(expectedItem) {}
 
@@ -110,9 +113,9 @@ private:
 /// AnyOf constraint.
 /// An item satisfies this constraint if it is included in a set of items.
 template <class Item>
-class AnyOfConstraint : public IRDLConstraint<Item> {
+class AnyOfConstraint : public Constraint<Item> {
 public:
-  AnyOfConstraint(SmallVector<std::unique_ptr<IRDLConstraint<Item>>> constrs)
+  AnyOfConstraint(SmallVector<std::unique_ptr<Constraint<Item>>> constrs)
       : constrs(std::move(constrs)) {}
 
   virtual LogicalResult
@@ -120,7 +123,7 @@ public:
          VarConstraints const &cstrs, VarStore &store) const override;
 
 private:
-  llvm::SmallVector<std::unique_ptr<IRDLConstraint<Item>>> constrs;
+  llvm::SmallVector<std::unique_ptr<Constraint<Item>>> constrs;
 };
 
 //===----------------------------------------------------------------------===//
@@ -130,9 +133,9 @@ private:
 /// And constraint.
 /// An item satisfies this constraint if it satisfies a set of constraints.
 template <class Item>
-class AndConstraint : public IRDLConstraint<Item> {
+class AndConstraint : public Constraint<Item> {
 public:
-  AndConstraint(SmallVector<std::unique_ptr<IRDLConstraint<Item>>> constrs)
+  AndConstraint(SmallVector<std::unique_ptr<Constraint<Item>>> constrs)
       : constrs(std::move(constrs)) {}
 
   virtual LogicalResult
@@ -140,7 +143,7 @@ public:
          VarConstraints const &cstrs, VarStore &store) const override;
 
 private:
-  llvm::SmallVector<std::unique_ptr<IRDLConstraint<Item>>> constrs;
+  llvm::SmallVector<std::unique_ptr<Constraint<Item>>> constrs;
 };
 
 //===----------------------------------------------------------------------===//
@@ -150,7 +153,7 @@ private:
 /// Always true constraint.
 /// All types satisfy this constraint.
 template <class Item>
-class AnyConstraint : public IRDLConstraint<Item> {
+class AnyConstraint : public Constraint<Item> {
 public:
   AnyConstraint() {}
 
@@ -169,7 +172,7 @@ public:
 /// All items matching the variable should be equal. The first item
 /// matching the variable is the one setting the value.
 template <class Item>
-class VarConstraint : public IRDLConstraint<Item> {
+class VarConstraint : public Constraint<Item> {
 public:
   VarConstraint(size_t varIndex) : varIndex{varIndex} {}
 
@@ -186,7 +189,7 @@ private:
 //===----------------------------------------------------------------------===//
 
 /// Type constraint asserting that the base item is of a certain dynamic item.
-class DynTypeBaseConstraint : public IRDLConstraint<Type> {
+class DynTypeBaseConstraint : public Constraint<Type> {
 public:
   DynTypeBaseConstraint(DynamicTypeDefinition *dynTypeDef)
       : dynTypeDef(dynTypeDef) {}
@@ -201,7 +204,7 @@ private:
 
 /// Type constraint asserting that the base type is of a certain C++-defined
 /// type.
-class TypeBaseConstraint : public IRDLConstraint<Type> {
+class TypeBaseConstraint : public Constraint<Type> {
 public:
   TypeBaseConstraint(TypeWrapper *typeDef) : typeDef(typeDef) {}
 
@@ -221,11 +224,11 @@ private:
 /// Type constraint having constraints on dynamic type parameters.
 /// A type satisfies this constraint if it has the right expected type,
 /// and if each of its parameter satisfies their associated constraint.
-class DynTypeParamsConstraint : public IRDLConstraint<Type> {
+class DynTypeParamsConstraint : public Constraint<Type> {
 public:
   DynTypeParamsConstraint(
       DynamicTypeDefinition *dynTypeDef,
-      llvm::SmallVector<std::unique_ptr<IRDLConstraint<Type>>>
+      llvm::SmallVector<std::unique_ptr<Constraint<Type>>>
           &&paramConstraints)
       : dynTypeDef(dynTypeDef), paramConstraints(std::move(paramConstraints)) {}
 
@@ -238,16 +241,16 @@ private:
   DynamicTypeDefinition *dynTypeDef;
 
   /// Type constraints of the type parameters.
-  llvm::SmallVector<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints;
+  llvm::SmallVector<std::unique_ptr<Constraint<Type>>> paramConstraints;
 };
 
 /// Type constraint having constraints on C++-defined type parameters.
 /// A type satisfies this constraint if it has the right expected type,
 /// and if each of its parameter satisfies their associated constraint.
-class TypeParamsConstraint : public IRDLConstraint<Type> {
+class TypeParamsConstraint : public Constraint<Type> {
 public:
   TypeParamsConstraint(TypeWrapper *typeDef,
-                       llvm::SmallVector<std::unique_ptr<IRDLConstraint<Type>>>
+                       llvm::SmallVector<std::unique_ptr<Constraint<Type>>>
                            &&paramConstraints)
       : typeDef(typeDef), paramConstraints(std::move(paramConstraints)) {}
 
@@ -260,7 +263,7 @@ private:
   TypeWrapper *typeDef;
 
   /// Type constraints of the type parameters.
-  llvm::SmallVector<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints;
+  llvm::SmallVector<std::unique_ptr<Constraint<Type>>> paramConstraints;
 };
 
 } // namespace irdl

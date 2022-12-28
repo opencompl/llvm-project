@@ -44,7 +44,7 @@ template class VarConstraint<Attribute>;
 //===----------------------------------------------------------------------===//
 
 template <>
-IRDLConstraint<Type> const &
+Constraint<Type> const &
 VarConstraints::getVariableConstraint(size_t id) const {
   assert(id < typeConstr.size() &&
          "type constraint variable index out of bounds");
@@ -52,7 +52,7 @@ VarConstraints::getVariableConstraint(size_t id) const {
 }
 
 template <>
-IRDLConstraint<Attribute> const &
+Constraint<Attribute> const &
 VarConstraints::getVariableConstraint(size_t id) const {
   assert(id < attrConstr.size() &&
          "attribute constraint variable index out of bounds");
@@ -156,7 +156,7 @@ LogicalResult VarConstraint<Item>::verify(
   }
 
   // We check that the type satisfies the type variable.
-  IRDLConstraint<Item> const &constraint =
+  Constraint<Item> const &constraint =
       cstrs.getVariableConstraint<Item>(varIndex);
   if (failed(constraint.verify(emitError, item, cstrs, store)))
     return failure();

@@ -20,13 +20,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include <memory>
 
-// Forward declaration.
-namespace mlir {
-namespace irdl {
-class TypeConstraint;
-}
-} // namespace mlir
-
 //===----------------------------------------------------------------------===//
 // IRDL Dialect Interfaces
 //===----------------------------------------------------------------------===//
