@@ -18,6 +18,7 @@
 #include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/IR/Visitors.h"
 #include "mlir/Support/LogicalResult.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/SMLoc.h"
 
@@ -29,19 +30,22 @@ namespace irdl {
 
 namespace {
 // Verifier used for dynamic types.
-LogicalResult
-irdlTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
-                 ArrayRef<Attribute> params,
-                 ArrayRef<std::unique_ptr<TypeConstraint>> paramConstraints) {
+LogicalResult irdlTypeVerifier(
+    function_ref<InFlightDiagnostic()> emitError, ArrayRef<Attribute> params,
+    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> constraintVars,
+    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints) {
   if (params.size() != paramConstraints.size()) {
     emitError().append("expected ", paramConstraints.size(),
                        " type arguments, but had ", params.size());
     return failure();
   }
 
+  VarStore store(constraintVars.size(), 0);
+  VarConstraints cstrts(constraintVars, {});
+
   for (size_t i = 0; i < params.size(); i++) {
-    if (failed(paramConstraints[i]->verifyType(
-            emitError, params[i].cast<TypeAttr>().getValue(), {}, {})))
+    if (failed(paramConstraints[i]->verify(
+            emitError, params[i].cast<TypeAttr>().getValue(), cstrts, store)))
       return failure();
   }
   return success();
@@ -54,9 +58,10 @@ irdlTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
 namespace {
 
 LogicalResult verifyOpDefConstraints(
-    Operation *op, ArrayRef<std::unique_ptr<TypeConstraint>> constraintVars,
-    ArrayRef<std::unique_ptr<TypeConstraint>> operandConstrs,
-    ArrayRef<std::unique_ptr<TypeConstraint>> resultConstrs) {
+    Operation *op,
+    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> constraintVars,
+    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> operandConstrs,
+    ArrayRef<std::unique_ptr<IRDLConstraint<Type>>> resultConstrs) {
   /// Check that we have the right number of operands.
   auto numOperands = op->getNumOperands();
   auto numExpectedOperands = operandConstrs.size();
@@ -74,14 +79,14 @@ LogicalResult verifyOpDefConstraints(
                            std::to_string(numResults));
 
   auto emitError = [op]() { return op->emitError(); };
-  SmallVector<Type> varAssignments(constraintVars.size());
+  VarStore store(constraintVars.size(), 0);
+  VarConstraints cstrts(constraintVars, {});
 
   /// Check that all operands satisfy the constraints.
   for (unsigned i = 0; i < numOperands; ++i) {
     auto operandType = op->getOperand(i).getType();
     auto &constraint = operandConstrs[i];
-    if (failed(constraint->verifyType({emitError}, operandType, constraintVars,
-                                      varAssignments)))
+    if (failed(constraint->verify({emitError}, operandType, cstrts, store)))
       return failure();
   }
 
@@ -89,8 +94,7 @@ LogicalResult verifyOpDefConstraints(
   for (unsigned i = 0; i < numResults; ++i) {
     auto resultType = op->getResult(i).getType();
     auto &constraint = resultConstrs[i];
-    if (failed(constraint->verifyType({emitError}, resultType, constraintVars,
-                                      varAssignments)))
+    if (failed(constraint->verify({emitError}, resultType, cstrts, store)))
       return failure();
   }
 
@@ -103,21 +107,25 @@ namespace irdl {
 /// Register an operation represented by a `irdl.operation` operation.
 void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
                        OperationOp op) {
-  SmallVector<std::pair<StringRef, std::unique_ptr<TypeConstraint>>>
+  llvm::SmallMapVector<StringRef, std::unique_ptr<IRDLConstraint<Type>>, 4>
       constraintVars;
-  SmallVector<std::unique_ptr<TypeConstraint>> operandConstraints;
-  SmallVector<std::unique_ptr<TypeConstraint>> resultConstraints;
+  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> operandConstraints;
+  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> resultConstraints;
 
   auto constraintVarsOp = op.getOp<ConstraintVarsOp>();
   if (constraintVarsOp) {
-    constraintVars.reserve(constraintVarsOp->getParams().size());
     for (auto constraint : constraintVarsOp->getParams().getValue()) {
       auto constraintAttr = constraint.cast<NamedTypeConstraintAttr>();
       auto constraintConstr = constraintAttr.getConstraint()
                                   .cast<TypeConstraintAttrInterface>()
                                   .getTypeConstraint(irdlCtx, constraintVars);
-      constraintVars.emplace_back(
-          make_pair(constraintAttr.getName(), std::move(constraintConstr)));
+
+      // TODO: make this an error
+      assert(constraintVars.count(constraintAttr.getName()) == 0 &&
+             "Two variables share the same name");
+
+      constraintVars.insert(std::make_pair(constraintAttr.getName(),
+                                           std::move(constraintConstr)));
     }
   }
 
@@ -154,7 +162,7 @@ void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
     printer.printGenericOp(op);
   };
 
-  SmallVector<std::unique_ptr<TypeConstraint>> constraintVarsConstrs;
+  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> constraintVarsConstrs;
   for (auto &constrVar : constraintVars) {
     constraintVarsConstrs.emplace_back(std::move(constrVar.second));
   }
@@ -181,7 +189,7 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
                          TypeOp op) {
   auto params = op.getOp<ParametersOp>();
 
-  SmallVector<std::unique_ptr<TypeConstraint>> paramConstraints;
+  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> paramConstraints;
   if (params.has_value()) {
     for (auto param : params->getParams().getValue()) {
       paramConstraints.push_back(param.cast<NamedTypeConstraintAttr>()
@@ -191,10 +199,41 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
     }
   }
 
-  auto verifier = [paramConstraints{std::move(paramConstraints)}](
+  llvm::SmallMapVector<StringRef, std::unique_ptr<IRDLConstraint<Type>>, 4>
+      constraintVars;
+  auto constraintVarsOp = op.getOp<ConstraintVarsOp>();
+  if (constraintVarsOp) {
+    for (auto constraint : constraintVarsOp->getParams().getValue()) {
+      auto constraintAttr = constraint.cast<NamedTypeConstraintAttr>();
+      auto constraintConstr = constraintAttr.getConstraint()
+                                  .cast<TypeConstraintAttrInterface>()
+                                  .getTypeConstraint(irdlCtx, constraintVars);
+
+      // TODO: make this an error
+      assert(constraintVars.count(constraintAttr.getName()) == 0 &&
+             "Two variables share the same name");
+
+      llvm::errs() << "registered variable " << constraintAttr.getName()
+                   << ", current has "
+                   << constraintVars.count(constraintAttr.getName())
+                   << "registered.\n";
+
+      constraintVars.insert(std::make_pair(constraintAttr.getName(),
+                                           std::move(constraintConstr)));
+    }
+  }
+
+  SmallVector<std::unique_ptr<IRDLConstraint<Type>>> constraintVarsConstrs;
+  for (auto &constrVar : constraintVars) {
+    constraintVarsConstrs.emplace_back(std::move(constrVar.second));
+  }
+
+  auto verifier = [constraintVarsConstrs{std::move(constraintVarsConstrs)},
+                   paramConstraints{std::move(paramConstraints)}](
                       function_ref<InFlightDiagnostic()> emitError,
                       ArrayRef<Attribute> params) {
-    return irdlTypeVerifier(emitError, params, paramConstraints);
+    return irdlTypeVerifier(emitError, params, constraintVarsConstrs,
+                            paramConstraints);
   };
 
   auto type =
