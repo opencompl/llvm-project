@@ -1,6 +1,7 @@
 // RUN: mlir-irdl-opt %s | mlir-irdl-opt | FileCheck %s
 
-irdl.dialect testd {
+// CHECK: irdl.dialect @testd {
+irdl.dialect @testd {
   // CHECK: irdl.type parametric {
   // CHECK:   irdl.parameters(param: Any)
   // CHECK: }

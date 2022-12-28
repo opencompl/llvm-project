@@ -1,8 +1,8 @@
 // RUN: mlir-irdl-opt %s | mlir-irdl-opt | FileCheck %s
 
 module {
-  // CHECK-LABEL: irdl.dialect cmath {
-  irdl.dialect cmath {
+  // CHECK-LABEL: irdl.dialect @cmath {
+  irdl.dialect @cmath {
 
     // CHECK: irdl.type complex {
     // CHECK:   irdl.parameters(elementType: AnyOf<f32, f64>)

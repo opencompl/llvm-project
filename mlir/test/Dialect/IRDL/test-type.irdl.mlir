@@ -1,8 +1,8 @@
 // RUN: mlir-irdl-opt %s | mlir-irdl-opt | FileCheck %s
 
 module {
-  // CHECK-LABEL: irdl.dialect testd {
-  irdl.dialect testd {
+  // CHECK-LABEL: irdl.dialect @testd {
+  irdl.dialect @testd {
     // CHECK: irdl.type singleton
     irdl.type singleton
 

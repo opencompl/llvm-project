@@ -27,7 +27,7 @@ class AtMostOneChildOf<string op> : ParamNativeOpTrait<"AtMostOneChildOf", op>;
 // IRDL Dialect definition
 //===----------------------------------------------------------------------===//
 
-def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator]> {
+def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator, Symbol]> {
   let summary = "Define a new dialect";
   let description = [{
     `irdl.dialect` operations defines a dialect.
@@ -43,9 +43,10 @@ def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator]> {
     The above program defines a `cmath` dialect.
   }];
 
-  let arguments = (ins StrAttr:$name);
+  let arguments = (ins StrAttr:$sym_name);
   let regions = (region SizedRegion<1>:$body);
-  let assemblyFormat = "custom<KeywordOrString>($name) attr-dict-with-keyword custom<SingleBlockRegion>($body)";
+  let hasCustomAssemblyFormat = 1;
+//  let assemblyFormat = "$sym_name attr-dict-with-keyword custom<SingleBlockRegion>($body)";
   let hasVerifier = 1;
 }
 
