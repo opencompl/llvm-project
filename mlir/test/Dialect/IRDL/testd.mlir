@@ -13,7 +13,7 @@ func.func @succeededEqConstraint() {
 // -----
 
 func.func @failedEqConstraint() {
-  // expected-error@+1 {{expected type 'i32' but got type 'i64'}}
+  // expected-error@+1 {{expected 'i32' but got 'i64'}}
   "testd.eq"() : () -> i64
   return
 }
@@ -35,7 +35,7 @@ func.func @succeededAnyOfConstraint() {
 // -----
 
 func.func @failedAnyOfConstraint() {
-  // expected-error@+1 {{type 'i1' does not satisfy the constraint}}
+  // expected-error@+1 {{'i1' does not satisfy the constraint}}
   "testd.anyof"() : () -> i1
   return
 }
@@ -55,7 +55,7 @@ func.func @succeededAndConstraint() {
 // -----
 
 func.func @failedAndConstraint1() {
-  // expected-error@+1 {{type 'i1' does not satisfy the constraint}}
+  // expected-error@+1 {{'i1' does not satisfy the constraint}}
   "testd.and"() : () -> i1
   return
 }
@@ -63,7 +63,7 @@ func.func @failedAndConstraint1() {
 // -----
 
 func.func @failedAndConstraint2() {
-  // expected-error@+1 {{type 'i32' does not satisfy the constraint}}
+  // expected-error@+1 {{'i32' does not satisfy the constraint}}
   "testd.and"() : () -> i32
   return
 }
@@ -107,7 +107,7 @@ func.func @failedDynParamsConstraintBase() {
 // -----
 
 func.func @failedDynParamsConstraintParam() {
-  // expected-error@+1 {{type 'i1' does not satisfy the constraint}}
+  // expected-error@+1 {{'i1' does not satisfy the constraint}}
   "testd.params"() : () -> complex<i1>
   return
 }
@@ -161,7 +161,7 @@ func.func @failedDynParamsConstraintBase() {
 // -----
 
 func.func @failedDynParamsConstraintParam() {
-  // expected-error@+1 {{type 'i1' does not satisfy the constraint}}
+  // expected-error@+1 {{'i1' does not satisfy the constraint}}
   "testd.dynparams"() : () -> !testd.parametric<i1>
   return
 }
