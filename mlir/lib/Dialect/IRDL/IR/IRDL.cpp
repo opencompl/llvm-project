@@ -47,21 +47,8 @@ TypeWrapper *IRDLDialect::getTypeWrapper(StringRef typeName) {
 }
 
 //===----------------------------------------------------------------------===//
-// Parsing/Printing
+// Operation parsing/printing
 //===----------------------------------------------------------------------===//
-
-static ParseResult parseKeywordOrString(OpAsmParser &p, StringAttr &attr) {
-  std::string str;
-  if (failed(p.parseKeywordOrString(&str)))
-    return failure();
-  attr = p.getBuilder().getStringAttr(str);
-  return success();
-}
-
-static void printKeywordOrString(OpAsmPrinter &p, Operation *,
-                                 StringAttr attr) {
-  p.printKeywordOrString(attr.getValue());
-}
 
 /// Parse a region, and add a single block if the region is empty.
 /// If no region is parsed, create a new region with a single empty block.
