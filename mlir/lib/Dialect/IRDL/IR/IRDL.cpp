@@ -132,6 +132,48 @@ void DialectOp::print(OpAsmPrinter &p) {
   printSingleBlockRegion(p, getOperation(), getBody());
 }
 
+ParseResult TypeOp::parse(OpAsmParser &parser, OperationState &op) {
+  // Parse the name as a symbol.
+  StringAttr nameAttr;
+  if (parser.parseSymbolName(nameAttr, SymbolTable::getSymbolAttrName(),
+                             op.attributes))
+    return failure();
+
+  // If extra attributes are present, parse them.
+  NamedAttrList parsedAttributes;
+  SMLoc attributeDictLocation = parser.getCurrentLocation();
+  if (parser.parseOptionalAttrDictWithKeyword(parsedAttributes))
+    return failure();
+
+  // Disallow attributes that are inferred from elsewhere in the attribute
+  // dictionary.
+  auto disallowed = SymbolTable::getSymbolAttrName();
+  if (parsedAttributes.get(disallowed))
+    return parser.emitError(attributeDictLocation, "'")
+           << disallowed
+           << "' is an inferred attribute and should not be specified in the "
+              "explicit attribute dictionary";
+  op.attributes.append(parsedAttributes);
+
+  auto *body = op.addRegion();
+  if (parseSingleBlockRegion(parser, *body))
+    return failure();
+
+  return success();
+}
+
+void TypeOp::print(OpAsmPrinter &p) {
+  p << " ";
+  p.printSymbolName(getName());
+  p << " ";
+  auto attrs = (*this)->getAttrDictionary().getValue();
+  if (!attrs.empty()) {
+    p.printOptionalAttrDict(attrs, {SymbolTable::getSymbolAttrName()});
+    p << " ";
+  }
+  printSingleBlockRegion(p, getOperation(), getBody());
+}
+
 //===----------------------------------------------------------------------===//
 // Type constraints.
 //===----------------------------------------------------------------------===//

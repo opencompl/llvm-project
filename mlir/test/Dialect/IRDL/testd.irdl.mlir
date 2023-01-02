@@ -2,10 +2,11 @@
 
 // CHECK: irdl.dialect @testd {
 irdl.dialect @testd {
-  // CHECK: irdl.type parametric {
+
+  // CHECK: irdl.type @parametric {
   // CHECK:   irdl.parameters(param: Any)
   // CHECK: }
-  irdl.type parametric {
+  irdl.type @parametric {
     irdl.parameters(param: Any)
   }
 

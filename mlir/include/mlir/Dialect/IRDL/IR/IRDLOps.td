@@ -46,14 +46,6 @@ def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator, Symbol
   let arguments = (ins StrAttr:$sym_name);
   let regions = (region SizedRegion<1>:$body);
 
-  let extraClassDeclaration = [{
-    //===------------------------------------------------------------------===//
-    // SymbolOpInterface Methods
-    //===------------------------------------------------------------------===//
-
-    bool isDeclaration() { return true; }
-  }];
-
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
 }
@@ -91,7 +83,8 @@ def IRDL_ParametersOp : IRDL_Op<"parameters", [HasParent<"TypeOp">]> {
 // IRDL Type definition
 //===----------------------------------------------------------------------===//
 
-def IRDL_TypeOp : IRDL_Op<"type", [HasParent<"DialectOp">, NoTerminator, NoRegionArguments,
+def IRDL_TypeOp : IRDL_Op<"type", [HasParent<"DialectOp">, Symbol, NoTerminator,
+                                   NoRegionArguments,
                                    AtMostOneChildOf<"ParametersOp, ConstraintVarsOp">]> {
   let summary = "Define a new type";
   let description = [{
@@ -115,14 +108,19 @@ def IRDL_TypeOp : IRDL_Op<"type", [HasParent<"DialectOp">, NoTerminator, NoRegio
     type has a single parameter that should be either `i32` or `i64`.
   }];
 
-  let arguments = (ins StrAttr:$name);
+  let arguments = (ins StrAttr:$sym_name);
   let regions = (region SizedRegion<1>:$body);
-  let assemblyFormat = "custom<KeywordOrString>($name) attr-dict-with-keyword custom<SingleBlockRegion>($body)";  
 
   let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // Accessors
+    //===------------------------------------------------------------------===//
+
     /// Get the parent dialect operation.
     DialectOp getDialectOp() { return cast<DialectOp>(getOperation()->getParentOp()); };
   }];
+
+  let hasCustomAssemblyFormat = 1;
 }
 
 //===----------------------------------------------------------------------===//

@@ -4,10 +4,10 @@ module {
   // CHECK-LABEL: irdl.dialect @cmath {
   irdl.dialect @cmath {
 
-    // CHECK: irdl.type complex {
+    // CHECK: irdl.type @complex {
     // CHECK:   irdl.parameters(elementType: AnyOf<f32, f64>)
     // CHECK: }
-    irdl.type complex {
+    irdl.type @complex {
       irdl.parameters(elementType: AnyOf<f32, f64>)
     }
 

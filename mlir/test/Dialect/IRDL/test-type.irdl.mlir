@@ -3,13 +3,14 @@
 module {
   // CHECK-LABEL: irdl.dialect @testd {
   irdl.dialect @testd {
-    // CHECK: irdl.type singleton
-    irdl.type singleton
 
-    // CHECK: irdl.type parametrized {
+    // CHECK: irdl.type @singleton
+    irdl.type @singleton
+
+    // CHECK: irdl.type @parametrized {
     // CHECK:   irdl.parameters(arg1: Any, arg2: AnyOf<i32, i64>)
     // CHECK: }
-    irdl.type parametrized {
+    irdl.type @parametrized {
       irdl.parameters(arg1: Any, arg2: AnyOf<i32, i64>)
     }
 
