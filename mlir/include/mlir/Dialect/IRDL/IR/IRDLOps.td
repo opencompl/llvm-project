@@ -45,8 +45,16 @@ def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator, Symbol
 
   let arguments = (ins StrAttr:$sym_name);
   let regions = (region SizedRegion<1>:$body);
+
+  let extraClassDeclaration = [{
+    //===------------------------------------------------------------------===//
+    // SymbolOpInterface Methods
+    //===------------------------------------------------------------------===//
+
+    bool isDeclaration() { return true; }
+  }];
+
   let hasCustomAssemblyFormat = 1;
-//  let assemblyFormat = "$sym_name attr-dict-with-keyword custom<SingleBlockRegion>($body)";
   let hasVerifier = 1;
 }
 
