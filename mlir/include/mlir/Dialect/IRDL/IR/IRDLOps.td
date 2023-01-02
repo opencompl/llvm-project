@@ -205,7 +205,7 @@ def IRDL_ResultsOp : IRDL_Op<"results", [HasParent<"OperationOp">]> {
 }
 
 def IRDL_OperationOp : IRDL_Op<"operation",
-    [HasParent<"DialectOp">, NoTerminator, NoRegionArguments,
+    [HasParent<"DialectOp">, Symbol, NoTerminator, NoRegionArguments,
     AtMostOneChildOf<"OperandsOp, ResultsOp, ConstraintVarsOp">]> {
   let summary = "Define a new operation";
   let description = [{
@@ -225,14 +225,14 @@ def IRDL_OperationOp : IRDL_Op<"operation",
     The above program defines an operation `mul` inside the dialect `cmath`.
   }];
 
-  let arguments = (ins StrAttr:$name);
+  let arguments = (ins StrAttr:$sym_name);
   let regions = (region SizedRegion<1>:$body);
-  let assemblyFormat = "custom<KeywordOrString>($name) attr-dict-with-keyword custom<SingleBlockRegion>($body)";
 
   let extraClassDeclaration = [{
     /// Get the parent dialect operation.
     DialectOp getDialectOp() { return cast<DialectOp>(getOperation()->getParentOp()); };
   }];
+  let hasCustomAssemblyFormat = 1;
 }
 
 #endif // DYN_DIALECT_IRDL_IR_IRDLOPS

@@ -86,11 +86,10 @@ static void printSingleBlockRegion(OpAsmPrinter &p, Operation *op,
   }
 }
 
-//===----------------------------------------------------------------------===//
-// Operations.
-//===----------------------------------------------------------------------===//
-
-ParseResult DialectOp::parse(OpAsmParser &parser, OperationState &op) {
+/// Parse a dialect, an operation, or a type definition.
+/// It parses the following syntax:
+/// <symbol> <named-attr-dict> <region>
+ParseResult parseIrdlDefinition(OpAsmParser &parser, OperationState &op) {
   // Parse the name as a symbol.
   StringAttr nameAttr;
   if (parser.parseSymbolName(nameAttr, SymbolTable::getSymbolAttrName(),
@@ -118,60 +117,46 @@ ParseResult DialectOp::parse(OpAsmParser &parser, OperationState &op) {
     return failure();
 
   return success();
+}
+
+void printIrdlDefinition(OpAsmPrinter &p, StringRef name,
+                         DictionaryAttr::ValueType attrDict, Region &body,
+                         Operation *op) {
+  p << " ";
+  p.printSymbolName(name);
+  p << " ";
+  if (!attrDict.empty()) {
+    p.printOptionalAttrDict(attrDict, {SymbolTable::getSymbolAttrName()});
+    p << " ";
+  }
+  printSingleBlockRegion(p, op, body);
+}
+
+ParseResult DialectOp::parse(OpAsmParser &parser, OperationState &op) {
+  return parseIrdlDefinition(parser, op);
 }
 
 void DialectOp::print(OpAsmPrinter &p) {
-  p << " ";
-  p.printSymbolName(getName());
-  p << " ";
-  auto attrs = (*this)->getAttrDictionary().getValue();
-  if (!attrs.empty()) {
-    p.printOptionalAttrDict(attrs, {SymbolTable::getSymbolAttrName()});
-    p << " ";
-  }
-  printSingleBlockRegion(p, getOperation(), getBody());
+  printIrdlDefinition(p, getName(), (*this)->getAttrDictionary().getValue(),
+                      getBody(), getOperation());
 }
 
 ParseResult TypeOp::parse(OpAsmParser &parser, OperationState &op) {
-  // Parse the name as a symbol.
-  StringAttr nameAttr;
-  if (parser.parseSymbolName(nameAttr, SymbolTable::getSymbolAttrName(),
-                             op.attributes))
-    return failure();
-
-  // If extra attributes are present, parse them.
-  NamedAttrList parsedAttributes;
-  SMLoc attributeDictLocation = parser.getCurrentLocation();
-  if (parser.parseOptionalAttrDictWithKeyword(parsedAttributes))
-    return failure();
-
-  // Disallow attributes that are inferred from elsewhere in the attribute
-  // dictionary.
-  auto disallowed = SymbolTable::getSymbolAttrName();
-  if (parsedAttributes.get(disallowed))
-    return parser.emitError(attributeDictLocation, "'")
-           << disallowed
-           << "' is an inferred attribute and should not be specified in the "
-              "explicit attribute dictionary";
-  op.attributes.append(parsedAttributes);
-
-  auto *body = op.addRegion();
-  if (parseSingleBlockRegion(parser, *body))
-    return failure();
-
-  return success();
+  return parseIrdlDefinition(parser, op);
 }
 
 void TypeOp::print(OpAsmPrinter &p) {
-  p << " ";
-  p.printSymbolName(getName());
-  p << " ";
-  auto attrs = (*this)->getAttrDictionary().getValue();
-  if (!attrs.empty()) {
-    p.printOptionalAttrDict(attrs, {SymbolTable::getSymbolAttrName()});
-    p << " ";
-  }
-  printSingleBlockRegion(p, getOperation(), getBody());
+  printIrdlDefinition(p, getName(), (*this)->getAttrDictionary().getValue(),
+                      getBody(), getOperation());
+}
+
+ParseResult OperationOp::parse(OpAsmParser &parser, OperationState &op) {
+  return parseIrdlDefinition(parser, op);
+}
+
+void OperationOp::print(OpAsmPrinter &p) {
+  printIrdlDefinition(p, getName(), (*this)->getAttrDictionary().getValue(),
+                      getBody(), getOperation());
 }
 
 //===----------------------------------------------------------------------===//

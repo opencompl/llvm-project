@@ -14,10 +14,10 @@ module {
       irdl.parameters(arg1: Any, arg2: AnyOf<i32, i64>)
     }
 
-    // CHECK: irdl.operation any {
+    // CHECK: irdl.operation @any {
     // CHECK:   irdl.results(res: Any)
     // CHECK: }
-    irdl.operation any {
+    irdl.operation @any {
       irdl.results(res: Any)
     }
   }
