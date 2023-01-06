@@ -154,7 +154,7 @@ def TypeParamsConstraintAttr : IRDL_AttrDef<"TypeParamsConstraint", "type_params
     The constraint is satisfied by types that are of a specifc base
     type, and that have parameters satisfying the parameter constraints.
   }];
-  let parameters = (ins TypeWrapperParameter<>:$typeDef,
+  let parameters = (ins TypeDefRefAttr:$typeDef,
       ArrayRefParameter<"mlir::Attribute", "list of param constraints">:$paramConstraints);
   let assemblyFormat = "`<` $typeDef `<` $paramConstraints `>` `>`";
 }

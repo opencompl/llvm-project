@@ -247,6 +247,14 @@ std::unique_ptr<Constraint<Type>> TypeParamsConstraintAttr::getTypeConstraint(
         paramConstraintAttr.cast<TypeConstraintAttrInterface>()
             .getTypeConstraint(irdlCtx, constrVars));
 
-  return std::make_unique<TypeParamsConstraint>(getTypeDef(),
+  if (auto symRef = getTypeDef().getSymRef()) {
+    auto name = symRef.getLeafReference().strref();
+    auto ctx = getContext();
+    auto *typeDef = resolveDynamicTypeDefinition(ctx, name);
+    return std::make_unique<DynTypeParamsConstraint>(
+        typeDef, std::move(paramConstraints));
+  }
+
+  return std::make_unique<TypeParamsConstraint>(getTypeDef().getTypeWrapper(),
                                                 std::move(paramConstraints));
 }

@@ -312,10 +312,11 @@ void printAndTypeConstraint(OpAsmPrinter &p, AndTypeConstraintAttr andConstr) {
 ParseResult parseTypeParamsConstraint(OpAsmParser &p, TypeWrapper *wrapper,
                                       Attribute *typeConstraint) {
   auto ctx = p.getBuilder().getContext();
+  auto typeDefRef = TypeDefRefAttr::get(ctx, wrapper);
 
   // Empty case
   if (p.parseOptionalGreater().succeeded()) {
-    *typeConstraint = TypeParamsConstraintAttr::get(ctx, wrapper, {});
+    *typeConstraint = TypeParamsConstraintAttr::get(ctx, typeDefRef, {});
     return success();
   }
 
@@ -335,14 +336,13 @@ ParseResult parseTypeParamsConstraint(OpAsmParser &p, TypeWrapper *wrapper,
   }
 
   *typeConstraint =
-      TypeParamsConstraintAttr::get(ctx, wrapper, paramConstraints);
+      TypeParamsConstraintAttr::get(ctx, typeDefRef, paramConstraints);
   return success();
 }
 
 void printTypeParamsConstraint(OpAsmPrinter &p,
                                TypeParamsConstraintAttr constraint) {
-  auto *typeDef = constraint.getTypeDef();
-  p << typeDef->getName();
+  printTypeDefRef(p, constraint.getTypeDef());
 
   auto paramConstraints = constraint.getParamConstraints();
 
