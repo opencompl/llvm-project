@@ -27,7 +27,7 @@ class AtMostOneChildOf<string op> : ParamNativeOpTrait<"AtMostOneChildOf", op>;
 // IRDL Dialect definition
 //===----------------------------------------------------------------------===//
 
-def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator, Symbol]> {
+def IRDL_DialectOp : IRDL_Op<"dialect", [IsolatedFromAbove, NoTerminator, Symbol, SymbolTable]> {
   let summary = "Define a new dialect";
   let description = [{
     `irdl.dialect` operations defines a dialect.

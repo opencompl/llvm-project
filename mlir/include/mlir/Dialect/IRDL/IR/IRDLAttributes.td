@@ -121,31 +121,6 @@ def TypeBaseConstraintAttr : IRDL_AttrDef<"TypeBaseConstraint", "type_base_const
   let assemblyFormat = "`<` $typeDef `>`";
 }
 
-
-def DynTypeBaseConstraintAttr : IRDL_AttrDef<"DynTypeBaseConstraint", "dyn_type_base_constraint",
-      [TypeConstraintAttrInterface, DeclareAttrInterfaceMethods<TypeConstraintAttrInterface>]> {
-  let summary = "constraint on the base of a dynamic type";
-  let description = [{
-    Attribute representing a constraint on dynamic type base type.
-    The constraint is satisfied by types that have the correct base type.
-  }];
-  let parameters = (ins StringRefParameter<>:$typeName);
-  let assemblyFormat = "`<` $typeName `>`";
-}
-
-def DynTypeParamsConstraintAttr : IRDL_AttrDef<"DynTypeParamsConstraint", "dyn_type_params_constraint",
-      [TypeConstraintAttrInterface, DeclareAttrInterfaceMethods<TypeConstraintAttrInterface>]> {
-  let summary = "constraint on dynamic type parameters";
-  let description = [{
-    Attribute representing a constraint on dynamic type parameters.
-    The constraint is satisfied by types that are of a specifc base dynamic
-    type, and that have parameters satisfying the parameter constraints.
-  }];
-  let parameters = (ins StringRefParameter<>:$typeName,
-      ArrayRefParameter<"mlir::Attribute", "list of param constraints">:$paramConstraints);
-  let assemblyFormat = "`<` $typeName `<` $paramConstraints `>` `>`";
-}
-
 def TypeParamsConstraintAttr : IRDL_AttrDef<"TypeParamsConstraint", "type_params_constraint",
       [TypeConstraintAttrInterface, DeclareAttrInterfaceMethods<TypeConstraintAttrInterface>]> {
   let summary = "constraint on C++ type parameters";

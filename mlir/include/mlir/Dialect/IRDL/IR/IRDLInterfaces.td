@@ -28,7 +28,8 @@ def TypeConstraintAttrInterface : AttrInterface<"TypeConstraintAttrInterface"> {
       "Get the type constraint",
       "std::unique_ptr<mlir::irdl::Constraint<Type>>", "getTypeConstraint",
       (ins "mlir::irdl::IRDLContext &":$ctx,
-           "llvm::SmallMapVector<llvm::StringRef, std::unique_ptr<mlir::irdl::Constraint<Type>>, 4> const&":$constr_vars)
+           "llvm::SmallMapVector<llvm::StringRef, std::unique_ptr<mlir::irdl::Constraint<Type>>, 4> const&":$constr_vars,
+           "mlir::Operation *":$op)
     >];
 }
 

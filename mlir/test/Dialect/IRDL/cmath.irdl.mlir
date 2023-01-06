@@ -13,24 +13,24 @@ module {
 
     // CHECK: irdl.operation @norm {
     // CHECK:   irdl.constraint_vars(T: AnyOf<f32, f64>)
-    // CHECK:   irdl.operands(c: cmath.complex<?T>)
+    // CHECK:   irdl.operands(c: @complex<?T>)
     // CHECK:   irdl.results(res: ?T)
     // CHECK: }
     irdl.operation @norm {
       irdl.constraint_vars(T: AnyOf<f32, f64>)
-      irdl.operands(c: cmath.complex<?T>)
+      irdl.operands(c: @complex<?T>)
       irdl.results(res: ?T)
     }
 
     // CHECK: irdl.operation @mul {
     // CHECK:   irdl.constraint_vars(T: AnyOf<f32, f64>)
-    // CHECK:   irdl.operands(lhs: cmath.complex<?T>, rhs: cmath.complex<?T>)
-    // CHECK:   irdl.results(res: cmath.complex<?T>)
+    // CHECK:   irdl.operands(lhs: @complex<?T>, rhs: @complex<?T>)
+    // CHECK:   irdl.results(res: @complex<?T>)
     // CHECK: }
     irdl.operation @mul {
       irdl.constraint_vars(T: AnyOf<f32, f64>)
-      irdl.operands(lhs: cmath.complex<?T>, rhs: cmath.complex<?T>)
-      irdl.results(res: cmath.complex<?T>)
+      irdl.operands(lhs: @complex<?T>, rhs: @complex<?T>)
+      irdl.results(res: @complex<?T>)
     }
   }
 }
