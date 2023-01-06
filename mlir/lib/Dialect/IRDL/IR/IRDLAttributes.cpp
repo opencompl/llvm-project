@@ -15,6 +15,7 @@
 #include "mlir/Dialect/IRDL/IR/IRDLInterfaces.h"
 #include "mlir/Dialect/IRDL/IRDLContext.h"
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "llvm/ADT/STLExtras.h"
@@ -66,13 +67,33 @@ void IRDLDialect::registerAttributes() {
 } // namespace mlir
 
 //===----------------------------------------------------------------------===//
+// Type definition reference attribute
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+TypeDefRefAttr::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
+                       TypeWrapperPtr typeWrapper, SymbolRefAttr symRef) {
+  if (typeWrapper && symRef) {
+    emitError() << "Type definition reference attribute cannot have both a "
+                   "type wrapper and a symbol reference";
+    return failure();
+  }
+  if (!typeWrapper && !symRef) {
+    emitError() << "Type definition reference attribute must have either a "
+                   "type wrapper or a symbol reference";
+    return failure();
+  }
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // IRDL equality type constraint attribute
 //===----------------------------------------------------------------------===//
 
 std::unique_ptr<Constraint<Type>> EqTypeConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   return std::make_unique<EqConstraint<Type>>(getType());
 }
 
@@ -82,8 +103,8 @@ std::unique_ptr<Constraint<Type>> EqTypeConstraintAttr::getTypeConstraint(
 
 std::unique_ptr<Constraint<Type>> AnyTypeConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   return std::make_unique<AnyConstraint<Type>>();
 }
 
@@ -91,11 +112,10 @@ std::unique_ptr<Constraint<Type>> AnyTypeConstraintAttr::getTypeConstraint(
 // IRDL AnyOf type constraint attribute
 //===----------------------------------------------------------------------===//
 
-std::unique_ptr<Constraint<Type>>
-AnyOfTypeConstraintAttr::getTypeConstraint(
+std::unique_ptr<Constraint<Type>> AnyOfTypeConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   SmallVector<std::unique_ptr<Constraint<Type>>> constraints;
   auto constraintAttrs = getConstrs();
   for (auto constrAttr : constraintAttrs)
@@ -111,8 +131,8 @@ AnyOfTypeConstraintAttr::getTypeConstraint(
 
 std::unique_ptr<Constraint<Type>> AndTypeConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   SmallVector<std::unique_ptr<Constraint<Type>>> constraints;
   auto constraintAttrs = getConstrs();
   for (auto constrAttr : constraintAttrs)
@@ -128,8 +148,8 @@ std::unique_ptr<Constraint<Type>> AndTypeConstraintAttr::getTypeConstraint(
 
 std::unique_ptr<Constraint<Type>> VarTypeConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   auto name = getName();
   // Iterate in reverse to match the latest defined variable.
   size_t i = 0;
@@ -163,13 +183,12 @@ DynamicTypeDefinition *resolveDynamicTypeDefinition(MLIRContext *ctx,
   return extensibleDialect->lookupTypeDefinition(typeName);
 }
 
-std::unique_ptr<Constraint<Type>>
-DynTypeBaseConstraintAttr::getTypeConstraint(
+std::unique_ptr<Constraint<Type>> DynTypeBaseConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   auto *typeDef =
-      resolveDynamicTypeDefinition(this->getContext(), this->getTypeName());
+      resolveDynamicTypeDefinition(getContext(), this->getTypeName());
 
   return std::make_unique<DynTypeBaseConstraint>(typeDef);
 }
@@ -180,9 +199,17 @@ DynTypeBaseConstraintAttr::getTypeConstraint(
 
 std::unique_ptr<Constraint<Type>> TypeBaseConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
-  return std::make_unique<TypeBaseConstraint>(getTypeDef());
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
+  auto typeDef = getTypeDef();
+  if (auto symRef = typeDef.getSymRef()) {
+    auto name = symRef.getLeafReference().strref();
+    auto ctx = getContext();
+    auto *typeDef = resolveDynamicTypeDefinition(ctx, name);
+    return std::make_unique<DynTypeBaseConstraint>(typeDef);
+  }
+
+  return std::make_unique<TypeBaseConstraint>(typeDef.getTypeWrapper());
 }
 
 //===----------------------------------------------------------------------===//
@@ -192,8 +219,8 @@ std::unique_ptr<Constraint<Type>> TypeBaseConstraintAttr::getTypeConstraint(
 std::unique_ptr<Constraint<Type>>
 DynTypeParamsConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   SmallVector<std::unique_ptr<Constraint<Type>>> paramConstraints;
   for (auto paramConstraintAttr : getParamConstraints())
     paramConstraints.push_back(
@@ -210,11 +237,10 @@ DynTypeParamsConstraintAttr::getTypeConstraint(
 // Attribute for constraint on non-dynamic type parameters
 //===----------------------------------------------------------------------===//
 
-std::unique_ptr<Constraint<Type>>
-TypeParamsConstraintAttr::getTypeConstraint(
+std::unique_ptr<Constraint<Type>> TypeParamsConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
-    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>,
-                         4> const &constrVars) const {
+    llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const
+        &constrVars) const {
   SmallVector<std::unique_ptr<Constraint<Type>>> paramConstraints;
   for (auto paramConstraintAttr : getParamConstraints())
     paramConstraints.push_back(

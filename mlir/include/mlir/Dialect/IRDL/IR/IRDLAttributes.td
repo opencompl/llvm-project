@@ -86,6 +86,30 @@ class TypeWrapperParameter<string desc = ""> :
   string convertFromStorage = "($_self)";
 }
 
+def TypeDefRefAttr : IRDL_AttrDef<"TypeDefRef", "type_def_ref"> {
+  let summary = "reference to a type definition";
+  let description = [{
+    A TypeDefRef references a type definition.
+    A type definition can either be a `TypeWrapper *`, which refers a
+    C++-defined type, or a `SymbolRefAttr` which refers to a type defined
+    with IRDL.
+  }];
+  let parameters = (ins OptionalParameter<"mlir::irdl::TypeWrapperPtr">:$typeWrapper,
+                        OptionalParameter<"mlir::SymbolRefAttr">:$symRef);
+
+  let builders = [
+    AttrBuilder<(ins "mlir::irdl::TypeWrapper*":$typeWrapper), [{
+      return $_get($_ctxt, typeWrapper, mlir::SymbolRefAttr());
+    }]>,
+    AttrBuilderWithInferredContext<(ins "mlir::SymbolRefAttr":$symRef), [{
+      return $_get(symRef.getContext(), nullptr, symRef);
+    }]>
+  ];
+
+  let assemblyFormat = "`<` $typeWrapper $symRef `>`";
+  let genVerifyDecl = 1;
+}
+
 def TypeBaseConstraintAttr : IRDL_AttrDef<"TypeBaseConstraint", "type_base_constraint",
       [TypeConstraintAttrInterface, DeclareAttrInterfaceMethods<TypeConstraintAttrInterface>]> {
   let summary = "constraint on the base of a C++-defined type";
@@ -93,7 +117,7 @@ def TypeBaseConstraintAttr : IRDL_AttrDef<"TypeBaseConstraint", "type_base_const
     Attribute representing a constraint on the base of a C++-defined type.
     The constraint is satisfied by types that have the correct base type.
   }];
-  let parameters = (ins TypeWrapperParameter<>:$typeDef);
+  let parameters = (ins TypeDefRefAttr:$typeDef);
   let assemblyFormat = "`<` $typeDef `>`";
 }
 

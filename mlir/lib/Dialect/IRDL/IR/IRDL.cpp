@@ -147,6 +147,51 @@ void OperationOp::print(OpAsmPrinter &p) {
 }
 
 //===----------------------------------------------------------------------===//
+// Type definition reference.
+//===----------------------------------------------------------------------===//
+
+namespace {
+ParseResult parseOptionalTypeDefRef(OpAsmParser &p, TypeDefRefAttr *attrRes) {
+  auto loc = p.getCurrentLocation();
+
+  // Symref case
+  {
+    Attribute attr;
+    auto res = p.parseOptionalAttribute(attr);
+
+    if (res.has_value()) {
+      if (res.value().failed())
+        return res.value();
+      if (auto symRef = dyn_cast<SymbolRefAttr>(attr))
+        *attrRes = TypeDefRefAttr::get(symRef);
+      return {success()};
+      p.emitError(loc, "SymbolRefAttr or string literal expected");
+      return failure();
+    }
+  }
+
+  // Type wrapper case
+  std::string attrName;
+  auto res = p.parseKeyword(attrName);
+  if (res.failed())
+    return {res};
+
+  auto ctx = p.getBuilder().getContext();
+  auto irdl = ctx->getOrLoadDialect<IRDLDialect>();
+  auto *typeWrapper = irdl->getTypeWrapper(attrName);
+  *attrRes = TypeDefRefAttr::get(ctx, typeWrapper);
+  return {success()};
+}
+
+void printTypeDefRef(OpAsmPrinter &p, TypeDefRefAttr attr) {
+  if (auto symRef = attr.getSymRef())
+    p.printAttribute(symRef);
+  else
+    p << attr.getTypeWrapper()->getName();
+}
+} // namespace
+
+//===----------------------------------------------------------------------===//
 // Type constraints.
 //===----------------------------------------------------------------------===//
 
@@ -450,7 +495,8 @@ ParseResult parseTypeConstraint(OpAsmParser &p, Attribute *typeConstraint) {
     }
 
     if (typeWrapper) {
-      *typeConstraint = TypeBaseConstraintAttr::get(ctx, typeWrapper);
+      auto typeDefRef = TypeDefRefAttr::get(ctx, typeWrapper);
+      *typeConstraint = TypeBaseConstraintAttr::get(ctx, typeDefRef);
       return success();
     }
 
@@ -485,7 +531,8 @@ void printTypeConstraint(OpAsmPrinter &p, Attribute typeConstraint) {
     printTypeParamsConstraint(p, typeParamsConstr);
   } else if (auto typeBaseConstr =
                  typeConstraint.dyn_cast<TypeBaseConstraintAttr>()) {
-    p << typeBaseConstr.getTypeDef()->getName();
+    auto typeDef = typeBaseConstr.getTypeDef();
+    printTypeDefRef(p, typeDef);
   } else if (auto dynTypeBaseConstr =
                  typeConstraint.dyn_cast<DynTypeBaseConstraintAttr>()) {
     printDynTypeBaseConstraint(p, dynTypeBaseConstr);
