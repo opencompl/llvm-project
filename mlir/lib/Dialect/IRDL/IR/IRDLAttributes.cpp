@@ -183,6 +183,11 @@ DynamicTypeDefinition *resolveDynamicTypeDefinition(MLIRContext *ctx,
   return extensibleDialect->lookupTypeDefinition(typeName);
 }
 
+DynamicTypeDefinition *resolveDynamicTypeDefinition(MLIRContext *ctx,
+                                                    SymbolRefAttr type) {
+  auto typeDefOp = type.getDefiningOp();
+}
+
 std::unique_ptr<Constraint<Type>> DynTypeBaseConstraintAttr::getTypeConstraint(
     IRDLContext &irdlCtx,
     llvm::SmallMapVector<StringRef, std::unique_ptr<Constraint<Type>>, 4> const

@@ -39,31 +39,31 @@ irdl.dialect @testd {
   }
 
   // CHECK: irdl.operation @dynbase {
-  // CHECK:   irdl.results(res: testd.parametric)
+  // CHECK:   irdl.results(res: @parametric)
   // CHECK: }
   irdl.operation @dynbase {
-    irdl.results(res: testd.parametric)
+    irdl.results(res: @parametric)
   }
 
   // CHECK: irdl.operation @base {
-  // CHECK:   irdl.results(res: builtin.complex)
+  // CHECK:   irdl.results(res: @complex)
   // CHECK: }
   irdl.operation @base {
-    irdl.results(res: builtin.complex)
+    irdl.results(res: @complex)
   }
 
   // CHECK: irdl.operation @dynparams {
-  // CHECK:   irdl.results(res: testd.parametric<AnyOf<i32, i64>>)
+  // CHECK:   irdl.results(res: @parametric<AnyOf<i32, i64>>)
   // CHECK: }
   irdl.operation @dynparams {
-    irdl.results(res: testd.parametric<AnyOf<i32, i64>>)
+    irdl.results(res: @parametric<AnyOf<i32, i64>>)
   }
 
   // CHECK: irdl.operation @params {
-  // CHECK:   irdl.results(res: builtin.complex<AnyOf<i32, i64>>)
+  // CHECK:   irdl.results(res: @complex<AnyOf<i32, i64>>)
   // CHECK: }
   irdl.operation @params {
-    irdl.results(res: builtin.complex<AnyOf<i32, i64>>)
+    irdl.results(res: @complex<AnyOf<i32, i64>>)
   }
 
   // CHECK: irdl.operation @constraint_vars {

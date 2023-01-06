@@ -151,7 +151,8 @@ void OperationOp::print(OpAsmPrinter &p) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-ParseResult parseOptionalTypeDefRef(OpAsmParser &p, TypeDefRefAttr *attrRes) {
+OptionalParseResult parseOptionalTypeDefRef(OpAsmParser &p,
+                                            TypeDefRefAttr *attrRes) {
   auto loc = p.getCurrentLocation();
 
   // Symref case
@@ -165,20 +166,22 @@ ParseResult parseOptionalTypeDefRef(OpAsmParser &p, TypeDefRefAttr *attrRes) {
       if (auto symRef = dyn_cast<SymbolRefAttr>(attr))
         *attrRes = TypeDefRefAttr::get(symRef);
       return {success()};
-      p.emitError(loc, "SymbolRefAttr or string literal expected");
-      return failure();
     }
   }
 
   // Type wrapper case
-  std::string attrName;
-  auto res = p.parseKeyword(attrName);
+  StringRef name;
+  auto res = p.parseOptionalKeyword(&name);
   if (res.failed())
-    return {res};
+    return {};
 
   auto ctx = p.getBuilder().getContext();
   auto irdl = ctx->getOrLoadDialect<IRDLDialect>();
-  auto *typeWrapper = irdl->getTypeWrapper(attrName);
+  auto *typeWrapper = irdl->getTypeWrapper(name);
+  if (!typeWrapper) {
+    p.emitError(loc, name + " is not a registered type wrapper");
+    return {failure()};
+  }
   *attrRes = TypeDefRefAttr::get(ctx, typeWrapper);
   return {success()};
 }
@@ -309,14 +312,13 @@ void printAndTypeConstraint(OpAsmPrinter &p, AndTypeConstraintAttr andConstr) {
 
 /// Parse a type parameters constraint.
 /// It has the format 'dialectname.typename<(typeConstraint ,)*>'
-ParseResult parseTypeParamsConstraint(OpAsmParser &p, TypeWrapper *wrapper,
+ParseResult parseTypeParamsConstraint(OpAsmParser &p, TypeDefRefAttr typeDef,
                                       Attribute *typeConstraint) {
   auto ctx = p.getBuilder().getContext();
-  auto typeDefRef = TypeDefRefAttr::get(ctx, wrapper);
 
   // Empty case
   if (p.parseOptionalGreater().succeeded()) {
-    *typeConstraint = TypeParamsConstraintAttr::get(ctx, typeDefRef, {});
+    *typeConstraint = TypeParamsConstraintAttr::get(ctx, typeDef, {});
     return success();
   }
 
@@ -336,7 +338,7 @@ ParseResult parseTypeParamsConstraint(OpAsmParser &p, TypeWrapper *wrapper,
   }
 
   *typeConstraint =
-      TypeParamsConstraintAttr::get(ctx, typeDefRef, paramConstraints);
+      TypeParamsConstraintAttr::get(ctx, typeDef, paramConstraints);
   return success();
 }
 
@@ -474,39 +476,19 @@ ParseResult parseTypeConstraint(OpAsmParser &p, Attribute *typeConstraint) {
     return success();
   }
 
-  StringRef keyword;
-  if (succeeded(p.parseOptionalKeyword(&keyword))) {
-    // Parse a non-dynamic type parameter constraint.
-    auto irdl = ctx->getOrLoadDialect<IRDLDialect>();
-    auto typeWrapper = irdl->getTypeWrapper(keyword);
+  TypeDefRefAttr typeDef;
+  auto typeDefParsed = parseOptionalTypeDefRef(p, &typeDef);
+  if (typeDefParsed.has_value()) {
+    if (typeDefParsed.value().failed())
+      return typeDefParsed.value();
 
-    if (p.parseOptionalLess().succeeded()) {
-      // Parse a C++-defined type parameter constraint.
-      if (typeWrapper)
-        return parseTypeParamsConstraint(p, typeWrapper, typeConstraint);
+    // Parameter constraints case
+    if (p.parseOptionalLess().succeeded())
+      return parseTypeParamsConstraint(p, typeDef, typeConstraint);
 
-      // Parse a dynamic type parameter constraint.
-      auto paramRes =
-          parseOptionalDynTypeParamsConstraint(p, keyword, typeConstraint);
-      if (paramRes.has_value())
-        return *paramRes;
-      p.emitError(loc, "type constraint expected");
-      return failure();
-    }
-
-    if (typeWrapper) {
-      auto typeDefRef = TypeDefRefAttr::get(ctx, typeWrapper);
-      *typeConstraint = TypeBaseConstraintAttr::get(ctx, typeDefRef);
-      return success();
-    }
-
-    auto baseRes =
-        parseOptionalDynTypeBaseConstraint(p, keyword, typeConstraint);
-    if (baseRes.has_value())
-      return *baseRes;
-
-    p.emitError(loc, "type constraint expected");
-    return failure();
+    // Base type constraint case
+    *typeConstraint = TypeBaseConstraintAttr::get(ctx, typeDef);
+    return success();
   }
 
   p.emitError(loc, "type constraint expected");
