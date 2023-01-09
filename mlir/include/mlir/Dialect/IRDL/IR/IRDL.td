@@ -22,26 +22,95 @@ include "mlir/IR/OpBase.td"
 def IRDL_Dialect : Dialect {
   let summary = "IR Definition Language Dialect";
   let description = [{
-    IRDL presents a high-level abstraction for the definition of dialects. It
-    can represent dialects, types, and operations.
+    IR Definition Language (IRDL) allows defining dialects in a declarative
+    format. Those dialects can be loaded at runtime into MLIR.
 
-    The IRDL programs can be used to register dialects at runtime, which enables
-    users to plug-in new dialects without having to recompile the project.
+    TODO: Motivation
 
-    Operation `irdl.dialect` defines a dialect, `irdl.type` defines a type,
-    and `irdl.operation` defines an operation.
-
-    A dialect example is shown below:
+    Dialects expressed in IRDL can register types, attributes and operations.
 
     ```mlir
-    irdl.dialect "cmath" {
-      irdl.type "complex"
-      irdl.operation "mul"
+    // Defines the `cmath` dialect, representing complex numbers
+    // and operations over them.
+    irdl.dialect @cmath {
+      // Defines a singleton `cmath.complex` type,
+      // representing a complex number.
+      irdl.type @complex {}
+
+      // Defines a `cmath.norm` operation, representing
+      // the norm operator on complex numbers. This operation
+      // takes a complex number, and returns an f32.
+      irdl.operation @norm {
+        irdl.operands(x: cmath.complex)
+        irdl.result(res: f32)
+      }
     }
     ```
 
-    This program defines a `cmath` dialect that defines a `complex` type, and
-    a `mul` operation.
+    Types and attributes can be parametrized using other types and attributes.
+    In order to limit the parameters a type or attribute can receive, IRDL
+    provides a logical constraint system to only accept types matching a
+    certain structure.
+
+    ```mlir
+    // We now want the `cmath` dialect to represent complex
+    // numbers with a parametrized scalar type (either f32
+    // or f64).
+    irdl.dialect @cmath {
+      irdl.type @complex {
+        // `cmath.complex` can now be parametrized, with either
+        // f32 or f64, yielding the two possible variants
+        // `cmath.complex<f32>` and `cmath.complex<f64>`.
+        irdl.parameters(scalarType: AnyOf<f32, f64>)
+      }
+    }
+    ```
+
+    Operations can use the same constraint system to generically
+    accept different types as operands and results. It is often
+    desirable to ensure types and attributes are identical accross
+    operands in a specific instanciation of the operation. However,
+    while operands can be generic using only structural constraints,
+    there is no way to add equality constraints across operands.
+    In order to allow this, IRDL also provides constraint variables.
+    Constraint variables can be used within constraints and represent
+    one specific type or attribute instance. When checking that a type
+    or attribute matches a constraint, the IRDL constraint checker
+    will try to identify what value for the type variable satisfies
+    the constraint, failing if one does not exist.
+
+    ```mlir
+    irdl.dialect @cmath {
+      irdl.type @complex {
+        irdl.parameters(scalarType: AnyOf<f32, f64>)
+      }
+
+      irdl.operation @norm {
+        // We want to make sure the return value of
+        // the norm operation is the same as the
+        // scalar type parametrizing the instance
+        // of `cmath.complex`.
+
+        // To do that, we need to define the constraint
+        // variable `T`, along with the types it is
+        // allowed to match. It will represent the
+        // scalar type used.
+        irdl.constraint_vars(T: AnyOf<f32, f64>)
+
+        // Then, we specify where the value of `T`
+        // will appear.
+        irdl.operands(c: cmath.complex<?T>)
+        irdl.results(res: ?T)
+
+        // This will match instances of this operation
+        // such as `cmath.norm(f32) -> f32` or
+        // `cmath.norm(f64) -> f64` but will refuse
+        // `cmath.norm(f32) -> f64` for example.
+      }
+    }
+    ```
+
+    TODO: Show an example of attribute definition.    
   }];
 
   let useDefaultAttributePrinterParser = 1;
