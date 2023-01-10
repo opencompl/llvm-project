@@ -1,4 +1,4 @@
-//===- IRDLSSAAttributes.h - Attributes definition for IRDL-SSA -*- C++ -*-===//
+//===- IRDLAttributes.h - Attributes definition for IRDL --------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the attributes used in the IRDL-SSA dialect.
+// This file declares the attributes used in the IRDL dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES_H_
-#define DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES_H_
+#ifndef MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES_H_
+#define MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES_H_
 
 #include "mlir/IR/AttributeSupport.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -21,12 +21,12 @@
 
 // Forward declarations
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 class TypeOrParamTypeAttr;
 }
 } // namespace mlir
 
 #define GET_ATTRDEF_CLASSES
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.h.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.h.inc"
 
-#endif // DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES_H_
+#endif // MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES_H_

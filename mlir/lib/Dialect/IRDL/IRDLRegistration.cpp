@@ -1,4 +1,4 @@
-//===- IRDLSSARegistration.cpp - IRDL-SSA dialect registration ---- C++ -*-===//
+//===- IRDLRegistration.cpp - IRDL dialect registration ----------- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Manages the registration of MLIR objects from IRDL-SSA operations.
+// Manages the registration of MLIR objects from IRDL operations.
 //
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-Eval/IR/IRDLEval.h"
-#include "Dyn/Dialect/IRDL-Eval/IRDLEvalInterpreter.h"
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.h"
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAInterfaces.h"
+#include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/IR/IRDLInterfaces.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/ExtensibleDialect.h"
 #include "mlir/Support/LogicalResult.h"
@@ -21,18 +19,18 @@
 #include "llvm/Support/SMLoc.h"
 
 using namespace mlir;
-using namespace irdlssa;
+using namespace irdl;
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 
 namespace {
 // Verifier used for dynamic types.
 LogicalResult
-irdlssaTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
-                    ArrayRef<Attribute> params,
-                    ArrayRef<std::unique_ptr<TypeConstraint>> constraints,
-                    ArrayRef<size_t> paramConstraints) {
+irdlTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
+                 ArrayRef<Attribute> params,
+                 ArrayRef<std::unique_ptr<TypeConstraint>> constraints,
+                 ArrayRef<size_t> paramConstraints) {
   if (params.size() != paramConstraints.size()) {
     emitError().append("expected ", paramConstraints.size(),
                        " type arguments, but had ", params.size());
@@ -58,7 +56,7 @@ irdlssaTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
 }
 } // namespace
 
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir
 
 namespace {
@@ -109,88 +107,15 @@ LogicalResult verifyOpDefConstraints(
 } // namespace
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 /// Register an operation represented by a `irdl.operation` operation.
-WalkResult registerOperation(ExtensibleDialect *dialect, SSA_OperationOp op) {
-  // If an IRDL-Eval verifier is registered, use it.
-  for (Operation &childOp : op.getOps()) {
-    using irdleval::Verifier;
-    if (Verifier opVerifier = llvm::dyn_cast<Verifier>(childOp)) {
-      auto interpreter = irdleval::IRDLEvalInterpreter::compile(
-          [&]() { return opVerifier.emitError(); }, opVerifier.getContext(),
-          opVerifier);
-
-      if (!interpreter.has_value()) {
-        return WalkResult::interrupt();
-      }
-
-      size_t numExpectedResults = 0;
-      auto resultsOp = op.getOp<SSA_ResultsOp>();
-      if (resultsOp.has_value()) {
-        numExpectedResults = resultsOp->getArgs().size();
-      }
-
-      size_t numExpectedOperands = 0;
-      auto operandsOp = op.getOp<SSA_OperandsOp>();
-      if (operandsOp.has_value()) {
-        numExpectedOperands = operandsOp->getArgs().size();
-      }
-
-      auto verifier = [interpreter(std::move(interpreter)), numExpectedResults,
-                       numExpectedOperands](Operation *op) -> LogicalResult {
-        /// Check that we have the right number of operands.
-        size_t numOperands = op->getNumOperands();
-        if (numOperands != numExpectedOperands)
-          return op->emitOpError(std::to_string(numExpectedOperands) +
-                                 " operands expected, but got " +
-                                 std::to_string(numOperands));
-
-        /// Check that we have the right number of results.
-        size_t numResults = op->getNumResults();
-        if (numResults != numExpectedResults)
-          return op->emitOpError(std::to_string(numExpectedResults) +
-                                 " results expected, but got " +
-                                 std::to_string(numResults));
-
-        SmallVector<Type> args;
-        for (Value operand : op->getOperands()) {
-          args.push_back(operand.getType());
-        }
-        for (Value result : op->getResults()) {
-          args.push_back(result.getType());
-        }
-
-        return interpreter->getVerifier().verify(
-            [&]() { return op->emitError(); }, args);
-      };
-
-      auto parser = [](OpAsmParser &parser, OperationState &result) {
-        return failure();
-      };
-      auto printer = [](Operation *op, OpAsmPrinter &printer, StringRef) {
-        printer.printGenericOp(op);
-      };
-
-      auto regionVerifier = [](Operation *op) { return success(); };
-
-      auto opDef = DynamicOpDefinition::get(
-          op.getName(), dialect, std::move(verifier), std::move(regionVerifier),
-          std::move(parser), std::move(printer));
-      dialect->registerDynamicOp(std::move(opDef));
-
-      return WalkResult::advance();
-    }
-  }
-
-  // If no IRDL-Eval verifier is registered, fall back to the dynamic
-  // evaluation.
-
+WalkResult registerOperation(ExtensibleDialect *dialect, OperationOp op) {
   // Resolve SSA values to verifier constraint slots
   SmallVector<Value> constrToValue;
   for (auto &op : op->getRegion(0).getOps()) {
     if (llvm::isa<VerifyConstraintInterface>(op)) {
       assert(op.getNumResults() == 1 &&
-             "IRDL-SSA constraint operations must have exactly one result");
+             "IRDL constraint operations must have exactly one result");
       constrToValue.push_back(op.getResult(0));
     }
   }
@@ -211,7 +136,7 @@ WalkResult registerOperation(ExtensibleDialect *dialect, SSA_OperationOp op) {
   SmallVector<size_t> resultConstraints;
 
   // Gather which constraint slots correspond to operand constraints
-  auto operandsOp = op.getOp<SSA_OperandsOp>();
+  auto operandsOp = op.getOp<OperandsOp>();
   if (operandsOp.has_value()) {
     operandConstraints.reserve(operandsOp->getArgs().size());
     for (auto operand : operandsOp->getArgs()) {
@@ -225,7 +150,7 @@ WalkResult registerOperation(ExtensibleDialect *dialect, SSA_OperationOp op) {
   }
 
   // Gather which constraint slots correspond to result constraints
-  auto resultsOp = op.getOp<SSA_ResultsOp>();
+  auto resultsOp = op.getOp<ResultsOp>();
   if (resultsOp.has_value()) {
     resultConstraints.reserve(resultsOp->getArgs().size());
     for (auto result : resultsOp->getArgs()) {
@@ -262,56 +187,16 @@ WalkResult registerOperation(ExtensibleDialect *dialect, SSA_OperationOp op) {
 
   return WalkResult::advance();
 }
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir
 
-static WalkResult registerType(ExtensibleDialect *dialect, SSA_TypeOp op) {
-  // If an IRDL-Eval verifier is registered, use it.
-  for (Operation &childOp : op.getOps()) {
-    using irdleval::Verifier;
-    if (Verifier opVerifier = llvm::dyn_cast<Verifier>(childOp)) {
-      auto interpreter = irdleval::IRDLEvalInterpreter::compile(
-          [&]() { return opVerifier.emitError(); }, opVerifier.getContext(),
-          opVerifier);
-
-      if (!interpreter.has_value()) {
-        return WalkResult::interrupt();
-      }
-
-      auto verifier = [interpreter(std::move(interpreter))](
-                          function_ref<InFlightDiagnostic()> emitError,
-                          ArrayRef<Attribute> params) -> LogicalResult {
-        SmallVector<Type> args;
-        for (Attribute attr : params) {
-          if (TypeAttr typeAttr = attr.dyn_cast<TypeAttr>()) {
-            args.push_back(typeAttr.getValue());
-          } else {
-            return emitError().append("only type attribute type parameters are "
-                                      "currently supported, got ",
-                                      attr);
-          }
-        }
-        return interpreter->getVerifier().verify(emitError, args);
-      };
-
-      auto type = DynamicTypeDefinition::get(op.getName(), dialect,
-                                             std::move(verifier));
-
-      dialect->registerDynamicType(std::move(type));
-
-      return WalkResult::advance();
-    }
-  }
-
-  // If no IRDL-Eval verifier is registered, fall back to the dynamic
-  // evaluation.
-
+static WalkResult registerType(ExtensibleDialect *dialect, TypeOp op) {
   // Resolve SSA values to verifier constraint slots
   SmallVector<Value> constrToValue;
   for (auto &op : op->getRegion(0).getOps()) {
     if (llvm::isa<VerifyConstraintInterface>(op)) {
       assert(op.getNumResults() == 1 &&
-             "IRDL-SSA constraint operations must have exactly one result");
+             "IRDL constraint operations must have exactly one result");
       constrToValue.push_back(op.getResult(0));
     }
   }
@@ -329,7 +214,7 @@ static WalkResult registerType(ExtensibleDialect *dialect, SSA_TypeOp op) {
   }
 
   // Gather which constraint slots correspond to parameter constraints
-  auto params = op.getOp<SSA_ParametersOp>();
+  auto params = op.getOp<ParametersOp>();
   SmallVector<size_t> paramConstraints;
   if (params.has_value()) {
     paramConstraints.reserve(params->getArgs().size());
@@ -347,8 +232,7 @@ static WalkResult registerType(ExtensibleDialect *dialect, SSA_TypeOp op) {
                    constraints{std::move(constraints)}](
                       function_ref<InFlightDiagnostic()> emitError,
                       ArrayRef<Attribute> params) {
-    return irdlssaTypeVerifier(emitError, params, constraints,
-                               paramConstraints);
+    return irdlTypeVerifier(emitError, params, constraints, paramConstraints);
   };
 
   auto type =
@@ -359,7 +243,7 @@ static WalkResult registerType(ExtensibleDialect *dialect, SSA_TypeOp op) {
   return WalkResult::advance();
 }
 
-static WalkResult registerDialect(SSA_DialectOp op) {
+static WalkResult registerDialect(DialectOp op) {
   auto *ctx = op.getContext();
   auto dialectName = op.getName();
 
@@ -370,20 +254,20 @@ static WalkResult registerDialect(SSA_DialectOp op) {
   assert(dialect && "extensible dialect should have been registered.");
 
   WalkResult res =
-      op.walk([&](SSA_TypeOp op) { return registerType(dialect, op); });
+      op.walk([&](TypeOp op) { return registerType(dialect, op); });
   if (res.wasInterrupted())
     return res;
 
   return op.walk(
-      [&](SSA_OperationOp op) { return registerOperation(dialect, op); });
+      [&](OperationOp op) { return registerOperation(dialect, op); });
 }
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 LogicalResult registerDialects(ModuleOp op) {
   WalkResult res =
-      op.walk([&](SSA_DialectOp dialect) { return registerDialect(dialect); });
+      op.walk([&](DialectOp dialect) { return registerDialect(dialect); });
   return failure(res.wasInterrupted());
 }
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir

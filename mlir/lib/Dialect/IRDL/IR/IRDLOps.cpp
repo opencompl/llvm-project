@@ -1,4 +1,4 @@
-//===- IRDLSSAOps.cpp - IRDL-SSA dialect ------------------------*- C++ -*-===//
+//===- IRDLOps.cpp - IRDL dialect -------------------------------*- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.h"
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.h"
+#include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.h"
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
 #include "mlir/Support/LogicalResult.h"
 #include <memory>
 
 using namespace mlir;
-using namespace mlir::irdlssa;
+using namespace mlir::irdl;
 using namespace mlir::irdl;
 
 // Verifier instantiation
@@ -56,7 +56,7 @@ instantiateParamType(llvm::function_ref<InFlightDiagnostic()> emitError,
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-SSA_IsType::getVerifier(SmallVector<Value> const &valueToConstr) {
+IsType::getVerifier(SmallVector<Value> const &valueToConstr) {
   auto attr = instantiateParamType([&]() { return this->emitError(); },
                                    *this->getContext(), this->getExpected());
 
@@ -72,7 +72,7 @@ SSA_IsType::getVerifier(SmallVector<Value> const &valueToConstr) {
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-SSA_ParametricType::getVerifier(SmallVector<Value> const &valueToConstr) {
+ParametricType::getVerifier(SmallVector<Value> const &valueToConstr) {
   SmallVector<size_t> constraints;
   for (Value arg : this->getArgs()) {
     for (size_t i = 0; i < valueToConstr.size(); i++) {
@@ -100,7 +100,7 @@ SSA_ParametricType::getVerifier(SmallVector<Value> const &valueToConstr) {
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-SSA_AnyOf::getVerifier(SmallVector<Value> const &valueToConstr) {
+AnyOf::getVerifier(SmallVector<Value> const &valueToConstr) {
   SmallVector<size_t> constraints;
   for (Value arg : this->getArgs()) {
     for (size_t i = 0; i < valueToConstr.size(); i++) {
@@ -115,7 +115,7 @@ SSA_AnyOf::getVerifier(SmallVector<Value> const &valueToConstr) {
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-SSA_And::getVerifier(SmallVector<Value> const &valueToConstr) {
+And::getVerifier(SmallVector<Value> const &valueToConstr) {
   SmallVector<size_t> constraints;
   for (Value arg : this->getArgs()) {
     for (size_t i = 0; i < valueToConstr.size(); i++) {
@@ -130,6 +130,6 @@ SSA_And::getVerifier(SmallVector<Value> const &valueToConstr) {
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-SSA_AnyType::getVerifier(SmallVector<Value> const &valueToConstr) {
+AnyType::getVerifier(SmallVector<Value> const &valueToConstr) {
   return {std::make_unique<AnyTypeConstraint>()};
 }

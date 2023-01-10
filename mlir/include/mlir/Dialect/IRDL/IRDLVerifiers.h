@@ -1,4 +1,4 @@
-//===- IRDLSSAVerifiers.h - IRDL-SSA verifiers -------------------- C++ -*-===//
+//===- IRDLVerifiers.h - IRDL verifiers --------------------------- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Verifiers for objects declared by IRDL-SSA.
+// Verifiers for objects declared by IRDL.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_IRDL_SSA_IR_IRDLSSAREGISTRATION_H
-#define DYN_IRDL_SSA_IR_IRDLSSAREGISTRATION_H
+#ifndef MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
+#define MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
 
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
 #include "mlir/IR/ExtensibleDialect.h"
@@ -20,13 +20,13 @@
 #include "llvm/ADT/ArrayRef.h"
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 
 class TypeConstraint;
 
 /// Provides context to the verification of type constraints.
 /// Short-lived context for the analysis of a specific use
-/// of an IRDL-SSA declaration.
+/// of an IRDL declaration.
 class ConstraintVerifier {
   ArrayRef<std::unique_ptr<TypeConstraint>> constraints;
   SmallVector<Optional<mlir::Type>> assigned;
@@ -133,7 +133,7 @@ public:
              ConstraintVerifier &context) const override;
 };
 
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir
 
-#endif // DYN_IRDL_SSA_IR_IRDLSSAREGISTRATION_H
+#endif // MLIR_DIALECT_IRDL_IRDLREGISTRATION_H

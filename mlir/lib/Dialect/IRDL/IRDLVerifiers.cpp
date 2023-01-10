@@ -1,4 +1,4 @@
-//===- IRDLSSAVerifiers.cpp - IRDL-SSA verifiers ------------------ C++ -*-===//
+//===- IRDLVerifiers.cpp - IRDL verifiers ------------------------- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,16 +6,16 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Verifiers for objects declared by IRDL-SSA.
+// Verifiers for objects declared by IRDL.
 //
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-SSA/IRDLSSAVerifiers.h"
+#include "mlir/Dialect/IRDL/IRDLVerifiers.h"
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/ArrayRef.h"
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 
 ConstraintVerifier::ConstraintVerifier(
     llvm::ArrayRef<std::unique_ptr<TypeConstraint>> constraints)
@@ -156,5 +156,5 @@ LogicalResult AnyTypeConstraint::verifyType(
   return success();
 }
 
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir

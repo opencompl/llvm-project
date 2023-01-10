@@ -1,4 +1,4 @@
-//===- IRDLSSA.cpp - IRDL-SSA dialect ---------------------------*- C++ -*-===//
+//===- IRDL.cpp - IRDL dialect ----------------------------------*- C++ -*-===//
 //
 // This file is licensed under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.h"
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.h"
-#include "Dyn/Dialect/IRDL-SSA/IRDLSSARegistration.h"
+#include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.h"
+#include "mlir/Dialect/IRDL/IRDLRegistration.h"
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -23,7 +23,7 @@
 #include "llvm/Support/Casting.h"
 
 using namespace mlir;
-using namespace mlir::irdlssa;
+using namespace mlir::irdl;
 using mlir::irdl::TypeWrapper;
 
 using ArgDef = std::pair<StringRef, Attribute>;
@@ -33,33 +33,33 @@ using ArgDefs = ArrayRef<ArgDef>;
 // IRDL dialect.
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDL.cpp.inc"
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSADialect.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLDialect.cpp.inc"
 
 #define GET_ATTRDEF_CLASSES
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.cpp.inc"
 
-void IRDLSSADialect::initialize() {
+void IRDLDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAOps.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLOps.cpp.inc"
       >();
   addTypes<
 #define GET_TYPEDEF_LIST
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSATypesGen.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLTypesGen.cpp.inc"
       >();
   addAttributes<
 #define GET_ATTRDEF_LIST
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.cpp.inc"
       >();
 }
 
-void IRDLSSADialect::addTypeWrapper(std::unique_ptr<TypeWrapper> wrapper) {
+void IRDLDialect::addTypeWrapper(std::unique_ptr<TypeWrapper> wrapper) {
   this->irdlContext.addTypeWrapper(std::move(wrapper));
 }
 
-TypeWrapper *IRDLSSADialect::getTypeWrapper(StringRef typeName) {
+TypeWrapper *IRDLDialect::getTypeWrapper(StringRef typeName) {
   return this->irdlContext.getTypeWrapper(typeName);
 }
 
@@ -103,14 +103,14 @@ static void printSingleBlockRegion(OpAsmPrinter &p, Operation *op,
   }
 }
 
-LogicalResult SSA_DialectOp::verify() {
+LogicalResult DialectOp::verify() {
   return success(Dialect::isValidNamespace(getName()));
 }
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAInterfaces.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLInterfaces.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSATypesGen.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLTypesGen.cpp.inc"
 
 #define GET_OP_CLASSES
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAOps.cpp.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLOps.cpp.inc"

@@ -1,4 +1,4 @@
-//===- IRDLSSAAttributes.cpp - Attributes for IRDL-SSA ----------*- C++ -*-===//
+//===- IRDLAttributes.cpp - Attributes for IRDL ------\----------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAAttributes.h"
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.h"
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 
 using namespace irdl;
 
@@ -115,5 +115,5 @@ Attribute ParamTypeAttrOrAnyAttr::instantiateParamType(
   }
 }
 
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir

@@ -1,4 +1,4 @@
-//===- IRDLSSAAttributes.td - IRDL-SSA Attributes ----------*- tablegen -*-===//
+//===- IRDLAttributes.td - IRDL Attributes -sssssss---------*- tablegen -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,36 +6,36 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the IRDL-SSA dialect attributes.
+// This file declares the IRDL dialect attributes.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES
-#define DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES
+#ifndef MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES
+#define MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES
 
 include "mlir/IR/OpBase.td"
 include "mlir/IR/AttrTypeBase.td"
-include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.td"
+include "mlir/Dialect/IRDL/IR/IRDL.td"
 
-class IRDL_SSA_AttrDef<string name, string attrMnemonic, list<Trait> traits = []>
-  : AttrDef<IRDL_SSA_Dialect, name, traits, "::mlir::Attribute"> {
+class IRDL_AttrDef<string name, string attrMnemonic, list<Trait> traits = []>
+  : AttrDef<IRDL_Dialect, name, traits, "::mlir::Attribute"> {
   let mnemonic = attrMnemonic;
 }
 
-def ParamTypeInstanceAttr : IRDL_SSA_AttrDef<"ParamTypeInstance", "param_type_instance"> {
+def ParamTypeInstanceAttr : IRDL_AttrDef<"ParamTypeInstance", "param_type_instance"> {
   let summary = "Attribute representing a specific instance of a possibly parametric type";
   let description = [{
     Attribute representing a specific instance of a possibly parametric type.
   }];
-  let parameters = (ins "::mlir::StringAttr":$base, ArrayRefParameter<"::mlir::irdlssa::ParamTypeAttrOrAnyAttr">:$params);
+  let parameters = (ins "::mlir::StringAttr":$base, ArrayRefParameter<"::mlir::irdl::ParamTypeAttrOrAnyAttr">:$params);
   let hasCustomAssemblyFormat = 1;
 }
 
-def ParamTypeAttrOrAnyAttr : IRDL_SSA_AttrDef<"ParamTypeAttrOrAny", "param_type_or_any"> {
+def ParamTypeAttrOrAnyAttr : IRDL_AttrDef<"ParamTypeAttrOrAny", "param_type_or_any"> {
   let summary = "Attribute representing either a parametric type instance or any attribute";
   let description = [{
     Attribute representing either a parametric type instance or any attribute.
-    This is used by `irdlssa.is_type` to support more than just built-in types.
+    This is used by `irdl.is_type` to support more than just built-in types.
   }];
   let parameters = (ins "::mlir::Attribute":$attr);
   let hasCustomAssemblyFormat = 1;
@@ -47,4 +47,4 @@ def ParamTypeAttrOrAnyAttr : IRDL_SSA_AttrDef<"ParamTypeAttrOrAny", "param_type_
   }];
 }
 
-#endif // DYN_DIALECT_IRDL_SSA_IR_IRDLSSAATTRIBUTES
+#endif // MLIR_DIALECT_IRDL_IR_IRDLATTRIBUTES

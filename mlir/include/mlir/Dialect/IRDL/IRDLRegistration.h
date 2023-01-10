@@ -10,20 +10,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_IRDLSSA_IR_IRDLSSAREGISTRATION_H
-#define DYN_IRDLSSA_IR_IRDLSSAREGISTRATION_H
+#ifndef MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
+#define MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
 
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSA.h"
+#include "Dyn/Dialect/IRDL/IR/IRDL.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
 
 namespace mlir {
-namespace irdlssa {
+namespace irdl {
 
 /// Register all the dialects in a module.
 LogicalResult registerDialects(ModuleOp op);
 
-} // namespace irdlssa
+} // namespace irdl
 } // namespace mlir
 
-#endif // DYN_IRDLSSA_IR_IRDLSSAREGISTRATION_H
+#endif // MLIR_DIALECT_IRDL__IRDLREGISTRATION_H

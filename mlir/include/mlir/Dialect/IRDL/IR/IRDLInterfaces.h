@@ -1,4 +1,4 @@
-//===- IRDLSSAInterfaces.h - IRDL-SSA interfaces definition -----*- C++ -*-===//
+//===- IRDLInterfaces.h - IRDL interfaces definition ------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the interfaces for the IRDL-SSA dialect.
+// This file declares the interfaces for the IRDL dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DYN_DIALECT_IRDL_SSA_IR_IRDLSSAINTERFACES_H_
-#define DYN_DIALECT_IRDL_SSA_IR_IRDLSSAINTERFACES_H_
+#ifndef MLIR_DIALECT_IRDL_IR_IRDLINTERFACES_H_
+#define MLIR_DIALECT_IRDL_IR_IRDLINTERFACES_H_
 
-#include "Dyn/Dialect/IRDL-SSA/IRDLSSAVerifiers.h"
+#include "mlir/Dialect/IRDL/IRDLVerifiers.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/OpImplementation.h"
@@ -22,8 +22,8 @@
 #include <optional>
 
 //===----------------------------------------------------------------------===//
-// IRDL-SSA Dialect Interfaces
+// IRDL Dialect Interfaces
 //===----------------------------------------------------------------------===//
-#include "Dyn/Dialect/IRDL-SSA/IR/IRDLSSAInterfaces.h.inc"
+#include "mlir/Dialect/IRDL/IR/IRDLInterfaces.h.inc"
 
-#endif //  DYN_DIALECT_IRDL_SSA_IR_IRDLSSAINTERFACES_H_
+#endif //  MLIR_DIALECT_IRDL_IR_IRDLINTERFACES_H_
