@@ -30,10 +30,11 @@ namespace irdl {
 
 namespace {
 // Verifier used for dynamic types.
-LogicalResult irdlTypeVerifier(
-    function_ref<InFlightDiagnostic()> emitError, ArrayRef<Attribute> params,
-    ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
-    ArrayRef<std::unique_ptr<Constraint<Type>>> paramConstraints) {
+LogicalResult
+irdlTypeVerifier(function_ref<InFlightDiagnostic()> emitError,
+                 ArrayRef<Attribute> params,
+                 ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
+                 ArrayRef<std::unique_ptr<Constraint<Type>>> paramConstraints) {
   if (params.size() != paramConstraints.size()) {
     emitError().append("expected ", paramConstraints.size(),
                        " type arguments, but had ", params.size());
@@ -58,8 +59,7 @@ LogicalResult irdlTypeVerifier(
 namespace {
 
 LogicalResult verifyOpDefConstraints(
-    Operation *op,
-    ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
+    Operation *op, ArrayRef<std::unique_ptr<Constraint<Type>>> constraintVars,
     ArrayRef<std::unique_ptr<Constraint<Type>>> operandConstrs,
     ArrayRef<std::unique_ptr<Constraint<Type>>> resultConstrs) {
   /// Check that we have the right number of operands.
@@ -116,9 +116,10 @@ void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
   if (constraintVarsOp) {
     for (auto constraint : constraintVarsOp->getParams().getValue()) {
       auto constraintAttr = constraint.cast<NamedTypeConstraintAttr>();
-      auto constraintConstr = constraintAttr.getConstraint()
-                                  .cast<TypeConstraintAttrInterface>()
-                                  .getTypeConstraint(irdlCtx, constraintVars);
+      auto constraintConstr =
+          constraintAttr.getConstraint()
+              .cast<TypeConstraintAttrInterface>()
+              .getTypeConstraint(irdlCtx, constraintVars, op);
 
       // TODO: make this an error
       assert(constraintVars.count(constraintAttr.getName()) == 0 &&
@@ -137,7 +138,7 @@ void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
       auto operandAttr = operand.cast<NamedTypeConstraintAttr>();
       auto constraint = operandAttr.getConstraint()
                             .cast<TypeConstraintAttrInterface>()
-                            .getTypeConstraint(irdlCtx, constraintVars);
+                            .getTypeConstraint(irdlCtx, constraintVars, op);
       operandConstraints.emplace_back(std::move(constraint));
     }
   }
@@ -150,7 +151,7 @@ void registerOperation(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
       auto resultAttr = result.cast<NamedTypeConstraintAttr>();
       auto constraint = resultAttr.getConstraint()
                             .cast<TypeConstraintAttrInterface>()
-                            .getTypeConstraint(irdlCtx, constraintVars);
+                            .getTypeConstraint(irdlCtx, constraintVars, op);
       resultConstraints.emplace_back(std::move(constraint));
     }
   }
@@ -195,7 +196,7 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
       paramConstraints.push_back(param.cast<NamedTypeConstraintAttr>()
                                      .getConstraint()
                                      .cast<TypeConstraintAttrInterface>()
-                                     .getTypeConstraint(irdlCtx, {}));
+                                     .getTypeConstraint(irdlCtx, {}, op));
     }
   }
 
@@ -205,9 +206,10 @@ static void registerType(IRDLContext &irdlCtx, ExtensibleDialect *dialect,
   if (constraintVarsOp) {
     for (auto constraint : constraintVarsOp->getParams().getValue()) {
       auto constraintAttr = constraint.cast<NamedTypeConstraintAttr>();
-      auto constraintConstr = constraintAttr.getConstraint()
-                                  .cast<TypeConstraintAttrInterface>()
-                                  .getTypeConstraint(irdlCtx, constraintVars);
+      auto constraintConstr =
+          constraintAttr.getConstraint()
+              .cast<TypeConstraintAttrInterface>()
+              .getTypeConstraint(irdlCtx, constraintVars, op);
 
       // TODO: make this an error
       assert(constraintVars.count(constraintAttr.getName()) == 0 &&

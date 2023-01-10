@@ -354,86 +354,6 @@ void printTypeParamsConstraint(OpAsmPrinter &p,
   p << ">";
 }
 
-/// Parse a dynamic type base type constraint.
-/// It has the format 'dialectname.typename'
-OptionalParseResult
-parseOptionalDynTypeBaseConstraint(OpAsmParser &p, StringRef keyword,
-                                   Attribute *typeConstraint) {
-  auto loc = p.getCurrentLocation();
-  auto ctx = p.getBuilder().getContext();
-  auto splittedNames = keyword.split('.');
-  auto typeName = splittedNames.second;
-
-  // Check that the type name is in the format dialectname.typename
-  if (typeName == "") {
-    p.emitError(loc, " expected type name prefixed with the dialect name");
-    return {failure()};
-  }
-
-  *typeConstraint = DynTypeBaseConstraintAttr::get(ctx, keyword);
-  return {success()};
-}
-
-void printDynTypeBaseConstraint(OpAsmPrinter &p,
-                                DynTypeBaseConstraintAttr constraint) {
-  auto typeName = constraint.getTypeName();
-  p << typeName;
-}
-
-/// Parse a dynamic type parameters constraint.
-/// It has the format 'dialectname.typename<(typeConstraint ,)*>'
-OptionalParseResult
-parseOptionalDynTypeParamsConstraint(OpAsmParser &p, StringRef keyword,
-                                     Attribute *typeConstraint) {
-  auto loc = p.getCurrentLocation();
-  auto ctx = p.getBuilder().getContext();
-  auto splittedNames = keyword.split('.');
-  auto typeName = splittedNames.second;
-
-  // Check that the type name is in the format dialectname.typename
-  if (typeName == "") {
-    p.emitError(loc, " expected type name prefixed with the dialect name");
-    return {failure()};
-  }
-
-  if (!p.parseOptionalGreater()) {
-    *typeConstraint = DynTypeParamsConstraintAttr::get(ctx, keyword, {});
-    return {success()};
-  }
-
-  SmallVector<Attribute> paramConstraints;
-
-  paramConstraints.push_back({});
-  if (parseTypeConstraint(p, &paramConstraints.back()))
-    return {failure()};
-
-  while (p.parseOptionalGreater()) {
-    if (p.parseComma())
-      return {failure()};
-
-    paramConstraints.push_back({});
-    if (parseTypeConstraint(p, &paramConstraints.back()))
-      return {failure()};
-  }
-
-  *typeConstraint =
-      DynTypeParamsConstraintAttr::get(ctx, keyword, paramConstraints);
-  return {success()};
-}
-
-void printDynTypeParamsConstraint(OpAsmPrinter &p,
-                                  DynTypeParamsConstraintAttr constraint) {
-  auto typeName = constraint.getTypeName();
-  p << typeName;
-
-  auto paramConstraints = constraint.getParamConstraints();
-
-  p << "<";
-  llvm::interleaveComma(paramConstraints, p,
-                        [&p](Attribute a) { printTypeConstraint(p, a); });
-  p << ">";
-}
-
 /// Parse a type constraint.
 /// The verifier ensures that the format is respected.
 ParseResult parseTypeConstraint(OpAsmParser &p, Attribute *typeConstraint) {
@@ -515,12 +435,6 @@ void printTypeConstraint(OpAsmPrinter &p, Attribute typeConstraint) {
                  typeConstraint.dyn_cast<TypeBaseConstraintAttr>()) {
     auto typeDef = typeBaseConstr.getTypeDef();
     printTypeDefRef(p, typeDef);
-  } else if (auto dynTypeBaseConstr =
-                 typeConstraint.dyn_cast<DynTypeBaseConstraintAttr>()) {
-    printDynTypeBaseConstraint(p, dynTypeBaseConstr);
-  } else if (auto dynTypeParamsConstr =
-                 typeConstraint.dyn_cast<DynTypeParamsConstraintAttr>()) {
-    printDynTypeParamsConstraint(p, dynTypeParamsConstr);
   } else if (auto typeConstraintParam =
                  typeConstraint.dyn_cast<VarTypeConstraintAttr>()) {
     p << "?" << typeConstraintParam.getName();
