@@ -115,7 +115,7 @@ AnyOf::getVerifier(SmallVector<Value> const &valueToConstr) {
 }
 
 llvm::Optional<std::unique_ptr<TypeConstraint>>
-And::getVerifier(SmallVector<Value> const &valueToConstr) {
+AllOf::getVerifier(SmallVector<Value> const &valueToConstr) {
   SmallVector<size_t> constraints;
   for (Value arg : this->getArgs()) {
     for (size_t i = 0; i < valueToConstr.size(); i++) {
