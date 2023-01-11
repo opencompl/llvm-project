@@ -352,10 +352,10 @@ def IRDL_AnyOf : IRDL_ConstraintOp<"any_of", [ParentOneOf<["TypeOp", "OperationO
   let assemblyFormat = [{ `(` $args `)` attr-dict }];
 }
 
-def IRDL_And : IRDL_ConstraintOp<"and", [ParentOneOf<["TypeOp", "OperationOp"]>]> {
+def IRDL_AllOf : IRDL_ConstraintOp<"all_of", [ParentOneOf<["TypeOp", "OperationOp"]>]> {
   let summary = "Constraints to all the provided constraints";
   let description = [{
-    `irdl.and` defines a constraint that accepts any type that
+    `irdl.all_of` defines a constraint that accepts any type that
     satisfies all of its provided type constraints.
 
     Example:
@@ -371,7 +371,7 @@ def IRDL_And : IRDL_ConstraintOp<"and", [ParentOneOf<["TypeOp", "OperationOp"]>]
         %4 = irdl.is_type : f64
         %5 = irdl.any_of(%3, %4) // is a float
 
-        %6 = irdl.and(%2, %5) // is a 32-bit float
+        %6 = irdl.all_of(%2, %5) // is a 32-bit float
         irdl.parameters(%6)
       }
     }
