@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
-#define MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
+#ifndef MLIR_DIALECT_IRDL_IRDLVERIFIERS_H
+#define MLIR_DIALECT_IRDL_IRDLVERIFIERS_H
 
 #include "mlir/Dialect/IRDL/TypeWrapper.h"
 #include "mlir/IR/ExtensibleDialect.h"
@@ -136,4 +136,4 @@ public:
 } // namespace irdl
 } // namespace mlir
 
-#endif // MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
+#endif // MLIR_DIALECT_IRDL_IRDLVERIFIERS_H

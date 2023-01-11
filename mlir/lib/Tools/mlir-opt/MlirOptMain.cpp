@@ -13,6 +13,8 @@
 
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 #include "mlir/Bytecode/BytecodeWriter.h"
+#include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/IRDLRegistration.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -113,40 +115,48 @@ processBuffer(raw_ostream &os, std::unique_ptr<MemoryBuffer> ownedBuffer,
               bool allowUnregisteredDialects, bool preloadDialectsInContext,
               bool emitBytecode, bool implicitModule,
               PassPipelineFn passManagerSetupFn, DialectRegistry &registry,
-              llvm::ThreadPool *threadPool) {
+              llvm::ThreadPool *threadPool, MLIRContext *context) {
   // Tell sourceMgr about this buffer, which is what the parser will pick up.
   auto sourceMgr = std::make_shared<SourceMgr>();
   sourceMgr->AddNewSourceBuffer(std::move(ownedBuffer), SMLoc());
 
+  // Check that if a context was provided, it is single threaded.
+  if (context)
+    assert(!context->isMultithreadingEnabled() &&
+           "provided context must be single threaded");
+
   // Create a context just for the current buffer. Disable threading on creation
   // since we'll inject the thread-pool separately.
-  MLIRContext context(registry, MLIRContext::Threading::DISABLED);
+  MLIRContext bufferContext(registry, MLIRContext::Threading::DISABLED);
+  if (!context)
+    context = &bufferContext;
+
   if (threadPool)
-    context.setThreadPool(*threadPool);
+    context->setThreadPool(*threadPool);
 
   // Parse the input file.
   if (preloadDialectsInContext)
-    context.loadAllAvailableDialects();
-  context.allowUnregisteredDialects(allowUnregisteredDialects);
+    context->loadAllAvailableDialects();
+  context->allowUnregisteredDialects(allowUnregisteredDialects);
   if (verifyDiagnostics)
-    context.printOpOnDiagnostic(false);
-  context.getDebugActionManager().registerActionHandler<DebugCounter>();
+    context->printOpOnDiagnostic(false);
+  context->getDebugActionManager().registerActionHandler<DebugCounter>();
 
   // If we are in verify diagnostics mode then we have a lot of work to do,
   // otherwise just perform the actions without worrying about it.
   if (!verifyDiagnostics) {
-    SourceMgrDiagnosticHandler sourceMgrHandler(*sourceMgr, &context);
+    SourceMgrDiagnosticHandler sourceMgrHandler(*sourceMgr, context);
     return performActions(os, verifyDiagnostics, verifyPasses, sourceMgr,
-                          &context, passManagerSetupFn, emitBytecode,
+                          context, passManagerSetupFn, emitBytecode,
                           implicitModule);
   }
 
-  SourceMgrDiagnosticVerifierHandler sourceMgrHandler(*sourceMgr, &context);
+  SourceMgrDiagnosticVerifierHandler sourceMgrHandler(*sourceMgr, context);
 
   // Do any processing requested by command line flags.  We don't care whether
   // these actions succeed or fail, we only care what diagnostics they produce
   // and whether they match our expectations.
-  (void)performActions(os, verifyDiagnostics, verifyPasses, sourceMgr, &context,
+  (void)performActions(os, verifyDiagnostics, verifyPasses, sourceMgr, context,
                        passManagerSetupFn, emitBytecode, implicitModule);
 
   // Verify the diagnostic handler to make sure that each of the diagnostics
@@ -154,14 +164,12 @@ processBuffer(raw_ostream &os, std::unique_ptr<MemoryBuffer> ownedBuffer,
   return sourceMgrHandler.verify();
 }
 
-LogicalResult mlir::MlirOptMain(raw_ostream &outputStream,
-                                std::unique_ptr<MemoryBuffer> buffer,
-                                PassPipelineFn passManagerSetupFn,
-                                DialectRegistry &registry, bool splitInputFile,
-                                bool verifyDiagnostics, bool verifyPasses,
-                                bool allowUnregisteredDialects,
-                                bool preloadDialectsInContext,
-                                bool emitBytecode, bool implicitModule) {
+LogicalResult mlir::MlirOptMain(
+    raw_ostream &outputStream, std::unique_ptr<MemoryBuffer> buffer,
+    PassPipelineFn passManagerSetupFn, DialectRegistry &registry,
+    bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
+    bool allowUnregisteredDialects, bool preloadDialectsInContext,
+    bool emitBytecode, bool implicitModule, MLIRContext *context) {
   // The split-input-file mode is a very specific mode that slices the file
   // up into small pieces and checks each independently.
   // We use an explicit threadpool to avoid creating and joining/destroying
@@ -181,18 +189,21 @@ LogicalResult mlir::MlirOptMain(raw_ostream &outputStream,
     return processBuffer(os, std::move(chunkBuffer), verifyDiagnostics,
                          verifyPasses, allowUnregisteredDialects,
                          preloadDialectsInContext, emitBytecode, implicitModule,
-                         passManagerSetupFn, registry, threadPool);
+                         passManagerSetupFn, registry, threadPool, context);
   };
   return splitAndProcessBuffer(std::move(buffer), chunkFn, outputStream,
                                splitInputFile, /*insertMarkerInOutput=*/true);
 }
 
-LogicalResult mlir::MlirOptMain(
-    raw_ostream &outputStream, std::unique_ptr<MemoryBuffer> buffer,
-    const PassPipelineCLParser &passPipeline, DialectRegistry &registry,
-    bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
-    bool allowUnregisteredDialects, bool preloadDialectsInContext,
-    bool emitBytecode, bool implicitModule, bool dumpPassPipeline) {
+LogicalResult mlir::MlirOptMain(raw_ostream &outputStream,
+                                std::unique_ptr<MemoryBuffer> buffer,
+                                const PassPipelineCLParser &passPipeline,
+                                DialectRegistry &registry, bool splitInputFile,
+                                bool verifyDiagnostics, bool verifyPasses,
+                                bool allowUnregisteredDialects,
+                                bool preloadDialectsInContext,
+                                bool emitBytecode, bool implicitModule,
+                                bool dumpPassPipeline, MLIRContext *context) {
   auto passManagerSetupFn = [&](PassManager &pm) {
     auto errorHandler = [&](const Twine &msg) {
       emitError(UnknownLoc::get(pm.getContext())) << msg;
@@ -209,12 +220,48 @@ LogicalResult mlir::MlirOptMain(
   return MlirOptMain(outputStream, std::move(buffer), passManagerSetupFn,
                      registry, splitInputFile, verifyDiagnostics, verifyPasses,
                      allowUnregisteredDialects, preloadDialectsInContext,
-                     emitBytecode, implicitModule);
+                     emitBytecode, implicitModule, context);
+}
+
+LogicalResult registerIRDL(StringRef irdlFile, MLIRContext *ctx) {
+  DialectRegistry registry;
+  registry.insert<irdl::IRDLDialect>();
+  ctx->appendDialectRegistry(registry);
+
+  // Set up the input file.
+  std::string errorMessage;
+  auto file = openInputFile(irdlFile, &errorMessage);
+  if (!file) {
+    llvm::errs() << errorMessage << "\n";
+    return failure();
+  }
+
+  // Give the buffer to the source manager.
+  // This will be picked up by the parser.
+  SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(std::move(file), SMLoc());
+
+  SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, ctx);
+
+  // Disable multi-threading when parsing the input file. This removes the
+  // unnecessary/costly context synchronization when parsing.
+  bool wasThreadingEnabled = ctx->isMultithreadingEnabled();
+  ctx->disableMultithreading();
+
+  // Parse the input file.
+  auto module(parseSourceFile<ModuleOp>(sourceMgr, ctx));
+
+  // Register IRDL dialects.
+  irdl::registerDialects(module.get());
+  ctx->enableMultithreading(wasThreadingEnabled);
+
+  return failure(!module);
 }
 
 LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                                 DialectRegistry &registry,
-                                bool preloadDialectsInContext) {
+                                bool preloadDialectsInContext,
+                                MLIRContext *context) {
   static cl::opt<std::string> inputFilename(
       cl::Positional, cl::desc("<input file>"), cl::init("-"));
 
@@ -261,6 +308,9 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
       "dump-pass-pipeline", cl::desc("Print the pipeline that will be run"),
       cl::init(false)};
 
+  static cl::opt<std::string> irdlFile("irdl-file", cl::desc("IRDL file"),
+                                       cl::value_desc("filename"));
+
   InitLLVM y(argc, argv);
 
   // Register any command line options.
@@ -280,6 +330,12 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
   }
   // Parse pass names in main to ensure static initialization completed.
   cl::ParseCommandLineOptions(argc, argv, helpHeader);
+
+  if (irdlFile != "") {
+    assert(context && "context should be initialized");
+    if (failed(registerIRDL(irdlFile, context)))
+      return failure();
+  }
 
   if (showDialects) {
     llvm::outs() << "Available Dialects:\n";
@@ -307,7 +363,7 @@ LogicalResult mlir::MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                          splitInputFile, verifyDiagnostics, verifyPasses,
                          allowUnregisteredDialects, preloadDialectsInContext,
                          emitBytecode, /*implicitModule=*/!noImplicitModule,
-                         dumpPassPipeline)))
+                         dumpPassPipeline, context)))
     return failure();
 
   // Keep the output file if the invocation of MlirOptMain was successful.

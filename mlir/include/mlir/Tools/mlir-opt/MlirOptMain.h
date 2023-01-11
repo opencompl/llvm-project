@@ -26,6 +26,7 @@ class MemoryBuffer;
 
 namespace mlir {
 class DialectRegistry;
+class MLIRContext;
 class PassPipelineCLParser;
 class PassManager;
 
@@ -54,24 +55,26 @@ using PassPipelineFn = llvm::function_ref<LogicalResult(PassManager &pm)>;
 /// - implicitModule will enable implicit addition of a top-level
 /// 'builtin.module' if one doesn't already exist.
 /// - dumpPassPipeline will dump the pipeline being run to stderr
-LogicalResult
-MlirOptMain(llvm::raw_ostream &outputStream,
-            std::unique_ptr<llvm::MemoryBuffer> buffer,
-            const PassPipelineCLParser &passPipeline, DialectRegistry &registry,
-            bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
-            bool allowUnregisteredDialects,
-            bool preloadDialectsInContext = false, bool emitBytecode = false,
-            bool implicitModule = false, bool dumpPassPipeline = false);
+/// - context is provided if the caller wants to provide the context.
+LogicalResult MlirOptMain(
+    llvm::raw_ostream &outputStream, std::unique_ptr<llvm::MemoryBuffer> buffer,
+    const PassPipelineCLParser &passPipeline, DialectRegistry &registry,
+    bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
+    bool allowUnregisteredDialects, bool preloadDialectsInContext = false,
+    bool emitBytecode = false, bool implicitModule = false,
+    bool dumpPassPipeline = false, MLIRContext *context = nullptr);
 
 /// Support a callback to setup the pass manager.
 /// - passManagerSetupFn is the callback invoked to setup the pass manager to
 ///   apply on the loaded IR.
-LogicalResult MlirOptMain(
-    llvm::raw_ostream &outputStream, std::unique_ptr<llvm::MemoryBuffer> buffer,
-    PassPipelineFn passManagerSetupFn, DialectRegistry &registry,
-    bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
-    bool allowUnregisteredDialects, bool preloadDialectsInContext = false,
-    bool emitBytecode = false, bool implicitModule = false);
+LogicalResult
+MlirOptMain(llvm::raw_ostream &outputStream,
+            std::unique_ptr<llvm::MemoryBuffer> buffer,
+            PassPipelineFn passManagerSetupFn, DialectRegistry &registry,
+            bool splitInputFile, bool verifyDiagnostics, bool verifyPasses,
+            bool allowUnregisteredDialects,
+            bool preloadDialectsInContext = false, bool emitBytecode = false,
+            bool implicitModule = false, MLIRContext *context = nullptr);
 
 /// Implementation for tools like `mlir-opt`.
 /// - toolName is used for the header displayed by `--help`.
@@ -79,9 +82,11 @@ LogicalResult MlirOptMain(
 /// - preloadDialectsInContext will trigger the upfront loading of all
 ///   dialects from the global registry in the MLIRContext. This option is
 ///   deprecated and will be removed soon.
+/// - context should be given if the caller wants to provide the context.
 LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
                           DialectRegistry &registry,
-                          bool preloadDialectsInContext = false);
+                          bool preloadDialectsInContext = false,
+                          MLIRContext *context = nullptr);
 
 /// Helper wrapper to return the result of MlirOptMain directly from main.
 ///

@@ -13,7 +13,6 @@
 #ifndef MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
 #define MLIR_DIALECT_IRDL_IRDLREGISTRATION_H
 
-#include "Dyn/Dialect/IRDL/IR/IRDL.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
 
@@ -26,4 +25,4 @@ LogicalResult registerDialects(ModuleOp op);
 } // namespace irdl
 } // namespace mlir
 
-#endif // MLIR_DIALECT_IRDL__IRDLREGISTRATION_H
+#endif // MLIR_DIALECT_IRDL_IRDLREGISTRATION_H

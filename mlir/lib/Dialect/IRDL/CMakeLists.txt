@@ -5,6 +5,7 @@ add_mlir_dialect_library(MLIRIRDL
   IRDLRegistration.cpp
   IRDLVerifiers.cpp
   IRDLContext.cpp
+  TypeWrapper.cpp
 
   DEPENDS
   MLIRIRDLIncGen

@@ -17,6 +17,7 @@
 // CHECK-NEXT: func
 // CHECK-NEXT: gpu
 // CHECK-NEXT: index
+// CHECK-NEXT: irdl
 // CHECK-NEXT: linalg
 // CHECK-NEXT: llvm
 // CHECK-NEXT: math
