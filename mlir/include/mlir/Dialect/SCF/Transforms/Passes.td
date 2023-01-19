@@ -122,4 +122,9 @@ def SCFForToWhileLoop : Pass<"scf-for-to-while"> {
   }];
 }
 
+def BreakValueScoping : Pass<"break-value-scoping"> {
+  let summary = "Break value scoping";
+  let constructor = "mlir::createBreakValueScopingPass()";
+}
+
 #endif // MLIR_DIALECT_SCF_PASSES
