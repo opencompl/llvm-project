@@ -29,8 +29,6 @@ cmake -G Ninja ../llvm \
   -DLLVM_INSTALL_UTILS=ON \
   -DCMAKE_C_COMPILER=clang \
   -DCMAKE_CXX_COMPILER=clang++ \
-  -DLLVM_ENABLE_LLD=ON \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_ASSERTIONS=ON \
-  -DLLVM_ENABLE_LLD=ON
 ninja install
