@@ -24,6 +24,7 @@ add_mlir_library(MLIRTransforms
   MLIRTransformsPassIncGen
 
   LINK_LIBS PUBLIC
+  MLIRArithDialect
   MLIRAnalysis
   MLIRCopyOpInterface
   MLIRLoopLikeInterface
