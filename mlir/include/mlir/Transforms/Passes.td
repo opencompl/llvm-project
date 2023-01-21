@@ -299,4 +299,11 @@ def TopologicalSort : Pass<"topological-sort"> {
   let constructor = "mlir::createTopologicalSortPass()";
 }
 
+def KnownBitsAnalysis : Pass<"known-bits-analysis"> {
+  let summary = "Add known bits analysis to the IR"
+  let description = [{ TODO }];
+  
+  let constructor = "mlir::createKnownBitsAnalysisPass()";
+}
+
 #endif // MLIR_TRANSFORMS_PASSES
