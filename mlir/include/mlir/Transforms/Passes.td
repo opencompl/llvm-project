@@ -300,7 +300,7 @@ def TopologicalSort : Pass<"topological-sort"> {
 }
 
 def KnownBitsAnalysis : Pass<"known-bits-analysis"> {
-  let summary = "Add known bits analysis to the IR"
+  let summary = "Add known bits analysis to the IR";
   let description = [{ TODO }];
   
   let constructor = "mlir::createKnownBitsAnalysisPass()";
