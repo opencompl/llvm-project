@@ -122,6 +122,15 @@ def SCFForToWhileLoop : Pass<"scf-for-to-while"> {
   }];
 }
 
+// 5. Blocks are terminated by a terminator op
+def BreakIRBranch : Pass<"break-ir-branch"> {
+  let summary = "Break IR by branching on non-sibling block";
+  let constructor = "mlir::createBreakIRBranchPass()";
+  let dependentDialects = ["AffineDialect", "cf::ControlFlowDialect", "scf::SCFDialect"];
+
+}
+
+
 def BreakValueScoping : Pass<"break-value-scoping"> {
   let summary = "Break value scoping";
   let constructor = "mlir::createBreakValueScopingPass()";

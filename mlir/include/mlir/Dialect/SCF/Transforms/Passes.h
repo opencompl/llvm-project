@@ -28,6 +28,7 @@ namespace mlir {
 #define GEN_PASS_DECL_SCFFORLOOPRANGEFOLDING
 #define GEN_PASS_DECL_SCFFORTOWHILELOOP
 #define GEN_PASS_DECL_BREAKVALUESCOPING
+#define GEN_PASS_DECL_BREAKIRBRANCH
 #include "mlir/Dialect/SCF/Transforms/Passes.h.inc"
 
 /// Creates a pass that bufferizes the SCF dialect.
@@ -74,6 +75,9 @@ std::unique_ptr<Pass> createForToWhileLoopPass();
 
 // Break value scoping.
 std::unique_ptr<Pass> createBreakValueScopingPass();
+
+// Break IR branch.
+std::unique_ptr<Pass> createBreakIRBranchPass();
 
 //===----------------------------------------------------------------------===//
 // Registration
