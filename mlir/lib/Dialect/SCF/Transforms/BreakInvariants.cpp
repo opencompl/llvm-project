@@ -11,6 +11,7 @@
 namespace mlir {
 #define GEN_PASS_DEF_BREAKVALUESCOPING
 #define GEN_PASS_DEF_BREAKIRBRANCH
+#define GEN_PASS_DEF_BREAKDANGLINGOPS
 #include "mlir/Dialect/SCF/Transforms/Passes.h.inc"
 } // namespace mlir
 
@@ -96,4 +97,30 @@ struct BreakValueScoping
 
 std::unique_ptr<Pass> mlir::createBreakValueScopingPass() {
   return std::make_unique<BreakValueScoping>();
+}
+
+namespace {
+struct BreakDanglingOpsPattern : public OpRewritePattern<ConstantOp> {
+  using OpRewritePattern<ConstantOp>::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(ConstantOp constantOp,
+                                PatternRewriter &rewriter) const override {
+    Operation::create(constantOp.getLoc(), constantOp->getName(), {}, {}, {});
+    return success();
+  }
+};
+
+struct BreakDanglingOps : public impl::BreakDanglingOpsBase<BreakDanglingOps> {
+  void runOnOperation() override {
+    auto *parentOp = getOperation();
+    MLIRContext *ctx = parentOp->getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.add<BreakDanglingOpsPattern>(ctx);
+    (void)applyPatternsAndFoldGreedily(parentOp, std::move(patterns));
+  }
+};
+} // namespace
+
+std::unique_ptr<Pass> mlir::createBreakDanglingOpsPass() {
+  return std::make_unique<BreakDanglingOps>();
 }

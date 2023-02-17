@@ -136,4 +136,9 @@ def BreakValueScoping : Pass<"break-value-scoping"> {
   let constructor = "mlir::createBreakValueScopingPass()";
 }
 
+def BreakDanglingOps : Pass<"break-dangling-ops"> {
+  let summary = "Break dangling ops";
+  let constructor = "mlir::createBreakDanglingOpsPass()";
+}
+
 #endif // MLIR_DIALECT_SCF_PASSES
