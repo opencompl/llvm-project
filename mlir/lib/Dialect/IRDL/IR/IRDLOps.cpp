@@ -53,6 +53,40 @@ std::unique_ptr<Constraint> Parametric::getVerifier(
                    "either a type or an attribute definition");
 }
 
+std::unique_ptr<Constraint> AnyOf::getVerifier(
+    SmallVector<Value> const &valueToConstr,
+    DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> &types,
+    DenseMap<AttributeOp, std::unique_ptr<DynamicAttrDefinition>> &attrs) {
+  SmallVector<unsigned> constraints;
+  for (Value arg : getArgs()) {
+    for (auto [i, value] : enumerate(valueToConstr)) {
+      if (value == arg) {
+        constraints.push_back(i);
+        break;
+      }
+    }
+  }
+
+  return std::make_unique<AnyOfConstraint>(constraints);
+}
+
+std::unique_ptr<Constraint> AllOf::getVerifier(
+    SmallVector<Value> const &valueToConstr,
+    DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> &types,
+    DenseMap<AttributeOp, std::unique_ptr<DynamicAttrDefinition>> &attrs) {
+  SmallVector<unsigned> constraints;
+  for (Value arg : getArgs()) {
+    for (auto [i, value] : enumerate(valueToConstr)) {
+      if (value == arg) {
+        constraints.push_back(i);
+        break;
+      }
+    }
+  }
+
+  return std::make_unique<AllOfConstraint>(constraints);
+}
+
 std::unique_ptr<Constraint> Any::getVerifier(
     SmallVector<Value> const &valueToConstr,
     DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> &types,
