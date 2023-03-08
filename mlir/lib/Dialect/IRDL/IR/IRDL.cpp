@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/AttributeWrapper.h"
+#include "mlir/Dialect/IRDL/IRDLContext.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -21,6 +23,7 @@
 
 using namespace mlir;
 using namespace mlir::irdl;
+using mlir::irdl::TypeWrapper;
 
 //===----------------------------------------------------------------------===//
 // IRDL dialect.

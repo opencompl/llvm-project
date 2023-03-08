@@ -71,7 +71,14 @@ def IRDL_Dialect : Dialect {
 
   let useDefaultAttributePrinterParser = 1;
   let useDefaultTypePrinterParser = 1;
-  let usePropertiesForAttributes = 1;
+  let useDefaultAttributePrinterParser = 1; 
+  let usePropertiesForAttributes = 1;  
+
+  let extraClassDeclaration = [{
+  public:
+    /// Contains registered attribute and type wrappers.
+    ::mlir::irdl::IRDLContext irdlContext;
+  }];
 
   let name = "irdl";
   let cppNamespace = "::mlir::irdl";

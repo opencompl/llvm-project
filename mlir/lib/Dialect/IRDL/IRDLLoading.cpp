@@ -466,11 +466,22 @@ static bool getBases(Operation *op, SmallPtrSet<TypeID, 4> &paramIds,
 
   // For `irdl.parametric`, we get directly the base from the operation.
   if (auto params = dyn_cast<ParametricOp>(op)) {
-    SymbolRefAttr symRef = params.getBaseType();
-    Operation *defOp = SymbolTable::lookupNearestSymbolFrom(op, symRef);
-    assert(defOp && "symbol reference should refer to an existing operation");
-    paramIrdlOps.insert(defOp);
-    return false;
+    TypeOrAttrDefRefAttr baseType = params.getBaseType();
+    if (SymbolRefAttr symRef = baseType.getSymRef()) {
+      Operation *defOp = SymbolTable::lookupNearestSymbolFrom(op, symRef);
+      assert(defOp && "symbol reference should refer to an existing operation");
+      paramIrdlOps.insert(defOp);
+      return false;
+    }
+    if (TypeWrapper *typeWrapper = baseType.getTypeWrapper()) {
+      paramIds.insert(typeWrapper->getTypeID());
+      return false;
+    }
+    if (AttributeWrapper *attrWrapper = baseType.getAttrWrapper()) {
+      paramIds.insert(attrWrapper->getTypeID());
+      return false;
+    }
+    llvm_unreachable("TypeOrAttrDefAttr has invalid contents");
   }
 
   // For `irdl.is`, we get the base TypeID directly.

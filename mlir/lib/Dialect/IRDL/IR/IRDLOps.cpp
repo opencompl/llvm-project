@@ -6,6 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/IRDL/AttributeWrapper.h"
 #include "mlir/Dialect/IRDL/IR/IRDL.h"
 
 using namespace mlir;
@@ -34,8 +35,15 @@ std::unique_ptr<Constraint> ParametricOp::getVerifier(
     }
   }
 
+  // Type or attribute wrapper case for the base
+  if (TypeWrapper *typeWrapper = getBaseType().getTypeWrapper())
+    return std::make_unique<ParametricConstraint>(typeWrapper, constraints);
+
+  if (AttributeWrapper *attrWrapper = getBaseType().getAttrWrapper())
+    return std::make_unique<ParametricConstraint>(attrWrapper, constraints);
+
   // Symbol reference case for the base
-  SymbolRefAttr symRef = getBaseType();
+  SymbolRefAttr symRef = getBaseType().getSymRef();
   Operation *defOp =
       SymbolTable::lookupNearestSymbolFrom(getOperation(), symRef);
   if (!defOp) {
