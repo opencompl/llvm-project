@@ -20,3 +20,10 @@ mlir_tablegen(IRDLTypesGen.h.inc -gen-typedef-decls)
 mlir_tablegen(IRDLTypesGen.cpp.inc -gen-typedef-defs)
 add_public_tablegen_target(MLIRIRDLTypesIncGen)
 add_dependencies(mlir-generic-headers MLIRIRDLTypesIncGen)
+
+# Add IRDL attributes
+set(LLVM_TARGET_DEFINITIONS IRDLAttributes.td)
+mlir_tablegen(IRDLAttributes.h.inc -gen-attrdef-decls)
+mlir_tablegen(IRDLAttributes.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(MLIRIRDLAttributesIncGen)
+add_dependencies(mlir-generic-headers MLIRIRDLAttributesIncGen)

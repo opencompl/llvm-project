@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Dialect/IRDL/IR/IRDL.h"
+#include "mlir/Dialect/IRDL/AttributeWrapper.h"
+#include "mlir/Dialect/IRDL/IRDLContext.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -21,6 +23,7 @@
 
 using namespace mlir;
 using namespace mlir::irdl;
+using mlir::irdl::TypeWrapper;
 
 //===----------------------------------------------------------------------===//
 // IRDL dialect.
@@ -38,6 +41,10 @@ void IRDLDialect::initialize() {
   addTypes<
 #define GET_TYPEDEF_LIST
 #include "mlir/Dialect/IRDL/IR/IRDLTypesGen.cpp.inc"
+      >();
+  addAttributes<
+#define GET_ATTRDEF_LIST
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.cpp.inc"
       >();
 }
 
@@ -75,6 +82,9 @@ LogicalResult DialectOp::verify() {
 
 #define GET_TYPEDEF_CLASSES
 #include "mlir/Dialect/IRDL/IR/IRDLTypesGen.cpp.inc"
+
+#define GET_ATTRDEF_CLASSES
+#include "mlir/Dialect/IRDL/IR/IRDLAttributes.cpp.inc"
 
 #define GET_OP_CLASSES
 #include "mlir/Dialect/IRDL/IR/IRDLOps.cpp.inc"

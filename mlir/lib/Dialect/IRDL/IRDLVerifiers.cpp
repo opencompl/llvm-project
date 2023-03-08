@@ -62,6 +62,36 @@ LogicalResult IsConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
   return failure();
 }
 
+LogicalResult
+ParametricConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
+                             Attribute attr,
+                             ConstraintVerifier &context) const {
+  // Check that the base is the expected one.
+  if (!expectedAttribute->isCorrectAttribute(attr)) {
+    if (emitError)
+      return emitError() << "expected base '" << expectedAttribute->getName()
+                         << "' but got '" << attr << "'";
+    return failure();
+  }
+
+  // Check that the parameters satisfy the constraints.
+  SmallVector<Attribute> params =
+      expectedAttribute->getAttributeParameters(attr);
+  if (params.size() != constraints.size()) {
+    if (emitError)
+      emitError() << "'" << expectedAttribute->getName() << "' expects "
+                  << params.size() << " parameters, but got "
+                  << constraints.size() << " parameters";
+    return failure();
+  }
+
+  for (size_t i = 0, s = params.size(); i < s; i++)
+    if (failed(context.verify(emitError, params[i], constraints[i])))
+      return failure();
+
+  return success();
+}
+
 LogicalResult DynParametricAttrConstraint::verify(
     function_ref<InFlightDiagnostic()> emitError, Attribute attr,
     ConstraintVerifier &context) const {

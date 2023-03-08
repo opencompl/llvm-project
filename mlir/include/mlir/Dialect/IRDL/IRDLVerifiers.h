@@ -13,6 +13,7 @@
 #ifndef MLIR_DIALECT_IRDL_IRDLVERIFIERS_H
 #define MLIR_DIALECT_IRDL_IRDLVERIFIERS_H
 
+#include "mlir/Dialect/IRDL/AttributeWrapper.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/Support/LLVM.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -95,6 +96,28 @@ public:
 
 private:
   Attribute expectedAttribute;
+};
+
+/// A constraint that checks that an attribute that has an attribute wrapper is
+/// of a specific attribute definition, and that all of its parameters satisfy
+/// the given constraints.
+/// This class also takes care of types, by expecting a `TypeAttr` attribute.
+class ParametricConstraint : public Constraint {
+public:
+  ParametricConstraint(::mlir::irdl::AttributeWrapper *expectedAttribute,
+                       SmallVector<unsigned> constraints)
+      : expectedAttribute(expectedAttribute),
+        constraints(std::move(constraints)) {}
+
+  virtual ~ParametricConstraint() = default;
+
+  LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                       Attribute attr,
+                       ConstraintVerifier &context) const override;
+
+private:
+  ::mlir::irdl::AttributeWrapper *expectedAttribute;
+  SmallVector<unsigned> constraints;
 };
 
 /// A constraint that checks that an attribute is of a

@@ -14,6 +14,7 @@
 #define MLIR_DIALECT_IRDL_IR_IRDLOPS
 
 include "IRDL.td"
+include "IRDLAttributes.td"
 include "IRDLTypes.td"
 include "IRDLInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
@@ -302,8 +303,8 @@ def IRDL_Parametric : IRDL_ConstraintOp<"parametric",
   let description = [{
     `irdl.parametric` defines a constraint that accepts only a single type
     or attribute base. The attribute base is defined by a symbolic reference
-    to the corresponding definition. It will additionally constraint the
-    parameters of the type/attribute.
+    to the corresponding definition, or a type/attribute wrapper. It will
+    additionally constraint the parameters of the type/attribute.
 
     Example:
 
@@ -325,7 +326,7 @@ def IRDL_Parametric : IRDL_ConstraintOp<"parametric",
     for any `T` takes a `cmath.complex` with parameter `T` and returns a `T`.
   }];
 
-  let arguments = (ins SymbolRefAttr:$base_type,
+  let arguments = (ins TypeOrAttrDefRefAttr:$base_type,
                        Variadic<IRDL_AttributeType>:$args);
   let results = (outs IRDL_AttributeType:$output);
   let assemblyFormat = " $base_type `<` $args `>` ` ` attr-dict ";

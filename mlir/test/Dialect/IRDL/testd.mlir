@@ -120,6 +120,36 @@ func.func @succeededAnyConstraint() {
 // -----
 
 //===----------------------------------------------------------------------===//
+// Non-dynamic parameters constraint
+//===----------------------------------------------------------------------===//
+
+func.func @succeededParamsConstraint() {
+  // CHECK: "testd.params"() : () -> complex<i32>
+  "testd.params"() : () -> complex<i32>
+  // CHECK: "testd.params"() : () -> complex<i64>
+  "testd.params"() : () -> complex<i64>
+  return
+}
+
+// -----
+
+func.func @failedDynParamsConstraintBase() {
+  // expected-error@+1 {{expected base 'builtin.complex' but got 'i32'}}
+  "testd.params"() : () -> i32
+  return
+}
+
+// -----
+
+func.func @failedDynParamsConstraintParam() {
+  // expected-error@+1 {{'i1' does not satisfy the constraint}}
+  "testd.params"() : () -> complex<i1>
+  return
+}
+
+// -----
+
+//===----------------------------------------------------------------------===//
 // Dynamic base constraint
 //===----------------------------------------------------------------------===//
 

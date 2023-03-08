@@ -92,6 +92,21 @@ irdl.dialect @testd {
     irdl.results(%3)
   }
 
+  // CHECK: irdl.operation @params {
+  // CHECK:   %[[v0:[^ ]*]] = irdl.is i32
+  // CHECK:   %[[v1:[^ ]*]] = irdl.is i64
+  // CHECK:   %[[v2:[^ ]*]] = irdl.any_of(%[[v0]], %[[v1]])
+  // CHECK:   %[[v3:[^ ]*]] = irdl.parametric "!builtin.complex"<%[[v2]]>
+  // CHECK:   irdl.results(%[[v3]])
+  // CHECK: }
+  irdl.operation @params {
+    %0 = irdl.is i32
+    %1 = irdl.is i64
+    %2 = irdl.any_of(%0, %1)
+    %3 = irdl.parametric "!builtin.complex"<%2>
+    irdl.results(%3)
+  }
+
   // CHECK: irdl.operation @constraint_vars {
   // CHECK:   %[[v0:[^ ]*]] = irdl.is i32
   // CHECK:   %[[v1:[^ ]*]] = irdl.is i64
