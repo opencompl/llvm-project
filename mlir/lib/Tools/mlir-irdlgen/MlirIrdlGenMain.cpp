@@ -53,5 +53,6 @@ using namespace llvm;
 
 LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
                                     MLIRContext &context) {
+  llvm::outs() << "module {\n}\n";
   return success();
 }
