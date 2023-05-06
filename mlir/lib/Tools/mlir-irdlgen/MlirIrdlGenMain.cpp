@@ -48,14 +48,37 @@
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+
 using namespace mlir;
 using namespace llvm;
 
 LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
-                                    MLIRContext &context) {
+                                    MLIRContext &ctx) {
 
-  auto unknownLoc = UnknownLoc::get(&context);
+  ctx.getOrLoadDialect<irdl::IRDLDialect>();
+
+  auto unknownLoc = UnknownLoc::get(&ctx);
   OwningOpRef<ModuleOp> module(ModuleOp::create(unknownLoc));
+
+  // Create the builder, and set its insertion point in the module.
+  OpBuilder builder(&ctx);
+  auto &moduleBlock = module->getRegion().getBlocks().front();
+  builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
+
+  // Create the IDRL dialect operation, and set the insertion point in it.
+  auto dialect = builder.create<irdl::DialectOp>(
+      UnknownLoc::get(&ctx), StringAttr::get(&ctx, "arith"));
+  auto &dialectBlock = dialect.getBody().emplaceBlock();
+  builder.setInsertionPoint(&dialectBlock, dialectBlock.begin());
+
+  std::string ops[] =
+  #define GET_OP_LIST_IRDL 1
+  #include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
+  for (auto op : ops) {
+    auto opc = builder.create<irdl::OperationOp>(UnknownLoc::get(&ctx), StringAttr::get(&ctx, op));
+    auto &opBlock = opc.getBody().emplaceBlock();
+  }
+ 
   module->print(llvm::outs());
 
   return success();
