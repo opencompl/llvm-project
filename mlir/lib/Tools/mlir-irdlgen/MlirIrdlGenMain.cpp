@@ -89,7 +89,7 @@ LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
     builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
     insertDialect(ctx, builder, dialect);
   }
- 
+
   module->print(llvm::outs());
 
   return success();
