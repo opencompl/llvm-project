@@ -3813,20 +3813,6 @@ static void emitOpList(const std::vector<Record *> &defs, raw_ostream &os) {
       [&os]() { os << ",\n"; });
 }
 
-// Emits a comma-separated list of the ops.
-static void emitOpListIRDL(const std::vector<Record *> &defs, raw_ostream &os) {
-  IfDefScope scope("GET_OP_LIST_IRDL", os);
-
-  os << "{\n";
-  interleave(
-      // TODO: We are constructing the Operator wrapper instance just for
-      // getting it's qualified class name here. Reduce the overhead by having a
-      // lightweight version of Operator class just for that purpose.
-      defs, [&os](Record *def) { os << '"' << Operator(def).getOperationName() << '"' ; },
-      [&os]() { os << ",\n"; });
-  os << "};\n";
-}
-
 static bool emitOpDecls(const RecordKeeper &recordKeeper, raw_ostream &os) {
   emitSourceFileHeader("Op Declarations", os);
 
@@ -3841,7 +3827,6 @@ static bool emitOpDefs(const RecordKeeper &recordKeeper, raw_ostream &os) {
 
   std::vector<Record *> defs = getRequestedOpDefinitions(recordKeeper);
   emitOpList(defs, os);
-  emitOpListIRDL(defs, os);
   emitOpClasses(recordKeeper, defs, os, /*emitDecl=*/false);
 
   return false;
