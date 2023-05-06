@@ -53,6 +53,10 @@ using namespace llvm;
 
 LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
                                     MLIRContext &context) {
-  llvm::outs() << "module {\n}\n";
+
+  auto unknownLoc = UnknownLoc::get(&context);
+  OwningOpRef<ModuleOp> module(ModuleOp::create(unknownLoc));
+  module->print(llvm::outs());
+
   return success();
 }
