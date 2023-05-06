@@ -52,21 +52,25 @@
 using namespace mlir;
 using namespace llvm;
 
-void insertDialect(MLIRContext &ctx, OpBuilder &builder) {
+void insertDialect(MLIRContext &ctx, OpBuilder &builder, StringRef name) {
+  ctx.getOrLoadDialect(name);
+
   // Create the IDRL dialect operation, and set the insertion point in it.
-  auto dialect = builder.create<irdl::DialectOp>(
-      UnknownLoc::get(&ctx), StringAttr::get(&ctx, "arith"));
-  auto &dialectBlock = dialect.getBody().emplaceBlock();
+  auto dialectDef = builder.create<irdl::DialectOp>(
+      UnknownLoc::get(&ctx), StringAttr::get(&ctx, name));
+  auto &dialectBlock = dialectDef.getBody().emplaceBlock();
   builder.setInsertionPoint(&dialectBlock, dialectBlock.begin());
 
-  std::string ops[] =
-  #define GET_OP_LIST_IRDL 1
-  #include "mlir/Dialect/Arith/IR/ArithOps.cpp.inc"
-  for (auto op : ops) {
-    auto opc = builder.create<irdl::OperationOp>(UnknownLoc::get(&ctx), StringAttr::get(&ctx, op));
-    auto &opBlock = opc.getBody().emplaceBlock();
-  }
+  for (auto op : ctx.getRegisteredOperations()) {
+    StringRef opName = op.getStringRef();
+    if (!opName.starts_with(name))
+       continue;
 
+    opName = opName.drop_front(name.size() + 1);
+
+    auto opc = builder.create<irdl::OperationOp>(UnknownLoc::get(&ctx), StringAttr::get(&ctx, opName));
+    opc.getBody().emplaceBlock();
+  }
 }
 
 LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
@@ -80,9 +84,11 @@ LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
   // Create the builder, and set its insertion point in the module.
   OpBuilder builder(&ctx);
   auto &moduleBlock = module->getRegion().getBlocks().front();
-  builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
 
-  insertDialect(ctx, builder);
+  for (auto dialect : ctx.getAvailableDialects()) {
+    builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
+    insertDialect(ctx, builder, dialect);
+  }
  
   module->print(llvm::outs());
 
