@@ -52,19 +52,7 @@
 using namespace mlir;
 using namespace llvm;
 
-LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
-                                    MLIRContext &ctx) {
-
-  ctx.getOrLoadDialect<irdl::IRDLDialect>();
-
-  auto unknownLoc = UnknownLoc::get(&ctx);
-  OwningOpRef<ModuleOp> module(ModuleOp::create(unknownLoc));
-
-  // Create the builder, and set its insertion point in the module.
-  OpBuilder builder(&ctx);
-  auto &moduleBlock = module->getRegion().getBlocks().front();
-  builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
-
+void insertDialect(MLIRContext &ctx, OpBuilder &builder) {
   // Create the IDRL dialect operation, and set the insertion point in it.
   auto dialect = builder.create<irdl::DialectOp>(
       UnknownLoc::get(&ctx), StringAttr::get(&ctx, "arith"));
@@ -78,6 +66,23 @@ LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
     auto opc = builder.create<irdl::OperationOp>(UnknownLoc::get(&ctx), StringAttr::get(&ctx, op));
     auto &opBlock = opc.getBody().emplaceBlock();
   }
+
+}
+
+LogicalResult mlir::mlirIrdlGenMain(int argc, char **argv,
+                                    MLIRContext &ctx) {
+
+  ctx.getOrLoadDialect<irdl::IRDLDialect>();
+
+  auto unknownLoc = UnknownLoc::get(&ctx);
+  OwningOpRef<ModuleOp> module(ModuleOp::create(unknownLoc));
+
+  // Create the builder, and set its insertion point in the module.
+  OpBuilder builder(&ctx);
+  auto &moduleBlock = module->getRegion().getBlocks().front();
+  builder.setInsertionPoint(&moduleBlock, moduleBlock.begin());
+
+  insertDialect(ctx, builder);
  
   module->print(llvm::outs());
 
