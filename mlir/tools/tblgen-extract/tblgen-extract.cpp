@@ -81,7 +81,8 @@ StringRef removeOuterParentheses(StringRef str) {
   return str;
 }
 
-Optional<StringRef> cppToIRDLTypeName(StringRef cppName) {
+/*
+Optional<Attribute> cppToIRDLTypeName(StringRef cppName) {
   if (cppName == "::mlir::shape::SizeType")
     return {"shape.size"};
   if (cppName == "::mlir::shape::ShapeType")
@@ -94,6 +95,7 @@ Optional<StringRef> cppToIRDLTypeName(StringRef cppName) {
     return {"builtin.vector"};
   return {};
 }
+*/
 
 Value extractConstraint(OpBuilder &builder, tblgen::Pred predTblgen) {
   auto ctx = builder.getContext();
@@ -130,7 +132,6 @@ Value extractConstraint(OpBuilder &builder, tblgen::Pred predTblgen) {
     return AndTypeConstraintAttr::get(ctx, constraints);
   }
 
-  // BaseCppClass
   // TODO: change this to a TypeWrapperBaseConstraint
   if (pred.startswith("$_self.isa<") && pred.endswith(">()")) {
     if (auto irdlName = cppToIRDLTypeName(pred.slice(11, pred.size() - 3)))
