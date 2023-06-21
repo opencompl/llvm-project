@@ -32,7 +32,7 @@ def IRDL_AttributeType : IRDL_Type<"Attribute", "attribute"> {
     Example:
 
     ```mlir
-    irdl.dialect cmath {
+    irdl.dialect @cmath {
 
       irdl.type @complex { /* ... */ }
 
@@ -48,6 +48,32 @@ def IRDL_AttributeType : IRDL_Type<"Attribute", "attribute"> {
     Here, `%0` and `%1` are both of type `!irdl.attribute`. Note that in
     particular, `%1` will be a handle to a `mlir::TypeAttr` wrapping an
     instance of a `cmath.complex` type.
+  }];
+}
+
+def IRDL_AttributeRangeType : IRDL_Type<"Range", "attribute_range"> {
+  let summary = "IRDL handle to a range of `mlir::Attribute`s";
+  let description = [{
+    This type represent a handle to a range of `mlir::Attribute`s, so it can
+    be used in an IRDL operation as a variadic definition. This type can also
+    wrap `mlir::Type`s by wrapping them in `mlir::TypeAttr`.
+
+    Example:
+
+    ```mlir
+    irdl.dialect @cmath {
+      irdl.operation @add {
+        %i32 = irdl.is i32
+        %range = irdl.range {
+          irdl.yield %i32
+        }
+        irdl.operands(%range)
+        irdl.results(%i32)
+      }
+    }
+    ```
+
+    Here, %range is of type `!irdl.attribute_range`.
   }];
 }
 

@@ -18,6 +18,7 @@ include "IRDLAttributes.td"
 include "IRDLTypes.td"
 include "IRDLInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 
@@ -337,8 +338,7 @@ class IRDL_ConstraintOp<string mnemonic, list<Trait> traits = []>
         DeclareOpInterfaceMethods<VerifyConstraintInterface>] # traits> {
 }
 
-def IRDL_IsOp : IRDL_ConstraintOp<"is",
-    [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>, Pure]> {
+def IRDL_IsOp : IRDL_ConstraintOp<"is", [Pure]> {
   let summary = "Constraints an attribute/type to be a specific attribute instance";
   let description = [{
     `irdl.is` defines a constraint that only accepts a specific instance of a
@@ -364,8 +364,7 @@ def IRDL_IsOp : IRDL_ConstraintOp<"is",
   let assemblyFormat = " $expected ` ` attr-dict ";
 }
 
-def IRDL_ParametricOp : IRDL_ConstraintOp<"parametric",
-    [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>, Pure]> {
+def IRDL_ParametricOp : IRDL_ConstraintOp<"parametric", [Pure]> {
   let summary = "Constraints an attribute/type base and its parameters";
   let description = [{
     `irdl.parametric` defines a constraint that accepts only a single type
@@ -399,8 +398,7 @@ def IRDL_ParametricOp : IRDL_ConstraintOp<"parametric",
   let assemblyFormat = " $base_type `<` $args `>` ` ` attr-dict ";
 }
 
-def IRDL_AnyOp : IRDL_ConstraintOp<"any",
-    [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>]> {
+def IRDL_AnyOp : IRDL_ConstraintOp<"any"> {
   let summary = "Accept any type or attribute";
   let description = [{
     `irdl.any` defines a constraint that accepts any type or attribute.
@@ -424,9 +422,7 @@ def IRDL_AnyOp : IRDL_ConstraintOp<"any",
   let assemblyFormat = " attr-dict ";
 }
 
-def IRDL_AnyOfOp : IRDL_ConstraintOp<"any_of",
-                  [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>,
-                   SameOperandsAndResultType]> {
+def IRDL_AnyOfOp : IRDL_ConstraintOp<"any_of", [SameOperandsAndResultType]> {
   let summary = "Constraints to the union of the provided constraints";
   let description = [{
     `irdl.any_of` defines a constraint that accepts any type or attribute that
@@ -457,9 +453,7 @@ def IRDL_AnyOfOp : IRDL_ConstraintOp<"any_of",
   let assemblyFormat = [{ `(` $args `)` ` ` attr-dict }];
 }
 
-def IRDL_AllOfOp : IRDL_ConstraintOp<"all_of",
-                 [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>,
-                  SameOperandsAndResultType]> {
+def IRDL_AllOfOp : IRDL_ConstraintOp<"all_of", [SameOperandsAndResultType]> {
   let summary = "Constraints to the intersection of the provided constraints";
   let description = [{
     `irdl.all_of` defines a constraint that accepts any type or attribute that
@@ -527,6 +521,58 @@ def IRDL_CPredOp : IRDL_Op<"c_pred"> {
   let arguments = (ins StrAttr:$pred);
   let results = (outs IRDL_AttributeType:$output);
   let assemblyFormat = "$pred ` ` attr-dict";
+}
+
+//===----------------------------------------------------------------------===//
+// IRDL range operation
+//===----------------------------------------------------------------------===//
+
+def IRDL_RangeOp : IRDL_Op<"range", [SingleBlockImplicitTerminator<"YieldOp">]> {
+  let summary = "Create a range of constraints from a region";
+  let description = [{
+    `irdl.range` defines a range of constraints from a region. The SSA values
+    defined inside the regions are handles to `mlir::Attribute`s that are reset
+    for each member of the range.
+
+    Example:
+    ```mlir
+    %range = irdl.range {
+      %elem = irdl.any
+      irdl.yield %elem
+    }
+    ```
+
+    Here, `%range` is a range of arbitrary attributes. The SSA value `%elem`
+    is a handle to an attribute that is reset for each member of the range, and
+    thus all its uses will not necessarily refer to the same attribute.
+
+    Example:
+    ```mlir
+    %elem = irdl.any
+    %range = irdl.range {
+      irdl.yield %elem
+    }
+    ```
+
+    Here, `%range` is a range of arbitrary attributes that are all equal to
+    each others. This is because the `%elem` SSA value is defined outside the
+    range, and thus is a handle to a single attribute.
+  }];
+
+  let results = (outs IRDL_AttributeType:$output);
+  let regions = (region SizedRegion<1>:$body);
+  let assemblyFormat = "attr-dict-with-keyword custom<SingleBlockRegion>($body)";
+}
+
+def IRDL_YieldOp : IRDL_Op<"yield", [Terminator, HasParent<"RangeOp">]> {
+  let summary = "Return an attribute handle from a region";
+  let description = [{
+    "irdl.yield" yields an attribute handle from the `irdl.range` region it
+    terminates.
+  }];
+
+  let arguments = (ins IRDL_AttributeType:$value);
+  let assemblyFormat = "$value attr-dict";
 }
 
 #endif // MLIR_DIALECT_IRDL_IR_IRDLOPS
