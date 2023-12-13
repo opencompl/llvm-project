@@ -6,7 +6,10 @@ add_mlir_dialect_library(MLIRMPIDialect
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/MPI
 
   DEPENDS
+  MLIRMPIIncGen
   MLIRMPIOpsIncGen
+  MLIRMPITypesIncGen
+  MLIRMPIAttrsIncGen
 
   LINK_LIBS PUBLIC
   MLIRDialect

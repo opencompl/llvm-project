@@ -18,9 +18,13 @@
 
 #include "mlir/Dialect/MPI/IR/MPIOpsDialect.h.inc"
 
-//===----------------------------------------------------------------------===//
-// MPI Dialect Operations
-//===----------------------------------------------------------------------===//
+#define GET_TYPEDEF_CLASSES
+#include "mlir/Dialect/MPI/IR/MPITypesGen.h.inc"
+
+#include "mlir/Dialect/MPI/IR/MPIEnums.h.inc"
+
+#define GET_ATTRDEF_CLASSES
+#include "mlir/Dialect/MPI/IR/MPIAttributes.h.inc"
 
 #define GET_OP_CLASSES
 #include "mlir/Dialect/MPI/IR/MPIOps.h.inc"

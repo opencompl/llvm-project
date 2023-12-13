@@ -18,10 +18,28 @@ using namespace mlir::mpi;
 
 #include "mlir/Dialect/MPI/IR/MPIOpsDialect.cpp.inc"
 
-void mpi::MPIDialect::initialize() {
-
+void MPIDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "mlir/Dialect/MPI/IR/MPIOps.cpp.inc"
       >();
+
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "mlir/Dialect/MPI/IR/MPITypesGen.cpp.inc"
+      >();
+
+  addAttributes<
+#define GET_ATTRDEF_LIST
+#include "mlir/Dialect/MPI/IR/MPIAttributes.cpp.inc"
+      >();
 }
+
+
+#define GET_TYPEDEF_CLASSES
+#include "mlir/Dialect/MPI/IR/MPITypesGen.cpp.inc"
+
+#include "mlir/Dialect/MPI/IR/MPIEnums.cpp.inc"
+
+#define GET_ATTRDEF_CLASSES
+#include "mlir/Dialect/MPI/IR/MPIAttributes.cpp.inc"

@@ -1,3 +1,25 @@
+add_mlir_dialect(MPI mpi)
+add_mlir_doc(MPI MPI Dialects/ -gen-dialect-doc)
+
+# Add MPI operations
 set(LLVM_TARGET_DEFINITIONS MPIOps.td)
-add_mlir_dialect(MPIOps mpi)
-add_mlir_doc(MPIOps MPIOps Dialects/ -gen-dialect-doc)
+mlir_tablegen(MPIOps.h.inc -gen-op-decls)
+mlir_tablegen(MPIOps.cpp.inc -gen-op-defs)
+add_public_tablegen_target(MLIRMPIOpsIncGen)
+add_dependencies(mlir-generic-headers MLIRMPIOpsIncGen)
+
+# Add MPI types
+set(LLVM_TARGET_DEFINITIONS MPITypes.td)
+mlir_tablegen(MPITypesGen.h.inc -gen-typedef-decls)
+mlir_tablegen(MPITypesGen.cpp.inc -gen-typedef-defs)
+add_public_tablegen_target(MLIRMPITypesIncGen)
+add_dependencies(mlir-generic-headers MLIRMPITypesIncGen)
+
+# Add MPI attributes
+set(LLVM_TARGET_DEFINITIONS MPI.td)
+mlir_tablegen(MPIEnums.h.inc -gen-enum-decls)
+mlir_tablegen(MPIEnums.cpp.inc -gen-enum-defs)
+mlir_tablegen(MPIAttributes.h.inc -gen-attrdef-decls)
+mlir_tablegen(MPIAttributes.cpp.inc -gen-attrdef-defs)
+add_public_tablegen_target(MLIRMPIAttrsIncGen)
+add_dependencies(mlir-generic-headers MLIRMPIAttrsIncGen)

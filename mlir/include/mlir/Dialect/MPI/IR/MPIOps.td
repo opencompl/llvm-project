@@ -1,4 +1,4 @@
-//===- MPI.td - Message Passing Interface Ops ---------*- tablegen -*-===//
+//===- MPI.td - Message Passing Interface Ops --------------*- tablegen -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,10 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MPI_OPS
-#define MPI_OPS
+#ifndef MPI_MLIR_IR_MPIOPS
+#define MPI_MLIR_IR_MPIOPS
 
-include "mlir/Dialect/MPI/IR/MPIBase.td"
+include "mlir/Dialect/MPI/IR/MPI.td"
+include "mlir/Dialect/MPI/IR/MPITypes.td"
 
 class MPI_Op<string mnemonic, list<Trait> traits = []>
     : Op<MPI_Dialect, mnemonic, traits>;
@@ -18,9 +19,7 @@ class MPI_Op<string mnemonic, list<Trait> traits = []>
 // InitOp
 //===----------------------------------------------------------------------===//
 
-def MPI_InitOp : MPI_Op<"init", [
-
-]> {
+def MPI_InitOp : MPI_Op<"init", []> {
   let summary =
       "Initialize the MPI library, equivalent to `MPI_Init(NULL, NULL)`";
   let description = [{
@@ -31,7 +30,9 @@ def MPI_InitOp : MPI_Op<"init", [
     Inspecting the functions return value (error code) is also not supported.
   }];
 
-  let assemblyFormat = "attr-dict";
+  let results = (outs Optional<MPI_Retval>:$retval);
+
+  let assemblyFormat = "attr-dict (`:` type($retval)^)?";
 }
 
 //===----------------------------------------------------------------------===//
@@ -102,6 +103,7 @@ def MPI_RecvOp : MPI_Op<"recv", [
                        "type($ref) `,` type($tag) `,` type($rank)";
 }
 
+
 //===----------------------------------------------------------------------===//
 // FinalizeOp
 //===----------------------------------------------------------------------===//
@@ -121,4 +123,4 @@ def MPI_FinalizeOp : MPI_Op<"finalize", [
   let assemblyFormat = "attr-dict";
 }
 
-#endif // MPI_OPS
+#endif // MPI_MLIR_IR_MPIOPS
