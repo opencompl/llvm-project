@@ -10,11 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MPI_MLIR_IR_MPITYPES
-#define MPI_MLIR_IR_MPITYPES
+#ifndef MLIR_DIALECT_MPI_IR_MPITYPES
+#define MLIR_DIALECT_MPI_IR_MPITYPES
 
 include "mlir/IR/AttrTypeBase.td"
-include "mlir/Dialect/MPI/IR/MPI.td"
+include "MPI.td"
 
 //===----------------------------------------------------------------------===//
 // NPI Types
@@ -38,4 +38,4 @@ def MPI_Retval : MPI_Type<"Retval", "retval"> {
 }
 
 
-#endif // MPI_MLIR_IR_MPITYPES
+#endif // MLIR_DIALECT_MPI_IR_MPITYPES

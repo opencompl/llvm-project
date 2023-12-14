@@ -8,6 +8,7 @@
 
 #include "mlir/Dialect/MPI/IR/MPI.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
 using namespace mlir::mpi;
@@ -16,7 +17,9 @@ using namespace mlir::mpi;
 /// Tablegen Definitions
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Dialect/MPI/IR/MPIOpsDialect.cpp.inc"
+#include "mlir/Dialect/MPI/IR/MPI.cpp.inc"
+
+#include "mlir/Dialect/MPI/IR/MPIDialect.cpp.inc"
 
 void MPIDialect::initialize() {
   addOperations<
@@ -31,10 +34,13 @@ void MPIDialect::initialize() {
 
   addAttributes<
 #define GET_ATTRDEF_LIST
-#include "mlir/Dialect/MPI/IR/MPIAttributes.cpp.inc"
+#include "mlir/Dialect/MPI/IR/MPIAttrDefs.cpp.inc"
       >();
 }
 
+//===----------------------------------------------------------------------===//
+// TableGen'd dialect, type, and op definitions
+//===----------------------------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
 #include "mlir/Dialect/MPI/IR/MPITypesGen.cpp.inc"
@@ -42,4 +48,7 @@ void MPIDialect::initialize() {
 #include "mlir/Dialect/MPI/IR/MPIEnums.cpp.inc"
 
 #define GET_ATTRDEF_CLASSES
-#include "mlir/Dialect/MPI/IR/MPIAttributes.cpp.inc"
+#include "mlir/Dialect/MPI/IR/MPIAttrDefs.cpp.inc"
+
+#define GET_OP_CLASSES
+#include "mlir/Dialect/MPI/IR/MPIOps.cpp.inc"

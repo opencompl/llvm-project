@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MPI_MLIR_IR_BASE
-#define MPI_MLIR_IR_BASE
+#ifndef MLIR_DIALECT_MPI_IR_MPI
+#define MLIR_DIALECT_MPI_IR_MPI
 
 include "mlir/IR/AttrTypeBase.td"
 include "mlir/IR/OpBase.td"
@@ -40,6 +40,8 @@ def MPI_Dialect : Dialect {
 //===----------------------------------------------------------------------===//
 // Error classes enum:
 //===----------------------------------------------------------------------===//
+
+/*
 
 def MpiCodeSuccess : I32EnumAttrCase<"MPI_SUCCESS", 0, "MPI_SUCCESS">;
 def MpiCodeErrAccess : I32EnumAttrCase<"MPI_ERR_ACCESS", 1, "MPI_ERR_ACCESS">;
@@ -174,5 +176,6 @@ def MpiErrorClasses : I32EnumAttr<"MpiErrorClass",
   let cppNamespace = "::mlir::mpi";
 }
 
+*/
 
-#endif // MPI_MLIR_IR_BASE
+#endif // MLIR_DIALECT_MPI_IR_MPI

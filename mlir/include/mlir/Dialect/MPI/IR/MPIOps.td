@@ -27,7 +27,6 @@ def MPI_InitOp : MPI_Op<"init", []> {
     please consult with the MPI specification on these).
 
     Passing &argc, &argv is not supported currently.
-    Inspecting the functions return value (error code) is also not supported.
   }];
 
   let results = (outs Optional<MPI_Retval>:$retval);
