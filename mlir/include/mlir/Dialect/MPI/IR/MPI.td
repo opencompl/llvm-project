@@ -33,7 +33,7 @@ def MPI_Dialect : Dialect {
   }];
 
   let usePropertiesForAttributes = 1;
-  // let useDefaultAttributePrinterParser = 1;
+  let useDefaultAttributePrinterParser = 1;
   let useDefaultTypePrinterParser = 1;
 }
 
@@ -107,7 +107,7 @@ def MpiCodeErrValueTooLarge : I32EnumAttrCase<"MPI_ERR_VALUE_TOO_LARGE", 60, "MP
 def MpiCodeErrWin : I32EnumAttrCase<"MPI_ERR_WIN", 61, "MPI_ERR_WIN">;
 def MpiCodeErrLastcode : I32EnumAttrCase<"MPI_ERR_LASTCODE", 62, "MPI_ERR_LASTCODE">;
 
-def MpiErrorClass : I32EnumAttr<"MpiErrorClassEnum", 
+def MpiErrorClassEnum : I32EnumAttr<"MpiErrorClassEnum", 
                                 "MPI error class name",
   [ MpiCodeSuccess
     ,MpiCodeErrAccess
@@ -174,6 +174,10 @@ def MpiErrorClass : I32EnumAttr<"MpiErrorClassEnum",
     ,MpiCodeErrLastcode]> {
   let genSpecializedAttr = 0;
   let cppNamespace = "::mlir::mpi";
+}
+
+def MpiErrorClassAttr : EnumAttr<MPI_Dialect, MpiErrorClassEnum, "errclass"> {
+  let assemblyFormat = "`<` $value `>`";
 }
 
 #endif // MLIR_DIALECT_MPI_IR_MPI

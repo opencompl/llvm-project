@@ -27,6 +27,9 @@ def MPI_InitOp : MPI_Op<"init", []> {
     please consult with the MPI specification on these).
 
     Passing &argc, &argv is not supported currently.
+
+    This operation can optionally return an `!mpi.retval` value that can be used
+    to check for errors.
   }];
 
   let results = (outs Optional<MPI_Retval>:$retval);
@@ -45,12 +48,17 @@ def MPI_CommRankOp : MPI_Op<"comm_rank", [
                 "`MPI_Comm_rank(MPI_COMM_WORLD, &rank)`";
   let description = [{
     Communicators other than `MPI_COMM_WORLD` are not supprted for now.
-    Inspecting the functions return value (error code) is also not supported.
+
+    This operation can optionally return an `!mpi.retval` value that can be used
+    to check for errors.
   }];
 
-  let results = (outs I32 : $result);
+  let results = (
+    outs Optional<MPI_Retval> : $retval,
+    I32 : $rank
+  );
 
-  let assemblyFormat = "attr-dict `:` type($result)";
+  let assemblyFormat = "attr-dict `:` type(results)";
 }
 
 //===----------------------------------------------------------------------===//
@@ -68,13 +76,18 @@ def MPI_SendOp : MPI_Op<"send", [
     multiple sends and receives between the same ranks.
 
     Communicators other than `MPI_COMM_WORLD` are not supprted for now.
-    Inspecting the functions return value (error code) is also not supported.
+
+    This operation can optionally return an `!mpi.retval` value that can be used
+    to check for errors.
   }];
 
   let arguments = (ins AnyMemRef : $ref, I32 : $tag, I32 : $rank);
 
+  let results = (outs Optional<MPI_Retval>:$retval);
+
   let assemblyFormat = "`(` $ref `,` $tag `,` $rank `)` attr-dict `:` "
-                       "type($ref) `,` type($tag) `,` type($rank)";
+                       "type($ref) `,` type($tag) `,` type($rank)"
+                       "(`->` type($retval)^)?";
 }
 
 //===----------------------------------------------------------------------===//
@@ -93,13 +106,18 @@ def MPI_RecvOp : MPI_Op<"recv", [
 
     Communicators other than `MPI_COMM_WORLD` are not supprted for now.
     The MPI_Status is set to `MPI_STATUS_IGNORE`, as the status object is not yet ported to MLIR.
-    Inspecting the functions return value (error code) is also not supported.
+
+    This operation can optionally return an `!mpi.retval` value that can be used
+    to check for errors.
   }];
 
   let arguments = (ins AnyMemRef : $ref, I32 : $tag, I32 : $rank);
 
+  let results = (outs Optional<MPI_Retval>:$retval);
+
   let assemblyFormat = "`(` $ref `,` $tag `,` $rank `)` attr-dict `:` "
-                       "type($ref) `,` type($tag) `,` type($rank)";
+                       "type($ref) `,` type($tag) `,` type($rank)"
+                       "(`->` type($retval)^)?";
 }
 
 
@@ -116,18 +134,21 @@ def MPI_FinalizeOp : MPI_Op<"finalize", [
     (excpet for MPI_Get_version, MPI_Initialized, and MPI_Finalized).
     Notably, MPI_Init cannot be called again in the same program.
 
-    Inspecting the functions return value (error code) is not supported.
+    This operation can optionally return an `!mpi.retval` value that can be used
+    to check for errors.
   }];
 
-  let assemblyFormat = "attr-dict";
+  let results = (outs Optional<MPI_Retval>:$retval);
+
+  let assemblyFormat = "attr-dict (`:` type($retval)^)?";
 }
 
 
 //===----------------------------------------------------------------------===//
-// FinalizeOp
+// RetvalCheckOp
 //===----------------------------------------------------------------------===//
 
-def MPI_RetvalCheck : MPI_Op<"retval_check", [
+def MPI_RetvalCheckOp : MPI_Op<"retval_check", [
 
 ]> {
   let summary = "Check an MPI return value against an error class";
@@ -137,10 +158,39 @@ def MPI_RetvalCheck : MPI_Op<"retval_check", [
 
   let arguments = (
     ins MPI_Retval:$val,
-    MpiErrorClass:$errclass
+    MpiErrorClassAttr:$errclass
   );
 
-  let assemblyFormat = "$val `=` $errclass attr-dict";
+  let results = (
+    outs I1:$res
+  );
+
+  let assemblyFormat = "$val `=` $errclass attr-dict `:` type($res)";
+}
+
+
+
+//===----------------------------------------------------------------------===//
+// RetvalCheckOp
+//===----------------------------------------------------------------------===//
+
+def MPI_ErrorClassOp : MPI_Op<"error_class", [
+
+]> {
+  let summary = "Get the error class from an error code, equivalent to the `MPI_Error_class` functoin.";
+  let description = [{
+    
+  }];
+
+  let arguments = (
+    ins MPI_Retval:$val
+  );
+
+  let results = (
+    outs MPI_Retval:$errclass
+  );
+
+  let assemblyFormat = "$val attr-dict `:` type($val)";
 }
 
 #endif // MPI_MLIR_IR_MPIOPS
