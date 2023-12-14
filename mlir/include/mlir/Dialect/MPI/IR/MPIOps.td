@@ -122,4 +122,25 @@ def MPI_FinalizeOp : MPI_Op<"finalize", [
   let assemblyFormat = "attr-dict";
 }
 
+
+//===----------------------------------------------------------------------===//
+// FinalizeOp
+//===----------------------------------------------------------------------===//
+
+def MPI_RetvalCheck : MPI_Op<"retval_check", [
+
+]> {
+  let summary = "Check an MPI return value against an error class";
+  let description = [{
+    
+  }];
+
+  let arguments = (
+    ins MPI_Retval:$val,
+    MpiErrorClass:$errclass
+  );
+
+  let assemblyFormat = "$val `=` $errclass attr-dict";
+}
+
 #endif // MPI_MLIR_IR_MPIOPS

@@ -1,4 +1,4 @@
-//===- MPIBase.td - Base defs for mpi dialect --*- tablegen -*-==//
+//===- MPIBase.td - Base defs for mpi dialect ---------------*- tablegen -*-==//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -33,7 +33,7 @@ def MPI_Dialect : Dialect {
   }];
 
   let usePropertiesForAttributes = 1;
-  let useDefaultAttributePrinterParser = 1;
+  // let useDefaultAttributePrinterParser = 1;
   let useDefaultTypePrinterParser = 1;
 }
 
@@ -41,7 +41,7 @@ def MPI_Dialect : Dialect {
 // Error classes enum:
 //===----------------------------------------------------------------------===//
 
-/*
+
 
 def MpiCodeSuccess : I32EnumAttrCase<"MPI_SUCCESS", 0, "MPI_SUCCESS">;
 def MpiCodeErrAccess : I32EnumAttrCase<"MPI_ERR_ACCESS", 1, "MPI_ERR_ACCESS">;
@@ -107,7 +107,7 @@ def MpiCodeErrValueTooLarge : I32EnumAttrCase<"MPI_ERR_VALUE_TOO_LARGE", 60, "MP
 def MpiCodeErrWin : I32EnumAttrCase<"MPI_ERR_WIN", 61, "MPI_ERR_WIN">;
 def MpiCodeErrLastcode : I32EnumAttrCase<"MPI_ERR_LASTCODE", 62, "MPI_ERR_LASTCODE">;
 
-def MpiErrorClasses : I32EnumAttr<"MpiErrorClass", 
+def MpiErrorClass : I32EnumAttr<"MpiErrorClassEnum", 
                                 "MPI error class name",
   [ MpiCodeSuccess
     ,MpiCodeErrAccess
@@ -175,7 +175,5 @@ def MpiErrorClasses : I32EnumAttr<"MpiErrorClass",
   let genSpecializedAttr = 0;
   let cppNamespace = "::mlir::mpi";
 }
-
-*/
 
 #endif // MLIR_DIALECT_MPI_IR_MPI
