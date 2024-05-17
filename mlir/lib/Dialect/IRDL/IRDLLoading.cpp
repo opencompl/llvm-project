@@ -378,23 +378,30 @@ mlir::irdl::createVerifier(
     }
   }
 
-  return
-      [constraints{std::move(constraints)},
-       regionConstraints{std::move(regionConstraints)},
-       operandConstraints{std::move(operandConstraints)},
-       operandVariadicity{std::move(operandVariadicity)},
-       resultConstraints{std::move(resultConstraints)},
-       resultVariadicity{std::move(resultVariadicity)},
-       attributeConstraints{std::move(attributeConstraints)}](Operation *op) {
-        ConstraintVerifier verifier(constraints);
-        const LogicalResult opVerifierResult = irdlOpVerifier(
-            op, verifier, operandConstraints, operandVariadicity,
-            resultConstraints, resultVariadicity, attributeConstraints);
-        const LogicalResult opRegionVerifierResult =
-            irdlRegionVerifier(op, verifier, regionConstraints);
-        return LogicalResult::success(opVerifierResult.succeeded() &&
-                                      opRegionVerifierResult.succeeded());
-      };
+  bool isTerminator = op->hasAttr("terminator");
+
+  return [constraints{std::move(constraints)},
+          regionConstraints{std::move(regionConstraints)},
+          operandConstraints{std::move(operandConstraints)},
+          operandVariadicity{std::move(operandVariadicity)},
+          resultConstraints{std::move(resultConstraints)},
+          resultVariadicity{std::move(resultVariadicity)},
+          attributeConstraints{std::move(attributeConstraints)},
+          isTerminator](Operation *op) {
+    if (isTerminator) {
+      auto terminatorRes = OpTrait::impl::verifyIsTerminator(op);
+      if (failed(terminatorRes))
+        return terminatorRes;
+    }
+    ConstraintVerifier verifier(constraints);
+    const LogicalResult opVerifierResult = irdlOpVerifier(
+        op, verifier, operandConstraints, operandVariadicity, resultConstraints,
+        resultVariadicity, attributeConstraints);
+    const LogicalResult opRegionVerifierResult =
+        irdlRegionVerifier(op, verifier, regionConstraints);
+    return LogicalResult::success(opVerifierResult.succeeded() &&
+                                  opRegionVerifierResult.succeeded());
+  };
 }
 
 /// Define and load an operation represented by a `irdl.operation`
@@ -421,9 +428,21 @@ static WalkResult loadOperation(
   // It is done in the main verifier to reuse `ConstraintVerifier` context
   auto regionVerifier = [](Operation *op) { return LogicalResult::success(); };
 
+  auto foldHookFn = [](Operation *op, ArrayRef<Attribute> operands,
+                       SmallVectorImpl<OpFoldResult> &results) {
+    return failure();
+  };
+
+  auto getCanonicalizationPatternsFn = [](RewritePatternSet &, MLIRContext *) {
+  };
+
+  auto populateDefaultAttrsFn = [](const OperationName &, NamedAttrList &) {};
+
   auto opDef = DynamicOpDefinition::get(
       op.getName(), dialect, std::move(verifier), std::move(regionVerifier),
-      std::move(parser), std::move(printer));
+      std::move(parser), std::move(printer), std::move(foldHookFn),
+      std::move(getCanonicalizationPatternsFn),
+      std::move(populateDefaultAttrsFn), op->hasAttr("terminator"));
   dialect->registerDynamicOp(std::move(opDef));
 
   return WalkResult::advance();

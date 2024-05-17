@@ -390,7 +390,8 @@ public:
       OperationName::PrintAssemblyFn &&printFn,
       OperationName::FoldHookFn &&foldHookFn,
       GetCanonicalizationPatternsFn &&getCanonicalizationPatternsFn,
-      OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn);
+      OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn,
+      bool isTerminator = false);
 
   /// Returns the op typeID.
   TypeID getTypeID() { return typeID; }
@@ -446,7 +447,11 @@ public:
                                    MLIRContext *context) final {
     getCanonicalizationPatternsFn(set, context);
   }
-  bool hasTrait(TypeID id) final { return false; }
+  bool hasTrait(TypeID id) final {
+    if (id == TypeID::get<OpTrait::IsTerminator>())
+      return isTerminator;
+    return false;
+  }
   OperationName::ParseAssemblyFn getParseAssemblyFn() final {
     return [&](OpAsmParser &parser, OperationState &state) {
       return parseFn(parser, state);
@@ -495,7 +500,9 @@ public:
   }
   Attribute getPropertiesAsAttr(Operation *op) final { return {}; }
   void copyProperties(OpaqueProperties lhs, OpaqueProperties rhs) final {}
-  bool compareProperties(OpaqueProperties, OpaqueProperties) final { return false; }
+  bool compareProperties(OpaqueProperties, OpaqueProperties) final {
+    return false;
+  }
   llvm::hash_code hashProperties(OpaqueProperties prop) final { return {}; }
 
 private:
@@ -507,7 +514,8 @@ private:
       OperationName::PrintAssemblyFn &&printFn,
       OperationName::FoldHookFn &&foldHookFn,
       GetCanonicalizationPatternsFn &&getCanonicalizationPatternsFn,
-      OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn);
+      OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn,
+      bool isTerminator);
 
   /// Dialect defining this operation.
   ExtensibleDialect *getdialect();
@@ -519,7 +527,7 @@ private:
   OperationName::FoldHookFn foldHookFn;
   GetCanonicalizationPatternsFn getCanonicalizationPatternsFn;
   OperationName::PopulateDefaultAttrsFn populateDefaultAttrsFn;
-
+  bool isTerminator;
   friend ExtensibleDialect;
 };
 

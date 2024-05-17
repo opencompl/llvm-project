@@ -186,4 +186,8 @@ irdl.dialect @testd {
     irdl.operands(%v0)
     irdl.regions(%r0)
   }
+
+  irdl.operation @with_terminator_trait attributes {terminator} {
+
+  }
 }

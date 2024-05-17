@@ -295,7 +295,8 @@ DynamicOpDefinition::DynamicOpDefinition(
     OperationName::PrintAssemblyFn &&printFn,
     OperationName::FoldHookFn &&foldHookFn,
     GetCanonicalizationPatternsFn &&getCanonicalizationPatternsFn,
-    OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn)
+    OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn,
+    bool isTerminator)
     : Impl(StringAttr::get(dialect->getContext(),
                            (dialect->getNamespace() + "." + name).str()),
            dialect, dialect->allocateTypeID(),
@@ -304,7 +305,8 @@ DynamicOpDefinition::DynamicOpDefinition(
       parseFn(std::move(parseFn)), printFn(std::move(printFn)),
       foldHookFn(std::move(foldHookFn)),
       getCanonicalizationPatternsFn(std::move(getCanonicalizationPatternsFn)),
-      populateDefaultAttrsFn(std::move(populateDefaultAttrsFn)) {
+      populateDefaultAttrsFn(std::move(populateDefaultAttrsFn)),
+      isTerminator(isTerminator) {
   typeID = dialect->allocateTypeID();
 }
 
@@ -358,12 +360,13 @@ std::unique_ptr<DynamicOpDefinition> DynamicOpDefinition::get(
     OperationName::PrintAssemblyFn &&printFn,
     OperationName::FoldHookFn &&foldHookFn,
     GetCanonicalizationPatternsFn &&getCanonicalizationPatternsFn,
-    OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn) {
+    OperationName::PopulateDefaultAttrsFn &&populateDefaultAttrsFn,
+    bool isTerminator) {
   return std::unique_ptr<DynamicOpDefinition>(new DynamicOpDefinition(
       name, dialect, std::move(verifyFn), std::move(verifyRegionFn),
       std::move(parseFn), std::move(printFn), std::move(foldHookFn),
       std::move(getCanonicalizationPatternsFn),
-      std::move(populateDefaultAttrsFn)));
+      std::move(populateDefaultAttrsFn), isTerminator));
 }
 
 //===----------------------------------------------------------------------===//
