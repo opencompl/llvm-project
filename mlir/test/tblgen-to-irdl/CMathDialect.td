@@ -21,6 +21,7 @@ def f32Orf64Type : Or<[CPred<"::llvm::isa<::mlir::F32>">,
 
 def CMath_ComplexType : CMath_Type<"ComplexType", "complex"> {
   let parameters = (ins f32Orf64Type:$elementType);
+  let assemblyFormat = "`<` $elementType `>`";
 }
 
 // CHECK:      irdl.operation @identity {
