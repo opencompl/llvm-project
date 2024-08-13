@@ -42,6 +42,23 @@ llvm::cl::opt<std::string>
 Value createPredicate(OpBuilder &builder, tblgen::Pred pred) {
   MLIRContext *ctx = builder.getContext();
 
+  const Record &predRec = pred.getDef();
+
+  if (predRec.isSubClassOf("HasAnyRankOfPred")) {
+    auto ranks = predRec.getValueAsListOfInts("ranks");
+    std::vector<Value> constraints;
+
+    for (auto rank : ranks) {
+      auto ty = IntegerType::get(ctx, 32);
+      auto op = builder.create<irdl::HasRankOp>(UnknownLoc::get(ctx),
+                                                IntegerAttr::get(ty, rank));
+      constraints.push_back(op.getOutput());
+    }
+
+    auto op = builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), constraints);
+    return op.getOutput();
+  }
+
   if (pred.isCombined()) {
     auto combiner = pred.getDef().getValueAsDef("kind")->getName();
     if (combiner == "PredCombinerAnd" || combiner == "PredCombinerOr") {
@@ -58,6 +75,18 @@ Value createPredicate(OpBuilder &builder, tblgen::Pred pred) {
           builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), constraints);
       return op.getOutput();
     }
+  }
+
+  if (predRec.getName() == "IsRankedTensorTypePred") {
+    auto op = builder.create<irdl::BaseOp>(
+        UnknownLoc::get(ctx), StringAttr::get(ctx, "!builtin.tensor"));
+    return op.getOutput();
+  }
+
+  if (predRec.getName() == "IsMemRefTypePred") {
+    auto op = builder.create<irdl::BaseOp>(
+        UnknownLoc::get(ctx), StringAttr::get(ctx, "!builtin.memref"));
+    return op.getOutput();
   }
 
   std::string condition = pred.getCondition();
@@ -214,6 +243,21 @@ Value createTypeConstraint(OpBuilder &builder, tblgen::Constraint constraint) {
       constraints.push_back(
           createTypeConstraint(builder, tblgen::Constraint(child)));
     }
+    auto op = builder.create<irdl::AllOfOp>(UnknownLoc::get(ctx), constraints);
+    return op.getOutput();
+  }
+
+  // Shaped types
+  if (predRec.isSubClassOf("ShapedContainerType")) {
+    std::vector<Value> constraints;
+    for (auto *type : predRec.getValueAsListOfDefs("allowedTypeList")) {
+      auto typeConstraint = createTypeConstraint(builder, type);
+      auto op = builder.create<irdl::HasElementTypeOp>(UnknownLoc::get(ctx),
+                                                       typeConstraint);
+      constraints.push_back(op.getOutput());
+    }
+    constraints.push_back(
+        createPredicate(builder, tblgen::Pred(predRec.getValueAsDef("pred"))));
     auto op = builder.create<irdl::AllOfOp>(UnknownLoc::get(ctx), constraints);
     return op.getOutput();
   }

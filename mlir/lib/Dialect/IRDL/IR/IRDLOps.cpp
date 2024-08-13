@@ -38,6 +38,24 @@ std::unique_ptr<Constraint> IsOp::getVerifier(
   return std::make_unique<IsConstraint>(getExpectedAttr());
 }
 
+std::unique_ptr<Constraint> HasElementTypeOp::getVerifier(
+    ArrayRef<Value> valueToConstr,
+    DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> const &types,
+    DenseMap<AttributeOp, std::unique_ptr<DynamicAttrDefinition>> const
+        &attrs) {
+  return std::make_unique<HasElementTypeConstraint>(std::distance(
+      std::find(valueToConstr.begin(), valueToConstr.end(), getOperand()),
+      valueToConstr.begin()));
+}
+
+std::unique_ptr<Constraint> HasRankOp::getVerifier(
+    ArrayRef<Value> valueToConstr,
+    DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> const &types,
+    DenseMap<AttributeOp, std::unique_ptr<DynamicAttrDefinition>> const
+        &attrs) {
+  return std::make_unique<HasRankConstraint>(getRankAttr().getInt());
+}
+
 std::unique_ptr<Constraint> BaseOp::getVerifier(
     ArrayRef<Value> valueToConstr,
     DenseMap<TypeOp, std::unique_ptr<DynamicTypeDefinition>> const &types,

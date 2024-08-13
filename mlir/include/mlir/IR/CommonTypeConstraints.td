@@ -400,18 +400,23 @@ class ShapedContainerType<list<Type> allowedTypes,
                 SubstLeaves<"$_self", "elementType",
                 AnyTypeOf<allowedTypes>.predicate>,
                 "; }(::llvm::cast<::mlir::ShapedType>($_self).getElementType())">]>,
-         descr # " of " # AnyTypeOf<allowedTypes>.summary # " values", cppType>;
+         descr # " of " # AnyTypeOf<allowedTypes>.summary # " values", cppType> {
+    list<Type> allowedTypeList = allowedTypes;
+    Pred pred = containerPred;
+}
 
 // Whether a shaped type is ranked.
 def HasRankPred : CPred<"::llvm::cast<::mlir::ShapedType>($_self).hasRank()">;
 
 // Whether a shaped type has one of the specified ranks.
-class HasAnyRankOfPred<list<int> ranks> : And<[
+class HasAnyRankOfPred<list<int> rankList> : And<[
     HasRankPred,
-    Or<!foreach(rank, ranks,
+    Or<!foreach(rank, rankList,
                 CPred<[{::llvm::cast<::mlir::ShapedType>($_self).getRank()
                          == }]
-                      # rank>)>]>;
+                      # rank>)>]>{
+    list<int> ranks = rankList;
+}
 
 // Whether a shaped type has a rank greater than or equal of the specified rank.
 class HasRankGreaterOrEqualPred<int rank> : And<[

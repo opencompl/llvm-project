@@ -68,6 +68,59 @@ LogicalResult IsConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
 }
 
 LogicalResult
+HasElementTypeConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
+                                 Attribute attr,
+                                 ConstraintVerifier &context) const {
+  auto typeAttr = dyn_cast<TypeAttr>(attr);
+  if (!typeAttr) {
+    if (emitError)
+      return emitError() << "expected type, got attribute '" << attr << "'";
+    return failure();
+  }
+
+  Type type = typeAttr.getValue();
+  auto shapedType = dyn_cast<ShapedType>(type);
+  if (!shapedType) {
+    if (emitError)
+      return emitError() << "expected shaped type, got type '"
+                         << type.getAbstractType().getName() << "'";
+    return failure();
+  }
+
+  return context.verify(emitError, TypeAttr::get(shapedType.getElementType()),
+                        constraint);
+}
+
+LogicalResult
+HasRankConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
+                          Attribute attr, ConstraintVerifier &context) const {
+  auto typeAttr = dyn_cast<TypeAttr>(attr);
+  if (!typeAttr) {
+    if (emitError)
+      return emitError() << "expected type, got attribute '" << attr << "'";
+    return failure();
+  }
+
+  Type type = typeAttr.getValue();
+  auto shapedType = dyn_cast<ShapedType>(type);
+  if (!shapedType) {
+    if (emitError)
+      return emitError() << "expected shaped type, got type '"
+                         << type.getAbstractType().getName() << "'";
+    return failure();
+  }
+
+  if (shapedType.getRank() == rank)
+    return success();
+
+  if (emitError)
+    return emitError() << "expected shaped type of rank " << rank
+                       << " but got '" << type.getAbstractType().getName()
+                       << "' of rank " << shapedType.getRank();
+  return failure();
+}
+
+LogicalResult
 BaseAttrConstraint::verify(function_ref<InFlightDiagnostic()> emitError,
                            Attribute attr, ConstraintVerifier &context) const {
   if (attr.getTypeID() == baseTypeID)

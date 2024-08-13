@@ -249,4 +249,52 @@ irdl.dialect @testd {
       "region" = %r0
     }
   }
+
+  // CHECK: irdl.operation @element_type {
+  // CHECK:   %[[v0:[^ ]*]] = irdl.is i32
+  // CHECK:   %[[v1:[^ ]*]] = irdl.base "!builtin.vector"
+  // CHECK:   %[[v2:[^ ]*]] = irdl.has_element_type %[[v0]]
+  // CHECK:   %[[v3:[^ ]*]] = irdl.all_of(%[[v1]], %[[v2]])
+  // CHECK:   irdl.operands {
+  // CHECK:     "in" = %[[v3]]
+  // CHECK:   }
+  // CHECK:   irdl.results {
+  // CHECK:     "out" = %[[v0]]
+  // CHECK:   }
+  // CHECK: }
+  irdl.operation @element_type {
+    %0 = irdl.is i32
+    %1 = irdl.base "!builtin.vector"
+    %2 = irdl.has_element_type %0
+    %3 = irdl.all_of(%1, %2)
+    irdl.operands {
+      "in" = %3
+    }
+    irdl.results {
+      "out" = %0
+    }
+  }
+
+  // CHECK: irdl.operation @rank {
+  // CHECK:   %[[v0:[^ ]*]] = irdl.base "!builtin.tensor"
+  // CHECK:   %[[v1:[^ ]*]] = irdl.has_rank 2
+  // CHECK:   %[[v2:[^ ]*]] = irdl.all_of(%[[v0]], %[[v1]])
+  // CHECK:   irdl.operands {
+  // CHECK:     "in" = %[[v2]]
+  // CHECK:   }
+  // CHECK:   irdl.results {
+  // CHECK:     "out" = %[[v2]]
+  // CHECK:   }
+  // CHECK: }
+  irdl.operation @rank {
+    %0 = irdl.base "!builtin.tensor"
+    %1 = irdl.has_rank 2
+    %2 = irdl.all_of(%0, %1)
+    irdl.operands {
+      "in" = %2
+    }
+    irdl.results {
+      "out" = %2
+    }
+  }
 }

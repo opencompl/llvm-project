@@ -135,6 +135,23 @@ def Test_RegionsOp : Test_Op<"regions"> {
 // CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
+// Check tensor type is converted correctly.
+def Test_TensorOp : Test_Op<"tensor"> {
+  let arguments = (ins 2DTensorOf<[F32]>:$tensor);
+}
+// CHECK-LABEL: irdl.operation @tensor {
+// CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.is f32
+// CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.has_element_type %[[v0]]
+// CHECK-NEXT:    %[[v2:[^ ]*]] = irdl.base "!builtin.tensor"
+// CHECK-NEXT:    %[[v3:[^ ]*]] = irdl.has_rank 2
+// CHECK-NEXT:    %[[v4:[^ ]*]] = irdl.any_of(%[[v3]])
+// CHECK-NEXT:    %[[v5:[^ ]*]] = irdl.all_of(%[[v2]], %[[v4]])
+// CHECK-NEXT:    %[[v6:[^ ]*]] = irdl.all_of(%[[v1]], %[[v5]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "tensor" = %[[v6]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:  }
+
 // Check that various types are converted correctly.
 def Test_TypesOp : Test_Op<"types"> {
   let arguments = (ins I32:$a,

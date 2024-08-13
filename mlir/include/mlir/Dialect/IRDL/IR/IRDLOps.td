@@ -458,6 +458,69 @@ def IRDL_IsOp : IRDL_ConstraintOp<"is",
   let assemblyFormat = " $expected ` ` attr-dict ";
 }
 
+def IRDL_HasElementTypeOp : IRDL_ConstraintOp<"has_element_type",
+    [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>, Pure]> {
+    let summary = "Constraints the element type of a shaped type";
+    let description = [{
+      `irdl.has_element_type` defines a constraint that accepts shaped types
+      with a given element type (obtained via `ShapedType::getElementType`).
+
+      Example:
+
+      ```mlir
+      irdl.dialect @example {
+        irdl.operation @sum_vector {
+          %0 = irdl.is i32
+          %1 = irdl.base "!builtin.vector"
+          %2 = irdl.has_element_type %0
+          %3 = irdl.all_of(%1, %2)
+          irdl.operands(%3)
+          irdl.results(%0)
+        }
+      }
+      ```
+
+      The above program defines an operation which accepts a vector with i32
+      element (but arbitrary size).
+    }];
+
+    let arguments = (ins IRDL_AttributeType:$element_type);
+    let results = (outs IRDL_AttributeType:$output);
+    let assemblyFormat = " $element_type ` ` attr-dict";
+}
+
+def IRDL_HasRankOp : IRDL_ConstraintOp<"has_rank",
+    [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>, Pure]> {
+    let summary = "Constraints the rank of a shaped type";
+    let description = [{
+      `irdl.has_rank` defines a constraint that accepts shaped types
+      with a given rank (obtained via `ShapedType::getRank`).
+
+      Example:
+
+      ```mlir
+      irdl.dialect @example {
+        irdl.operation @dot {
+          %0 = irdl.is f32
+          %1 = irdl.base "!builtin.vector"
+          %2 = irdl.has_element_type %0
+          %3 = irdl.has_rank 1
+          %4 = irdl.all_of(%1, %2, %3)
+          irdl.operands(%4, %4)
+          irdl.results(%0)
+        }
+      }
+      ```
+
+      The above program defines an operation which accepts two rank 1 vectors
+      with f32 elements.
+    }];
+
+    let arguments = (ins I32Attr:$rank);
+    let results = (outs IRDL_AttributeType:$output);
+    let assemblyFormat = " $rank ` ` attr-dict";
+}
+
 def IRDL_BaseOp : IRDL_ConstraintOp<"base",
     [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>,
      DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {

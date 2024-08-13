@@ -101,6 +101,37 @@ private:
   Attribute expectedAttribute;
 };
 
+/// A constraint that checks that a type is a shaped type with given element
+/// type.
+class HasElementTypeConstraint : public Constraint {
+public:
+  HasElementTypeConstraint(unsigned constraint) : constraint(constraint) {}
+
+  virtual ~HasElementTypeConstraint() = default;
+
+  LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                       Attribute attr,
+                       ConstraintVerifier &context) const override;
+
+private:
+  unsigned constraint;
+};
+
+/// A constraint that checks that a type is a shaped type with given rank.
+class HasRankConstraint : public Constraint {
+public:
+  HasRankConstraint(int64_t rank) : rank(rank) {}
+
+  virtual ~HasRankConstraint() = default;
+
+  LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                       Attribute attr,
+                       ConstraintVerifier &context) const override;
+
+private:
+  int64_t rank;
+};
+
 /// A constraint that checks that an attribute is of a given attribute base
 /// (e.g. IntegerAttr).
 class BaseAttrConstraint : public Constraint {
