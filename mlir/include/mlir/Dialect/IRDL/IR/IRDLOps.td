@@ -220,6 +220,26 @@ def IRDL_SummaryOp : IRDL_Op<"summary", [ParentOneOf<["TypeOp", "AttributeOp", "
   let assemblyFormat = "$summary_text attr-dict";
 }
 
+def IRDL_AssemblyFormatOp : IRDL_Op<"assembly_format", [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>]> {
+  let summary = "Define the assembly format for an operation/type/attribute";
+  let description = [{
+    `irdl.assembly_format` defines the assembly format of the parent operation,
+    attribute, or type.
+
+    Example:
+    ```mlir
+    irdl.dialect @example {
+       irdl.type @test {
+         irdl.assembly_format "attr-dict"
+       }
+    }
+    ```
+  }];
+
+  let arguments = (ins StrAttr:$assembly_format);
+  let assemblyFormat = "$assembly_format attr-dict";
+}
+
 def IRDL_OperandsOp : IRDL_Op<"operands", [HasParent<"OperationOp">]> {
   let summary = "Define the operands of an operation";
   let description = [{

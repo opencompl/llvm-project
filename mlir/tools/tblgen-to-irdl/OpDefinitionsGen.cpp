@@ -523,6 +523,10 @@ irdl::OperationOp createIRDLOperation(OpBuilder &builder,
     consBuilder.create<irdl::SummaryOp>(
         UnknownLoc::get(ctx),
         StringAttr::get(ctx, tblgenOp.getSummary().trim()));
+  if (tblgenOp.hasAssemblyFormat())
+    consBuilder.create<irdl::AssemblyFormatOp>(
+        UnknownLoc::get(ctx),
+        StringAttr::get(ctx, tblgenOp.getAssemblyFormat().trim()));
 
   return op;
 }
@@ -545,6 +549,12 @@ irdl::TypeOp createIRDLType(OpBuilder &builder, tblgen::TypeDef &tblgenType) {
           UnknownLoc::get(ctx), StringAttr::get(ctx, tblgenType.getSummary()));
   }
 
+  auto assemblyFormat = tblgenType.getAssemblyFormat();
+  if (assemblyFormat.has_value())
+    consBuilder.create<irdl::AssemblyFormatOp>(
+        UnknownLoc::get(ctx),
+        StringAttr::get(ctx, assemblyFormat.value().trim()));
+
   return op;
 }
 
@@ -566,6 +576,12 @@ irdl::AttributeOp createIRDLAttr(OpBuilder &builder,
       consBuilder.create<irdl::SummaryOp>(
           UnknownLoc::get(ctx), StringAttr::get(ctx, tblgenAttr.getSummary()));
   }
+
+  auto assemblyFormat = tblgenAttr.getAssemblyFormat();
+  if (assemblyFormat.has_value())
+    consBuilder.create<irdl::AssemblyFormatOp>(
+        UnknownLoc::get(ctx),
+        StringAttr::get(ctx, assemblyFormat.value().trim()));
 
   return op;
 }
