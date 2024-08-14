@@ -297,4 +297,11 @@ irdl.dialect @testd {
       "out" = %2
     }
   }
+
+  // CHECK: irdl.operation @summary {
+  // CHECK:   irdl.summary "This operation has a summary"
+  // CHECK: }
+  irdl.operation @summary {
+    irdl.summary "This operation has a summary"
+  }
 }

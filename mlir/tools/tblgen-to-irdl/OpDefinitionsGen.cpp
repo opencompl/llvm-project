@@ -519,6 +519,10 @@ irdl::OperationOp createIRDLOperation(OpBuilder &builder,
     consBuilder.create<irdl::RegionsOp>(UnknownLoc::get(ctx), regions,
                                         ArrayAttr::get(ctx, regionNames),
                                         regionVariadicity);
+  if (tblgenOp.hasSummary())
+    consBuilder.create<irdl::SummaryOp>(
+        UnknownLoc::get(ctx),
+        StringAttr::get(ctx, tblgenOp.getSummary().trim()));
 
   return op;
 }
@@ -531,7 +535,15 @@ irdl::TypeOp createIRDLType(OpBuilder &builder, tblgen::TypeDef &tblgenType) {
   irdl::TypeOp op = builder.create<irdl::TypeOp>(
       UnknownLoc::get(ctx), StringAttr::get(ctx, combined));
 
-  op.getBody().emplaceBlock();
+  Block &opBlock = op.getBody().emplaceBlock();
+  OpBuilder consBuilder = OpBuilder::atBlockBegin(&opBlock);
+
+  if (tblgenType.hasSummary()) {
+    auto summary = tblgenType.getSummary().trim();
+    if (!summary.empty())
+      consBuilder.create<irdl::SummaryOp>(
+          UnknownLoc::get(ctx), StringAttr::get(ctx, tblgenType.getSummary()));
+  }
 
   return op;
 }
@@ -545,7 +557,15 @@ irdl::AttributeOp createIRDLAttr(OpBuilder &builder,
   irdl::AttributeOp op = builder.create<irdl::AttributeOp>(
       UnknownLoc::get(ctx), StringAttr::get(ctx, combined));
 
-  op.getBody().emplaceBlock();
+  Block &opBlock = op.getBody().emplaceBlock();
+  OpBuilder consBuilder = OpBuilder::atBlockBegin(&opBlock);
+
+  if (tblgenAttr.hasSummary()) {
+    auto summary = tblgenAttr.getSummary().trim();
+    if (!summary.empty())
+      consBuilder.create<irdl::SummaryOp>(
+          UnknownLoc::get(ctx), StringAttr::get(ctx, tblgenAttr.getSummary()));
+  }
 
   return op;
 }

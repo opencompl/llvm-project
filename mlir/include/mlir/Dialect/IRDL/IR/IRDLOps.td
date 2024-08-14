@@ -200,6 +200,26 @@ def IRDL_OperationOp : IRDL_Op<"operation",
     "$sym_name attr-dict-with-keyword custom<SingleBlockRegion>($body)";
 }
 
+def IRDL_SummaryOp : IRDL_Op<"summary", [ParentOneOf<["TypeOp", "AttributeOp", "OperationOp"]>]> {
+  let summary = "Define the summary for an operation/type/attribute";
+  let description = [{
+    `irdl.summary` defines the summary of the parent operation, attribute, or
+    type.
+
+    Example:
+    ```mlir
+    irdl.dialect @example {
+       irdl.type @test {
+         irdl.summary "A test type to demonstrate the summary field"
+       }
+    }
+    ```
+  }];
+
+  let arguments = (ins StrAttr:$summary_text);
+  let assemblyFormat = "$summary_text attr-dict";
+}
+
 def IRDL_OperandsOp : IRDL_Op<"operands", [HasParent<"OperationOp">]> {
   let summary = "Define the operands of an operation";
   let description = [{

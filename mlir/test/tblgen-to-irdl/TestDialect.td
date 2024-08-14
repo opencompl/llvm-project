@@ -135,6 +135,14 @@ def Test_RegionsOp : Test_Op<"regions"> {
 // CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
+// Check summary converts correctly.
+def Test_Summary : Test_Op<"summary"> {
+  let summary = "This operation has a summary.";
+}
+// CHECK-LABEL: irdl.operation @summary {
+// CHECK-NEXT:    irdl.summary "This operation has a summary."
+// CHECK-NEXT:  }
+
 // Check tensor type is converted correctly.
 def Test_TensorOp : Test_Op<"tensor"> {
   let arguments = (ins 2DTensorOf<[F32]>:$tensor);
