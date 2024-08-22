@@ -412,8 +412,11 @@ def IRDL_RegionsOp : IRDL_Op<"regions", [HasParent<"OperationOp">]> {
     The second region should have one region with one argument.
   }];
 
-  let arguments = (ins Variadic<IRDL_RegionType>:$args);
-  let assemblyFormat = " `(` $args `)` attr-dict ";
+  let arguments = (ins Variadic<IRDL_RegionType>:$args,
+                       VariadicityArrayAttr:$variadicity);
+  let assemblyFormat = " `` custom<ValuesWithVariadicity>($args, $variadicity) attr-dict";
+
+  let hasVerifier = true;
 }
 
 //===----------------------------------------------------------------------===//

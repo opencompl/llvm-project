@@ -124,6 +124,18 @@ LogicalResult AttributesOp::verify() {
   return success();
 }
 
+LogicalResult RegionsOp::verify() {
+  size_t numRegions = getArgs().size();
+  size_t numVariadicities = getVariadicity().size();
+  if (numVariadicities != numRegions)
+    return emitOpError()
+           << "the number of regions and their variadicities must be "
+              "the same, but got "
+           << numRegions << " and " << numVariadicities << " respectively";
+
+  return success();
+}
+
 LogicalResult BaseOp::verify() {
   std::optional<StringRef> baseName = getBaseName();
   std::optional<SymbolRefAttr> baseRef = getBaseRef();

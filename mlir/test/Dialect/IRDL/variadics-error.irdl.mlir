@@ -78,3 +78,27 @@ irdl.dialect @errors {
   }
 }
 
+// -----
+
+irdl.dialect @errors {
+  irdl.operation @region1 {
+    %0 = irdl.region
+    %1 = irdl.region
+
+    // expected-error@+1 {{'irdl.regions' op the number of regions and their variadicities must be the same, but got 2 and 1 respectively}}
+    "irdl.regions"(%0, %1) <{variadicity = #irdl<variadicity_array[ single]>}> : (!irdl.region, !irdl.region) -> ()
+  }
+}
+
+// -----
+
+irdl.dialect @errors {
+  irdl.operation @region2 {
+    %0 = irdl.region
+    %1 = irdl.region
+
+    // expected-error@+1 {{'irdl.regions' op the number of regions and their variadicities must be the same, but got 1 and 2 respectively}}
+    "irdl.regions"(%0) <{variadicity = #irdl<variadicity_array[ single, single]>}> : (!irdl.region) -> ()
+  }
+}
+

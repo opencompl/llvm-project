@@ -116,4 +116,15 @@ irdl.dialect @testvar {
       "single_no_word" = %2
     }
   }
+
+  // CHECK-LABEL: irdl.operation @var_region {
+  // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.region
+  // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.region
+  // CHECK-NEXT:    irdl.regions(variadic %[[v0]], %[[v1]])
+  // CHECK-NEXT:  }
+  irdl.operation @var_region {
+    %0 = irdl.region
+    %1 = irdl.region
+    irdl.regions(variadic %0, %1)
+  }
 }

@@ -437,9 +437,18 @@ irdl::OperationOp createIRDLOperation(OpBuilder &builder,
   }
 
   SmallVector<Value> regions;
+  SmallVector<irdl::VariadicityAttr> regionVariadicity;
   for (auto namedRegion : tblgenOp.getRegions()) {
+    irdl::VariadicityAttr var;
+    if (namedRegion.isVariadic())
+      var = consBuilder.getAttr<irdl::VariadicityAttr>(
+          irdl::Variadicity::variadic);
+    else
+      var =
+          consBuilder.getAttr<irdl::VariadicityAttr>(irdl::Variadicity::single);
     regions.push_back(
         createRegionConstraint(consBuilder, namedRegion.constraint));
+    regionVariadicity.push_back(var);
   }
 
   // Create the operands and results operations.
@@ -450,11 +459,12 @@ irdl::OperationOp createIRDLOperation(OpBuilder &builder,
     consBuilder.create<irdl::ResultsOp>(UnknownLoc::get(ctx), results,
                                         resultVariadicity);
   if (!attributes.empty())
-    consBuilder.create<irdl::AttributesOp>(
-        UnknownLoc::get(ctx), attributes, ArrayAttr::get(ctx, attrNames),
-        irdl::VariadicityArrayAttr::get(ctx, attrVariadicity));
+    consBuilder.create<irdl::AttributesOp>(UnknownLoc::get(ctx), attributes,
+                                           ArrayAttr::get(ctx, attrNames),
+                                           attrVariadicity);
   if (!regions.empty())
-    consBuilder.create<irdl::RegionsOp>(UnknownLoc::get(ctx), regions);
+    consBuilder.create<irdl::RegionsOp>(UnknownLoc::get(ctx), regions,
+                                        regionVariadicity);
 
   return op;
 }
