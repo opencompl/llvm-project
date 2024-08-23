@@ -27,7 +27,9 @@ def CMath_ComplexType : CMath_Type<"ComplexType", "complex"> {
 
 // CHECK:      irdl.operation @identity {
 // CHECK-NEXT:   %0 = irdl.base @cmath::@"!complex"
-// CHECK-NEXT:   irdl.results(%0)
+// CHECK-NEXT:   irdl.results {
+// CHECK-NEXT:     "out" = %0
+// CHECK-NEXT:   }
 // CHECK-NEXT: }
 def CMath_IdentityOp : CMath_Op<"identity"> {
   let results = (outs CMath_ComplexType:$out);
@@ -37,8 +39,13 @@ def CMath_IdentityOp : CMath_Op<"identity"> {
 // CHECK-NEXT:   %0 = irdl.base @cmath::@"!complex"
 // CHECK-NEXT:   %1 = irdl.base @cmath::@"!complex"
 // CHECK-NEXT:   %2 = irdl.base @cmath::@"!complex"
-// CHECK-NEXT:   irdl.operands(%0, %1)
-// CHECK-NEXT:   irdl.results(%2)
+// CHECK-NEXT:   irdl.operands {
+// CHECK-NEXT:     "in1" = %0,
+// CHECK-NEXT:     "in2" = %1
+// CHECK-NEXT:   }
+// CHECK-NEXT:   irdl.results {
+// CHECK-NEXT:     "out" = %2
+// CHECK-NEXT:   }
 // CHECK-NEXT: }
 def CMath_MulOp : CMath_Op<"mul"> {
   let arguments = (ins CMath_ComplexType:$in1, CMath_ComplexType:$in2);
@@ -48,8 +55,12 @@ def CMath_MulOp : CMath_Op<"mul"> {
 // CHECK:      irdl.operation @norm {
 // CHECK-NEXT:   %0 = irdl.any
 // CHECK-NEXT:   %1 = irdl.base @cmath::@"!complex"
-// CHECK-NEXT:   irdl.operands(%0)
-// CHECK-NEXT:   irdl.results(%1)
+// CHECK-NEXT:   irdl.operands {
+// CHECK-NEXT:     "in" = %0
+// CHECK-NEXT:   }
+// CHECK-NEXT:   irdl.results {
+// CHECK-NEXT:     "out" = %1
+// CHECK-NEXT:   }
 // CHECK-NEXT: }
 def CMath_NormOp : CMath_Op<"norm"> {
   let arguments = (ins AnyType:$in);

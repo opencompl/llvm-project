@@ -17,13 +17,17 @@ const char irdlDialect[] = "\
   irdl.dialect @foo {\
     irdl.operation @op {\
       %i32 = irdl.is i32\
-      irdl.results(%i32)\
+      irdl.results {\
+        \"out\" = %i32\
+      }\
     }\
   }\
   irdl.dialect @bar {\
     irdl.operation @op {\
       %i32 = irdl.is i32\
-      irdl.operands(%i32)\
+      irdl.operands {\
+        \"in\" = %i32\
+      }\
     }\
   }";
 

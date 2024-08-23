@@ -79,6 +79,7 @@ LogicalResult DialectOp::verify() {
 }
 
 LogicalResult OperandsOp::verify() {
+  size_t numNames = getOperandNames().size();
   size_t numVariadicities = getVariadicity().size();
   size_t numOperands = getNumOperands();
 
@@ -88,43 +89,57 @@ LogicalResult OperandsOp::verify() {
               "the same, but got "
            << numOperands << " and " << numVariadicities << " respectively";
 
+  if (numNames != numOperands)
+    return emitOpError()
+           << "the number of operand names and their constraints must be "
+              "the same, but got "
+           << numNames << " and " << numOperands << " respectively";
+
   return success();
 }
 
 LogicalResult ResultsOp::verify() {
+  size_t numNames = getResultNames().size();
   size_t numVariadicities = getVariadicity().size();
-  size_t numOperands = this->getNumOperands();
+  size_t numResults = this->getNumOperands();
 
-  if (numOperands != numVariadicities)
+  if (numResults != numVariadicities)
     return emitOpError()
-           << "the number of operands and their variadicities must be "
+           << "the number of results and their variadicities must be "
               "the same, but got "
-           << numOperands << " and " << numVariadicities << " respectively";
+           << numResults << " and " << numVariadicities << " respectively";
+
+  if (numNames != numResults)
+    return emitOpError()
+           << "the number of result names and their constraints must be "
+              "the same, but got "
+           << numNames << " and " << numResults << " respectively";
 
   return success();
 }
 
 LogicalResult AttributesOp::verify() {
-  size_t namesSize = getAttributeValueNames().size();
-  size_t valuesSize = getAttributeValues().size();
+  size_t numNames = getAttributeValueNames().size();
+  size_t numAttrs = getAttributeValues().size();
   size_t numVariadicities = getVariadicity().size();
 
-  if (numVariadicities != valuesSize)
+  if (numVariadicities != numAttrs)
     return emitOpError()
            << "the number of attributes and their variadicities must be "
               "the same, but got "
-           << valuesSize << " and " << numVariadicities << " respectively";
+           << numAttrs << " and " << numVariadicities << " respectively";
 
-  if (namesSize != valuesSize)
+  if (numNames != numAttrs)
     return emitOpError()
            << "the number of attribute names and their constraints must be "
               "the same, but got "
-           << namesSize << " and " << valuesSize << " respectively";
+           << numNames << " and " << numAttrs << " respectively";
 
   return success();
 }
 
 LogicalResult RegionsOp::verify() {
+  size_t numNames = getRegionNames().size();
   size_t numRegions = getArgs().size();
   size_t numVariadicities = getVariadicity().size();
   if (numVariadicities != numRegions)
@@ -132,6 +147,12 @@ LogicalResult RegionsOp::verify() {
            << "the number of regions and their variadicities must be "
               "the same, but got "
            << numRegions << " and " << numVariadicities << " respectively";
+
+  if (numNames != numRegions)
+    return emitOpError()
+           << "the number of attribute names and their constraints must be "
+              "the same, but got "
+           << numNames << " and " << numRegions << " respectively";
 
   return success();
 }
@@ -215,61 +236,10 @@ parseValueWithVariadicity(OpAsmParser &p,
   return success();
 }
 
-/// Parse a list of values with their variadicities first. By default, the
-/// variadicity is single.
-///
-/// values-with-variadicity ::=
-///   `(` (value-with-variadicity (`,` value-with-variadicity)*)? `)`
-/// value-with-variadicity ::= ("single" | "optional" | "variadic")? ssa-value
-static ParseResult parseValuesWithVariadicity(
-    OpAsmParser &p, SmallVectorImpl<OpAsmParser::UnresolvedOperand> &operands,
-    VariadicityArrayAttr &variadicityAttr) {
-  Builder &builder = p.getBuilder();
-  MLIRContext *ctx = builder.getContext();
-  SmallVector<VariadicityAttr> variadicities;
-
-  // Parse a single value with its variadicity
-  auto parseOne = [&] {
-    OpAsmParser::UnresolvedOperand operand;
-    VariadicityAttr variadicity;
-    if (parseValueWithVariadicity(p, operand, variadicity))
-      return failure();
-    operands.push_back(operand);
-    variadicities.push_back(variadicity);
-    return success();
-  };
-
-  if (p.parseCommaSeparatedList(OpAsmParser::Delimiter::Paren, parseOne))
-    return failure();
-  variadicityAttr = VariadicityArrayAttr::get(ctx, variadicities);
-  return success();
-}
-
-/// Print a list of values with their variadicities first. By default, the
-/// variadicity is single.
-///
-/// values-with-variadicity ::=
-///   `(` (value-with-variadicity (`,` value-with-variadicity)*)? `)`
-/// value-with-variadicity ::= ("single" | "optional" | "variadic")? ssa-value
-static void printValuesWithVariadicity(OpAsmPrinter &p, Operation *op,
-                                       OperandRange operands,
-                                       VariadicityArrayAttr variadicityAttr) {
-  p << "(";
-  interleaveComma(llvm::seq<int>(0, operands.size()), p, [&](int i) {
-    Variadicity variadicity = variadicityAttr[i].getValue();
-    if (variadicity != Variadicity::single) {
-      p << stringifyVariadicity(variadicity) << " ";
-    }
-    p << operands[i];
-  });
-  p << ")";
-}
-
-static ParseResult
-parseAttributesOp(OpAsmParser &p,
-                  SmallVectorImpl<OpAsmParser::UnresolvedOperand> &attrOperands,
-                  ArrayAttr &attrNamesAttr,
-                  VariadicityArrayAttr &variadicityAttr) {
+static ParseResult parseNamedValuesWithVariadicity(
+    OpAsmParser &p,
+    SmallVectorImpl<OpAsmParser::UnresolvedOperand> &attrOperands,
+    ArrayAttr &attrNamesAttr, VariadicityArrayAttr &variadicityAttr) {
   Builder &builder = p.getBuilder();
   MLIRContext *ctx = builder.getContext();
   SmallVector<Attribute> attrNames;
@@ -291,19 +261,30 @@ parseAttributesOp(OpAsmParser &p,
   return success();
 }
 
-static void printAttributesOp(OpAsmPrinter &p, AttributesOp op,
-                              OperandRange attrArgs, ArrayAttr attrNames,
-                              VariadicityArrayAttr variadicityAttr) {
+static void
+printNamedValuesWithVariadicity(OpAsmPrinter &p, Operation *op,
+                                OperandRange attrArgs, ArrayAttr attrNames,
+                                VariadicityArrayAttr variadicityAttr) {
   if (attrNames.empty())
     return;
   p << "{";
-  interleaveComma(llvm::seq<int>(0, attrNames.size()), p, [&](int i) {
-    Variadicity variadicity = variadicityAttr[i].getValue();
-    p << attrNames[i] << " = ";
-    if (variadicity != Variadicity::single)
-      p << stringifyVariadicity(variadicity) << " ";
-    p << attrArgs[i];
-  });
+  p.increaseIndent();
+  p.printNewline();
+  interleave(
+      llvm::seq<int>(0, attrNames.size()),
+      [&](int i) {
+        Variadicity variadicity = variadicityAttr[i].getValue();
+        p << attrNames[i] << " = ";
+        if (variadicity != Variadicity::single)
+          p << stringifyVariadicity(variadicity) << " ";
+        p << attrArgs[i];
+      },
+      [&] {
+        p << ",";
+        p.printNewline();
+      });
+  p.decreaseIndent();
+  p.printNewline();
   p << '}';
 }
 

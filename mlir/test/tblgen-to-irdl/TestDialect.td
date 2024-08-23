@@ -38,7 +38,9 @@ def Test_AndOp : Test_Op<"and"> {
 // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.base @test::@"!singleton_a"
 // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.any
 // CHECK-NEXT:    %[[v2:[^ ]*]] = irdl.all_of(%[[v0]], %[[v1]])
-// CHECK-NEXT:    irdl.operands(%[[v2]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "in" = %[[v2]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 
@@ -48,7 +50,9 @@ def Test_AnyOp : Test_Op<"any"> {
 }
 // CHECK-LABEL: irdl.operation @any {
 // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.any
-// CHECK-NEXT:    irdl.operands(%[[v0]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "in" = %[[v0]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check attributes are converted correctly.
@@ -59,7 +63,10 @@ def Test_AttributesOp : Test_Op<"attributes"> {
 // CHECK-LABEL: irdl.operation @attributes {
 // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.base "!builtin.integer"
 // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.base @test::@"#test"
-// CHECK-NEXT:    irdl.attributes {"int_attr" = %[[v0]], "test_attr" = %[[v1]]}
+// CHECK-NEXT:    irdl.attributes {
+// CHECK-NEXT:      "int_attr" = %[[v0]],
+// CHECK-NEXT:      "test_attr" = %[[v1]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check confined types are converted correctly.
@@ -77,7 +84,10 @@ def Test_ConfinedOp : Test_Op<"confined"> {
 // CHECK-NEXT:    %[[v5:[^ ]*]] = irdl.c_pred "(::llvm::cast<::mlir::VectorType>($_self).getRank() > 0)"
 // CHECK-NEXT:    %[[v6:[^ ]*]] = irdl.all_of(%[[v4]], %[[v5]])
 // CHECK-NEXT:    %[[v7:[^ ]*]] = irdl.all_of(%[[v3]], %[[v6]])
-// CHECK-NEXT:    irdl.operands(%[[v2]], %[[v7]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "tensor" = %[[v2]],
+// CHECK-NEXT:      "vector" = %[[v7]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check generic integer types are converted correctly.
@@ -91,7 +101,10 @@ def Test_Integers : Test_Op<"integers"> {
 // CHECK-NEXT:    %[[v2:[^ ]*]] = irdl.is ui8
 // CHECK-NEXT:    %[[v3:[^ ]*]] = irdl.any_of(%[[v0]], %[[v1]], %[[v2]])
 // CHECK-NEXT:    %[[v4:[^ ]*]] = irdl.base "!builtin.integer"
-// CHECK-NEXT:    irdl.operands(%[[v3]], %[[v4]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "any_int" = %[[v3]],
+// CHECK-NEXT:      "any_integer" = %[[v4]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check that AnyTypeOf is converted correctly.
@@ -103,7 +116,9 @@ def Test_OrOp : Test_Op<"or"> {
 // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.base @test::@"!singleton_b"
 // CHECK-NEXT:    %[[v2:[^ ]*]] = irdl.base @test::@"!singleton_c"
 // CHECK-NEXT:    %[[v3:[^ ]*]] = irdl.any_of(%[[v0]], %[[v1]], %[[v2]])
-// CHECK-NEXT:    irdl.operands(%[[v3]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "in" = %[[v3]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check regions are converted correctly.
@@ -114,7 +129,10 @@ def Test_RegionsOp : Test_Op<"regions"> {
 // CHECK-LABEL: irdl.operation @regions {
 // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.region
 // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.region with size 1
-// CHECK-NEXT:    irdl.regions(%[[v0]], %[[v1]])
+// CHECK-NEXT:    irdl.regions {
+// CHECK-NEXT:      "any_region" = %[[v0]],
+// CHECK-NEXT:      "single_block_region" = %[[v1]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }
 
 // Check that various types are converted correctly.
@@ -135,8 +153,6 @@ def Test_TypesOp : Test_Op<"types"> {
 // CHECK-NEXT:    %{{.*}} = irdl.is f32
 // CHECK-NEXT:    %{{.*}} = irdl.is none
 // CHECK-NEXT:    %{{.*}} = irdl.is complex<f8E4M3FN>
-// CHECK-NEXT:    irdl.operands({{.*}})
-// CHECK-NEXT:  }
 
 // Check that variadics and optionals are converted correctly.
 def Test_VariadicityOp : Test_Op<"variadicity"> {
@@ -148,5 +164,9 @@ def Test_VariadicityOp : Test_Op<"variadicity"> {
 // CHECK-NEXT:    %[[v0:[^ ]*]] = irdl.base @test::@"!singleton_a"
 // CHECK-NEXT:    %[[v1:[^ ]*]] = irdl.base @test::@"!singleton_b"
 // CHECK-NEXT:    %[[v2:[^ ]*]] = irdl.base @test::@"!singleton_c"
-// CHECK-NEXT:    irdl.operands(variadic %[[v0]], optional %[[v1]], %[[v2]])
+// CHECK-NEXT:    irdl.operands {
+// CHECK-NEXT:      "variadic" = variadic %[[v0]],
+// CHECK-NEXT:      "optional" = optional %[[v1]],
+// CHECK-NEXT:      "required" = %[[v2]]
+// CHECK-NEXT:    }
 // CHECK-NEXT:  }

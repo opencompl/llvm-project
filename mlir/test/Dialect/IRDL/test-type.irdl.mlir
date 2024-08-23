@@ -23,11 +23,15 @@ module {
 
     // CHECK: irdl.operation @any {
     // CHECK:   %[[v0:[^ ]*]] = irdl.any
-    // CHECK:   irdl.results(%[[v0]])
+    // CHECK:   irdl.results {
+    // CHECK:     "in" = %[[v0]]
+    // CHECK:   }
     // CHECK: }
     irdl.operation @any {
       %0 = irdl.any
-      irdl.results(%0)
+      irdl.results {
+        "in" = %0
+      }
     }
   }
 }

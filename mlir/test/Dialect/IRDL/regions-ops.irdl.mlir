@@ -13,7 +13,9 @@ irdl.dialect @testRegionsOpWrongOperation {
     irdl.operation @op {
         // expected-note @below {{prior use here}}
         %r1 = irdl.any
-        // expected-error @below {{use of value '%r1' expects different type than prior uses: '!irdl.region' vs '!irdl.attribute'}}
-        irdl.regions(%r1)
+	irdl.regions {
+	// expected-error @below {{use of value '%r1' expects different type than prior uses: '!irdl.region' vs '!irdl.attribute'}}
+	  "error" = %r1
+	}
     }
 }

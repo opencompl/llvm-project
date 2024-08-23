@@ -240,9 +240,10 @@ def IRDL_OperandsOp : IRDL_Op<"operands", [HasParent<"OperationOp">]> {
   }];
 
   let arguments = (ins Variadic<IRDL_AttributeType>:$args,
-                        VariadicityArrayAttr:$variadicity);
+                       StrArrayAttr:$operandNames,
+                       VariadicityArrayAttr:$variadicity);
   let assemblyFormat =
-    "`` custom<ValuesWithVariadicity>($args, $variadicity) attr-dict";
+    "custom<NamedValuesWithVariadicity>($args, $operandNames,$variadicity) attr-dict";
   let hasVerifier = true;
 }
 
@@ -286,9 +287,10 @@ def IRDL_ResultsOp : IRDL_Op<"results", [HasParent<"OperationOp">]> {
   }];
 
   let arguments = (ins Variadic<IRDL_AttributeType>:$args,
-                        VariadicityArrayAttr:$variadicity);
+                       StrArrayAttr:$resultNames,
+                       VariadicityArrayAttr:$variadicity);
   let assemblyFormat =
-    " `` custom<ValuesWithVariadicity>($args, $variadicity) attr-dict";
+    "custom<NamedValuesWithVariadicity>($args, $resultNames, $variadicity) attr-dict";
   let hasVerifier = true;
 }
 
@@ -321,11 +323,10 @@ def IRDL_AttributesOp : IRDL_Op<"attributes", [HasParent<"OperationOp">]> {
   }];
 
   let arguments = (ins Variadic<IRDL_AttributeType>:$attributeValues,
-                        StrArrayAttr:$attributeValueNames,
-                        VariadicityArrayAttr:$variadicity);
-  let assemblyFormat = [{
-    custom<AttributesOp>($attributeValues, $attributeValueNames, $variadicity) attr-dict
-  }];
+                       StrArrayAttr:$attributeValueNames,
+                       VariadicityArrayAttr:$variadicity);
+  let assemblyFormat =
+    "custom<NamedValuesWithVariadicity>($attributeValues, $attributeValueNames, $variadicity) attr-dict";
 
   let hasVerifier = true;
 }
@@ -413,8 +414,10 @@ def IRDL_RegionsOp : IRDL_Op<"regions", [HasParent<"OperationOp">]> {
   }];
 
   let arguments = (ins Variadic<IRDL_RegionType>:$args,
+                       StrArrayAttr:$regionNames,
                        VariadicityArrayAttr:$variadicity);
-  let assemblyFormat = " `` custom<ValuesWithVariadicity>($args, $variadicity) attr-dict";
+  let assemblyFormat =
+    "custom<NamedValuesWithVariadicity>($args, $regionNames, $variadicity) attr-dict";
 
   let hasVerifier = true;
 }

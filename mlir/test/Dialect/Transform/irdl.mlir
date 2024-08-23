@@ -9,7 +9,9 @@ module attributes {transform.with_named_sequence} {
           %0 = irdl.is i32
           %1 = irdl.is i64
           %2 = irdl.any_of(%0, %1)
-          irdl.results(%2)
+          irdl.results {
+	    "in" = %2
+	  }
         }
       }
     }
