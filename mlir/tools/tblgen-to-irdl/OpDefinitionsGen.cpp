@@ -15,6 +15,7 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
@@ -38,6 +39,34 @@ static llvm::cl::OptionCategory dialectGenCat("Options for -gen-irdl-dialect");
 llvm::cl::opt<std::string>
     selectedDialect("dialect", llvm::cl::desc("The dialect to gen for"),
                     llvm::cl::cat(dialectGenCat), llvm::cl::Required);
+
+Value typeToConstraint(OpBuilder &builder, Type type) {
+  MLIRContext *ctx = builder.getContext();
+  auto op =
+      builder.create<irdl::IsOp>(UnknownLoc::get(ctx), TypeAttr::get(type));
+  return op.getOutput();
+}
+
+Value baseToConstraint(OpBuilder &builder, StringRef baseClass) {
+  MLIRContext *ctx = builder.getContext();
+  auto op = builder.create<irdl::BaseOp>(UnknownLoc::get(ctx),
+                                         StringAttr::get(ctx, baseClass));
+  return op.getOutput();
+}
+
+Value getAllFloats(OpBuilder &builder) {
+  MLIRContext *ctx = builder.getContext();
+  SmallVector<Value> values;
+  std::string builtin = "!builtin.";
+  for (const char *x : {"f8E5M2", "f8E4M3", "f8E4M3FN", "f8E5M2FNUZ",
+                        "f8E4M3FNUZ", "f8E4M3B11FNUZ", "f8E3M4", "bf16", "f16",
+                        "tf32", "f32", "f64", "f80", "f128"}) {
+    values.push_back(baseToConstraint(builder, builtin + x));
+  }
+
+  auto op = builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), values);
+  return op.getOutput();
+}
 
 Value createPredicate(OpBuilder &builder, tblgen::Pred pred) {
   MLIRContext *ctx = builder.getContext();
@@ -78,14 +107,34 @@ Value createPredicate(OpBuilder &builder, tblgen::Pred pred) {
   }
 
   if (predRec.getName() == "IsRankedTensorTypePred") {
-    auto op = builder.create<irdl::BaseOp>(
-        UnknownLoc::get(ctx), StringAttr::get(ctx, "!builtin.tensor"));
+    return baseToConstraint(builder, "!builtin.tensor");
+  }
+
+  if (predRec.getName() == "IsUnrankedTensorTypePred") {
+    return baseToConstraint(builder, "!builtin.unranked_tensor");
+  }
+
+  if (predRec.getName() == "IsTensorTypePred") {
+    SmallVector<Value> constraints = {
+        baseToConstraint(builder, "!builtin.tensor"),
+        baseToConstraint(builder, "!builtin.unranked_tensor")};
+    auto op = builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), constraints);
     return op.getOutput();
   }
 
   if (predRec.getName() == "IsMemRefTypePred") {
-    auto op = builder.create<irdl::BaseOp>(
-        UnknownLoc::get(ctx), StringAttr::get(ctx, "!builtin.memref"));
+    return baseToConstraint(builder, "!builtin.memref");
+  }
+
+  if (predRec.getName() == "IsUnrankedMemRefTypePred") {
+    return baseToConstraint(builder, "!builtin.unranked_memref");
+  }
+
+  if (predRec.getName() == "IsBaseMemRefTypePred") {
+    SmallVector<Value> constraints = {
+        baseToConstraint(builder, "!builtin.memref"),
+        baseToConstraint(builder, "!builtin.unranked_memref")};
+    auto op = builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), constraints);
     return op.getOutput();
   }
 
@@ -94,20 +143,6 @@ Value createPredicate(OpBuilder &builder, tblgen::Pred pred) {
   irdl::CPredOp op = builder.create<irdl::CPredOp>(
       UnknownLoc::get(ctx), StringAttr::get(ctx, condition));
   return op;
-}
-
-Value typeToConstraint(OpBuilder &builder, Type type) {
-  MLIRContext *ctx = builder.getContext();
-  auto op =
-      builder.create<irdl::IsOp>(UnknownLoc::get(ctx), TypeAttr::get(type));
-  return op.getOutput();
-}
-
-Value baseToConstraint(OpBuilder &builder, StringRef baseClass) {
-  MLIRContext *ctx = builder.getContext();
-  auto op = builder.create<irdl::BaseOp>(UnknownLoc::get(ctx),
-                                         StringAttr::get(ctx, baseClass));
-  return op.getOutput();
 }
 
 std::optional<Type> recordToType(MLIRContext *ctx, const Record &predRec) {
@@ -262,10 +297,22 @@ Value createTypeConstraint(OpBuilder &builder, tblgen::Constraint constraint) {
     return op.getOutput();
   }
 
-  // Integer types
-  if (predRec.getName() == "AnyInteger") {
-    auto op = builder.create<irdl::BaseOp>(
-        UnknownLoc::get(ctx), StringAttr::get(ctx, "!builtin.integer"));
+  if (predRec.getName() == "AnyFloat") {
+    return getAllFloats(builder);
+  }
+
+  if (predRec.getName() == "AnyInteger" ||
+      predRec.getName() == "AnySignlessInteger" ||
+      predRec.getName() == "AnySignedInteger" ||
+      predRec.getName() == "AnyUnsignedInteger") {
+    return baseToConstraint(builder, "!builtin.integer");
+  }
+
+  if (predRec.getName() == "AnySignlessIntegerOrIndex") {
+    SmallVector<Value> constraints = {
+        baseToConstraint(builder, "!builtin.integer"),
+        typeToConstraint(builder, IndexType::get(ctx))};
+    auto op = builder.create<irdl::AnyOfOp>(UnknownLoc::get(ctx), constraints);
     return op.getOutput();
   }
 
@@ -343,15 +390,19 @@ Value createAttrConstraint(OpBuilder &builder, tblgen::Constraint constraint) {
   }
 
   if (predRec.isSubClassOf("AnyIntegerAttrBase") ||
+      predRec.getName() == "AnySignlessIntegerAttrBase" ||
       predRec.isSubClassOf("SignlessIntegerAttrBase") ||
+      predRec.getName() == "AnySignedIntegerAttrBase" ||
       predRec.isSubClassOf("SignedIntegerAttrBase") ||
+      predRec.getName() == "AnyUnsignedIntegerAttrBase" ||
       predRec.isSubClassOf("UnsignedIntegerAttrBase") ||
-      predRec.isSubClassOf("BoolAttr")) {
+      predRec.getName() == "BoolAttr" || predRec.getName() == "IndexAttr") {
     return baseToConstraint(builder, "!builtin.integer");
   }
 
-  if (predRec.isSubClassOf("FloatAttrBase")) {
-    return baseToConstraint(builder, "!builtin.float");
+  if (predRec.isSubClassOf("FloatAttrBase") ||
+      predRec.getName() == "AnyFloat") {
+    return getAllFloats(builder);
   }
 
   if (predRec.isSubClassOf("StringBasedAttr")) {
