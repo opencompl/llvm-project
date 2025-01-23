@@ -1,16 +1,12 @@
+add_irdl_to_cpp_target(TestIRDLToCppGen test_irdl_to_cpp.irdl.mlir)
+
 add_mlir_library(MLIRTestIRDLToCppDialect
   TestIRDLToCppDialect.cpp
 
   EXCLUDE_FROM_LIBMLIR
 
   DEPENDS
-  MLIRTestAttrDefIncGen
-  MLIRTestEnumDefIncGen
-  MLIRTestInterfaceIncGen
-  MLIRTestTypeDefIncGen
-  MLIRTestOpsIncGen
-  MLIRTestOpsSyntaxIncGen
-  MLIRTestOpsShardGen
+  TestIRDLToCppGen
 
   LINK_LIBS PUBLIC
   MLIRIR
