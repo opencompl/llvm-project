@@ -15,6 +15,8 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include "Templates/TemplatingUtils.h"
+
 using namespace mlir;
 
 constexpr char headerTemplateText[] =
@@ -68,6 +70,10 @@ constexpr char opDefTemplateText[] =
 #include "Templates/OperationDef.txt"
     ;
 
+constexpr auto typeDefTempl = mlir::irdl::detail::process(
+#include "Templates/TypeDefTest.cpp"
+);
+
 namespace {
 
 struct DialectStrings {
@@ -120,11 +126,6 @@ static OpStrings getStrings(irdl::OperationOp op) {
         op.getNames(), [](auto &attr) { return mlir::cast<StringAttr>(attr); });
     return names;
   };
-
-  const auto operandCount = operandOp ? operandOp->getNumOperands() : 0;
-
-  const auto resultCount = resultsOp.getNumOperands();
-  const auto resultAttrArray = getNames(resultsOp);
 
   OpStrings strings;
   strings.opName = op.getSymName();
@@ -290,6 +291,8 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
       dialectStrings.dialectCppName, dialectStrings.namespaceOpen,
       dialectStrings.namespaceClose);
 
+  output << "#endif // " << definitionMacroFlag << "\n";
+
   // get typedef list
   auto &dialectBlock = *dialect.getRegion().getBlocks().begin();
   llvm::SmallVector<std::string> typeNames;
@@ -432,7 +435,6 @@ static void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &od
   output << llvm::formatv(opDefTemplateText, commaSeparatedOpList,
                           perOpDefinitions);
 
-  output << "#endif // " << definitionMacroFlag << "\n";
   return success();
 }
 
@@ -482,6 +484,8 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
   dialectStrings.namespacePath = namespacePath;
 
   output << headerTemplateText;
+
+  llvm::errs() << typeDefTempl.first.data();
 
   if (failed(generateInclude(dialect, output, dialectStrings)))
     return failure();
