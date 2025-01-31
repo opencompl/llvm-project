@@ -1,0 +1,21 @@
+/*
+{0}: Comma-separated op list
+{2}: Per-op definitions
+*/
+
+R"(
+#ifdef GET_OP_LIST
+#undef GET_OP_LIST
+
+{0}
+
+#endif  // GET_OP_LIST
+
+
+#ifdef GET_OP_CLASSES
+#undef GET_OP_CLASSES
+
+{1}
+
+#endif // GET_OP_CLASSES
+)"
