@@ -12,19 +12,20 @@ R"(
 
 __NAMESPACE_OPEN__
 
-{4}
-
-class {1} : public ::mlir::Type::TypeBase<{1}, {3}, ::mlir::TypeStorage> {
+class __TYPE_CPP_NAME__ : public ::mlir::Type::TypeBase<__TYPE_CPP_NAME__, __DIALECT_CPP_NAME__, ::mlir::TypeStorage> {
 public:
   using Base::Base;
-  static constexpr ::llvm::StringLiteral name = "{2}.{0}";
-  static constexpr ::llvm::StringLiteral dialectName = "{2}";
+  static constexpr ::llvm::StringLiteral name = "__DIALECT_NAME__.__TYPE_NAME__";
+  static constexpr ::llvm::StringLiteral dialectName = "__DIALECT_NAME__";
   static constexpr ::llvm::StringLiteral getMnemonic() {
-    return {"{0}"};
+    return {"__TYPE_NAME__"};
   }
 };
 
 __NAMESPACE_CLOSE__
 
-MLIR_DECLARE_EXPLICIT_TYPE_ID({6}::{1})
+MLIR_DECLARE_EXPLICIT_TYPE_ID(__NAMESPACE_PATH__::__TYPE_CPP_NAME__)
+
+
 )"
+

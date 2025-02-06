@@ -73,6 +73,7 @@ constexpr char opDefTemplateText[] =
 constexpr auto typeDefTempl = mlir::irdl::detail::process(
 #include "Templates/TypeDefTest.cpp"
 );
+const auto typeDefTemplate = mlir::irdl::detail::template_formatter<typeDefTempl.second>{typeDefTempl.first.data()};
 
 namespace {
 
@@ -488,13 +489,23 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
 
   output << headerTemplateText;
 
-  llvm::errs() << typeDefTempl.first.data();
+  detail::tv_dictionary dict;
+  dict.set<detail::tv_index("__NAMESPACE_OPEN__")>("namespace irdl {");
+  dict.set<detail::tv_index("__NAMESPACE_CLOSE__")>("} // namespace irdl");
+  dict.set<detail::tv_index("__NAMESPACE_PATH__")>("irdl::test");
+  dict.set<detail::tv_index("__TYPE_CPP_NAME__")>("Foo");
+  dict.set<detail::tv_index("__TYPE_NAME__")>("foo");
+  dict.set<detail::tv_index("__DIALECT_CPP_NAME__")>("Test");
+  dict.set<detail::tv_index("__DIALECT_NAME__")>("test");
 
-  if (failed(generateInclude(dialect, output, dialectStrings)))
-    return failure();
+  llvm::errs() << typeDefTemplate.apply(dict) << "\n";
 
-  if (failed(generateLib(dialect, output, dialectStrings)))
-    return failure();
+  // if (failed(generateInclude(dialect, output, dialectStrings)))
+  //   return failure();
 
+  // if (failed(generateLib(dialect, output, dialectStrings)))
+  //   return failure();
+
+  // dict.set<detail::tv_index("SOME_NONSENSE")>("test");
   return success();
 }

@@ -6,27 +6,8 @@
 #include <array>
 
 namespace mlir::irdl::detail {
-struct DialectStrings {
-  std::string dialectName;
-  std::string dialectCppName;
-  std::string dialectCppShortName;
-  std::string dialectBaseTypeName;
-
-  std::string namespaceOpen;
-  std::string namespaceClose;
-  std::string namespacePath;
-};
-
-struct TypeStrings {
-  std::string typeName;
-  std::string typeCppName;
-};
-
-struct OpStrings {
-  StringRef opName;
-  std::string opCppName;
-  llvm::SmallVector<std::string> opResultNames;
-  llvm::SmallVector<std::string> opOperandNames;
+static constexpr std::string_view templating_variables[] = {
+    #include "TemplatingVars.h"
 };
 
 template<typename ...Args>
@@ -42,21 +23,6 @@ constexpr auto count_set_bits(uint64_t flags) {
     return count;
 }
 
-template<typename T1, typename T2, size_t N>
-constexpr auto map_first(const std::pair<T1, T2> (&arrs)[N]) {
-    std::array<T1, N> ret;
-    for (size_t i = 0; i < N; ++i)
-        ret[i] = arrs[i].first;
-    return ret; 
-}
-
-template<typename T1, typename T2, size_t N>
-constexpr auto map_second(const std::pair<T1, T2> (&arrs)[N]) {
-    std::array<T1, N> ret;
-    for (size_t i = 0; i < N; ++i)
-        ret[i] = arrs[i].second;
-    return ret; 
-}
 
 using token_string = std::array<char, 5>;
 constexpr auto int_to_replace_token(int i) -> token_string {
@@ -75,13 +41,64 @@ constexpr auto int_to_replace_token(int i) -> token_string {
     return {};
 }
 
-struct property_getter
-{
-    constexpr property_getter(std::string(* fn)(const DialectStrings&)) {}
-    constexpr property_getter(std::string(* fn)(const TypeStrings&)) {}
-    constexpr property_getter(std::string(* fn)(const OpStrings&)) {}
+constexpr size_t tv_index(std::string_view label) {
+    constexpr auto varCount = std::size(templating_variables);
+    for (size_t i = 0; i < varCount; ++i) {
+        if (templating_variables[i] == label) 
+            return i;
+    }
+    return -1;
+}
+
+class tv_dictionary {
+public:
+    template<size_t TvIndex>
+    void set(llvm::StringRef value) {
+        static_assert(TvIndex >= 0 && TvIndex < std::size(templating_variables) && "unrecognized variable");
+        dictionary[TvIndex] = value;
+    }
+
+    template<size_t TvIndex>
+    llvm::StringRef get() const {
+        return dictionary[TvIndex];
+    }
+private:
+    std::array<std::string, std::size(templating_variables)> dictionary;
 };
 
+template<size_t Flags>
+class template_formatter {
+public:
+    static constexpr auto var_count = count_set_bits(Flags);
+
+    constexpr template_formatter(std::string_view fmtStr)
+        : formatString{fmtStr}
+    {}
+
+    auto apply(const tv_dictionary& dict) const {
+        return apply_impl(dict, std::make_index_sequence<var_count>{});
+    }
+private:
+    std::string_view formatString;
+
+    template<size_t Ind>
+    static constexpr size_t get_tv_index() {
+        int counter{};
+        for (size_t i = 0; i < sizeof(Flags) * 8ULL; ++i) {
+            if (Flags & (1ULL << i))
+            {
+                if (counter++ == Ind)
+                    return i;
+            }
+        }
+        return -1;
+    }
+
+    template<size_t ...Indexes>
+    auto apply_impl(const tv_dictionary& dict, std::index_sequence<Indexes...>) const {
+        return llvm::formatv(formatString.data(), dict.get<template_formatter::get_tv_index<Indexes>()>() ...);
+    }
+};
 
 template<auto N>
 constexpr auto process(const char (&ref)[N]) {
@@ -95,20 +112,28 @@ constexpr auto process(const char (&ref)[N]) {
     }
     
     // collect all IDs, count unique IDs up to 64
-    constexpr std::pair<std::string_view, property_getter> variables[] = {
-        #include "TemplatingVars.h"
-    };
-    constexpr auto known_ids = map_first(variables);
-    constexpr auto varCount = std::size(variables);
+    constexpr auto varCount = std::size(templating_variables);
 
     std::array<token_string, varCount> index_lookup_table {};
 
     uint64_t found_ids{};
     {
+        std::string_view searchStr {ref};
+        for (size_t i = 0; i < varCount; ++i) {
+            const auto& tv = templating_variables[i];
+            if (searchStr.find(tv) != std::string_view::npos) {
+                int pos = count_set_bits(found_ids);
+                index_lookup_table[i] = int_to_replace_token(pos);
+                found_ids |= (1ULL << i);
+            }
+        }
+    }
+    {
         char prevToken = '\0';
         bool isScanning = false;
         size_t scanStart = 0;
-        for (size_t r = 0, w = 0; r < N; ++r) {
+        size_t w = 0;
+        for (size_t r = 0; r < N; ++r) {
             const auto currToken = workingString[r];
             if (prevToken == '_' && currToken == '_') {
                 if (!isScanning) {
@@ -119,29 +144,21 @@ constexpr auto process(const char (&ref)[N]) {
                     // handle scan name
                     std::string_view name {workingString.data() + scanStart, r - scanStart + 1};
 
-                    size_t i{};
-                    for (i = 0; i < varCount; ++i) {
-                        if (known_ids[i] == name) 
-                            break;
-                    }
+                    size_t i = tv_index(name);
 
                     if (i < varCount) {
                         auto flag = 1ULL << i;
 
-                        if (!(found_ids & flag)) {
-                            // token is new
-                            int pos = count_set_bits(found_ids);
-                            index_lookup_table[i] = int_to_replace_token(pos);
-                            found_ids |= flag;
-                        } 
-
                         // replace the scan with the replacement token
                         auto replacement_token = index_lookup_table[i];
                         
-                        w = scanStart;
-                        for (auto c : replacement_token)
-                            if (c)
+                        w = w - 1;
+                        for (auto c : replacement_token) {
+                            if (c) {
                                 workingString[w++] = c;
+                            } else 
+                                break;
+                        }
                         isScanning = false;
                         continue;
                     }
@@ -156,6 +173,7 @@ constexpr auto process(const char (&ref)[N]) {
 
             prevToken = currToken;
         }
+        workingString[w] = 0;
     }
 
     return std::make_pair(workingString, found_ids);
