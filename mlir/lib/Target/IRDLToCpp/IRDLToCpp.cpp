@@ -194,7 +194,7 @@ static LogicalResult generateOperationInclude(irdl::OperationOp op,
 
   const auto operandCount = opStrings.opOperandNames.size();
   const auto operandNames =
-      operandCount ? stringify(opStrings.opOperandNames) : "{}";
+      operandCount ? stringify(opStrings.opOperandNames) : "{\"\"}";
 
   const auto resultCount = opStrings.opResultNames.size();
   const auto resultNames = stringify(opStrings.opResultNames);
@@ -279,11 +279,6 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  DialectStrings &dialectStrings) {
   output << "#ifdef " << definitionMacroFlag << "\n#undef "
          << definitionMacroFlag << "\n";
-
-  output << llvm::formatv(dialectDefTemplateText, dialectStrings.namespaceOpen,
-                          dialectStrings.namespaceClose,
-                          dialectStrings.dialectCppName,
-                          dialectStrings.namespacePath);
 
   // type header
   output << llvm::formatv(
@@ -384,14 +379,14 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
 
             const auto operandCount = opStrings.opOperandNames.size();
             const auto operandNames =
-                operandCount ? stringify(opStrings.opOperandNames) : "{}";
+                operandCount ? stringify(opStrings.opOperandNames) : "{\"\"}";
 
             const auto resultCount = opStrings.opResultNames.size();
             const auto resultNames = stringify(opStrings.opResultNames);
 
             const auto buildDefinition = llvm::formatv(
                 R"(
-static void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, {1} {2} ::llvm::ArrayRef<::mlir::NamedAttribute> attributes) {{
+void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState, {1} {2} ::llvm::ArrayRef<::mlir::NamedAttribute> attributes) {{
 {3}
 {4}
 }
@@ -413,20 +408,19 @@ static void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &od
                                opStrings.opOperandNames,
                                [](StringRef attr) -> std::string {
                                  return llvm::formatv(
-                                     "  odsBuilder.addOperands({0});", attr);
+                                     "  odsState.addOperands({0});", attr);
                                }),
                            "\n"),
                 llvm::join(llvm::map_range(opStrings.opResultNames,
                                            [](StringRef attr) -> std::string {
                                              return llvm::formatv(
-                                                 "  odsBuilder.addTypes({0});",
+                                                 "  odsState.addTypes({0});",
                                                  attr);
                                            }),
                            "\n"));
             return llvm::formatv(
-                perOpDefTemplateText, opStrings.opName, opStrings.opCppName,
-                dialectStrings.dialectName, operandCount, operandNames,
-                resultCount, resultNames, buildDefinition,
+                perOpDefTemplateText, opStrings.opCppName, operandCount, 
+                resultCount, buildDefinition,
                 dialectStrings.namespaceOpen, dialectStrings.namespaceClose,
                 dialectStrings.namespacePath);
           }),
@@ -435,6 +429,15 @@ static void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &od
   output << llvm::formatv(opDefTemplateText, commaSeparatedOpList,
                           perOpDefinitions);
 
+  output << llvm::formatv(dialectDefTemplateText, dialectStrings.namespaceOpen,
+                          dialectStrings.namespaceClose,
+                          dialectStrings.dialectCppName,
+                          dialectStrings.namespacePath,
+                          commaSeparatedOpList,
+                          commaSeparatedTypeList
+                          );
+
+  output << "#endif // " << definitionMacroFlag << "\n";
   return success();
 }
 
