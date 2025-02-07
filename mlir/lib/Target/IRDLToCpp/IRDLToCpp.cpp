@@ -70,10 +70,9 @@ constexpr char opDefTemplateText[] =
 #include "Templates/OperationDef.txt"
     ;
 
-constexpr auto typeDefTempl = mlir::irdl::detail::process(
+constexpr auto typeDefTempl = 
 #include "Templates/TypeDefTest.cpp"
-);
-const auto typeDefTemplate = mlir::irdl::detail::template_formatter<typeDefTempl.second>{typeDefTempl.first.data()};
+;
 
 namespace {
 
@@ -489,16 +488,16 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
 
   output << headerTemplateText;
 
-  detail::tv_dictionary dict;
-  dict.set<detail::tv_index("__NAMESPACE_OPEN__")>("namespace irdl {");
-  dict.set<detail::tv_index("__NAMESPACE_CLOSE__")>("} // namespace irdl");
-  dict.set<detail::tv_index("__NAMESPACE_PATH__")>("irdl::test");
-  dict.set<detail::tv_index("__TYPE_CPP_NAME__")>("Foo");
-  dict.set<detail::tv_index("__TYPE_NAME__")>("foo");
-  dict.set<detail::tv_index("__DIALECT_CPP_NAME__")>("Test");
-  dict.set<detail::tv_index("__DIALECT_NAME__")>("test");
+  detail::dictionary dict;
+  dict["NAMESPACE_OPEN"] = "namespace irdl {";
+  dict["NAMESPACE_CLOSE"] = "} // namespace irdl";
+  dict["NAMESPACE_PATH"] = "irdl::test";
+  dict["TYPE_CPP_NAME"] = "Foo";
+  dict["TYPE_NAME"] = "foo";
+  dict["DIALECT_CPP_NAME"] = "Test";
+  dict["DIALECT_NAME"] = "test";
 
-  llvm::errs() << typeDefTemplate.apply(dict) << "\n";
+  llvm::errs() << detail::formatTemplate(typeDefTempl, dict) << "\n";
 
   // if (failed(generateInclude(dialect, output, dialectStrings)))
   //   return failure();
