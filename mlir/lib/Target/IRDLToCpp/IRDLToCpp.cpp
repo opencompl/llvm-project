@@ -70,10 +70,6 @@ constexpr char opDefTemplateText[] =
 #include "Templates/OperationDef.txt"
     ;
 
-constexpr auto typeDefTempl = 
-#include "Templates/TypeDefTest.cpp"
-;
-
 namespace {
 
 struct DialectStrings {
@@ -341,9 +337,14 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  }),
                  "\n"));
 
-  const auto typeIdDefinitions = llvm::join(llvm::map_range(typeNames, [&](StringRef name) -> std::string {
-    return llvm::formatv("MLIR_DEFINE_EXPLICIT_TYPE_ID({1}::{0})", name, dialectStrings.namespacePath);
-  }), "\n");
+  const auto typeIdDefinitions =
+      llvm::join(llvm::map_range(typeNames,
+                                 [&](StringRef name) -> std::string {
+                                   return llvm::formatv(
+                                       "MLIR_DEFINE_EXPLICIT_TYPE_ID({1}::{0})",
+                                       name, dialectStrings.namespacePath);
+                                 }),
+                 "\n");
 
   output << llvm::formatv(
       typeDefTemplateText, commaSeparatedTypeList, generatedTypeParser,
@@ -404,12 +405,12 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
                                                  "::mlir::Value {0}, ", attr);
                                            }),
                            ""),
-                llvm::join(llvm::map_range(
-                               opStrings.opOperandNames,
-                               [](StringRef attr) -> std::string {
-                                 return llvm::formatv(
-                                     "  odsState.addOperands({0});", attr);
-                               }),
+                llvm::join(llvm::map_range(opStrings.opOperandNames,
+                                           [](StringRef attr) -> std::string {
+                                             return llvm::formatv(
+                                                 "  odsState.addOperands({0});",
+                                                 attr);
+                                           }),
                            "\n"),
                 llvm::join(llvm::map_range(opStrings.opResultNames,
                                            [](StringRef attr) -> std::string {
@@ -419,10 +420,9 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
                                            }),
                            "\n"));
             return llvm::formatv(
-                perOpDefTemplateText, opStrings.opCppName, operandCount, 
-                resultCount, buildDefinition,
-                dialectStrings.namespaceOpen, dialectStrings.namespaceClose,
-                dialectStrings.namespacePath);
+                perOpDefTemplateText, opStrings.opCppName, operandCount,
+                resultCount, buildDefinition, dialectStrings.namespaceOpen,
+                dialectStrings.namespaceClose, dialectStrings.namespacePath);
           }),
       "\n");
 
@@ -432,10 +432,8 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
   output << llvm::formatv(dialectDefTemplateText, dialectStrings.namespaceOpen,
                           dialectStrings.namespaceClose,
                           dialectStrings.dialectCppName,
-                          dialectStrings.namespacePath,
-                          commaSeparatedOpList,
-                          commaSeparatedTypeList
-                          );
+                          dialectStrings.namespacePath, commaSeparatedOpList,
+                          commaSeparatedTypeList);
 
   output << "#endif // " << definitionMacroFlag << "\n";
   return success();
@@ -443,6 +441,10 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
 
 LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
                                               raw_ostream &output) {
+  const auto typeDefTempl = detail::Template(
+#include "Templates/TypeDefTest.cpp"
+  );
+
   StringRef dialectName = dialect.getSymName();
 
   // TODO: deal with no more constraints than the verifier allows.
@@ -497,7 +499,8 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
   dict["DIALECT_CPP_NAME"] = "Test";
   dict["DIALECT_NAME"] = "test";
 
-  llvm::errs() << detail::formatTemplate(typeDefTempl, dict) << "\n";
+  typeDefTempl.render(llvm::errs(), dict);
+  llvm::errs() << "\n";
 
   // if (failed(generateInclude(dialect, output, dialectStrings)))
   //   return failure();
