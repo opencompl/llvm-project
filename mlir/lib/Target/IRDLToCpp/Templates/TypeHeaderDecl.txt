@@ -10,7 +10,7 @@
 R"(
 __NAMESPACE_OPEN__
 
-class __DIALECT_BASE_TYPE_NAME__ : public ::mlir::Type {{
+class __DIALECT_BASE_TYPE_NAME__ : public ::mlir::Type {
 public:
   using Type::Type;
 
