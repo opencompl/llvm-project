@@ -23,31 +23,8 @@ constexpr char headerTemplateText[] =
 #include "Templates/Header.txt"
     ;
 
-
-// 0: Namespace open
-// 1: Namespace close
-// 2: Dialect C++ name
-// 3: Dialect namespace
-constexpr char dialectDefTemplateText[] =
-#include "Templates/DialectDef.txt"
-    ;
-
 constexpr char declarationMacroFlag[] = "GEN_DIALECT_DECL_HEADER";
 constexpr char definitionMacroFlag[] = "GEN_DIALECT_DEF";
-
-
-constexpr char typeHeaderDefTemplateText[] =
-#include "Templates/TypeHeaderDef.txt"
-    ;
-
-
-constexpr char typeDefTemplateText[] =
-#include "Templates/TypeDef.txt"
-    ;
-
-constexpr char perOpDefTemplateText[] =
-#include "Templates/PerOperationDef.txt"
-    ;
 
 
 namespace {
@@ -275,20 +252,30 @@ static LogicalResult generateInclude(irdl::DialectOp dialect,
 static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  DialectStrings &dialectStrings) {
 
-  const auto opDefTemplateText = mlir::irdl::detail::Template{
+  const auto typeHeaderDefTemplate = mlir::irdl::detail::Template{
+  #include "Templates/TypeHeaderDef.txt"
+  };
+  const auto opDefTemplate = mlir::irdl::detail::Template{
   #include "Templates/OperationDef.txt"
   };
+  const auto typeDefTemplate = mlir::irdl::detail::Template{
+  #include "Templates/TypeDef.txt"
+  };
+  const auto dialectDefTemplate = mlir::irdl::detail::Template{
+  #include "Templates/DialectDef.txt"
+  };
+
+  const auto perOpDefTemplate = mlir::irdl::detail::Template {
+  #include "Templates/PerOperationDef.txt"
+  };
+
+  irdl::detail::dictionary dict;
+  fillDict(dict, dialectStrings);
 
   output << "#ifdef " << definitionMacroFlag << "\n#undef "
          << definitionMacroFlag << "\n";
 
-  // type header
-  output << llvm::formatv(
-      typeHeaderDefTemplateText, dialectStrings.dialectBaseTypeName,
-      dialectStrings.dialectCppName, dialectStrings.namespaceOpen,
-      dialectStrings.namespaceClose);
-
-  output << "#endif // " << definitionMacroFlag << "\n";
+  typeHeaderDefTemplate.render(output, dict);
 
   // get typedef list
   auto &dialectBlock = *dialect.getRegion().getBlocks().begin();
@@ -296,7 +283,8 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
   if (failed(generateTypedefList(dialectBlock, typeNames)))
     return failure();
 
-  const auto commaSeparatedTypeList = llvm::join(
+
+  dict["TYPE_LIST"] = llvm::join(
       llvm::map_range(typeNames,
                       [&dialectStrings](llvm::StringRef name) -> std::string {
                         return llvm::formatv(
@@ -304,7 +292,7 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                       }),
       ",\n");
 
-  const auto generatedTypeParser = llvm::formatv(
+  dict["TYPE_PARSER"] =llvm::formatv(
       R"(static ::mlir::OptionalParseResult generatedTypeParser(::mlir::AsmParser &parser, ::llvm::StringRef *mnemonic, ::mlir::Type &value) {
   return ::mlir::AsmParser::KeywordSwitch<::mlir::OptionalParseResult>(parser)
     {0}    
@@ -326,7 +314,7 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
               }),
           "\n"));
 
-  const auto generatedTypePrinter = llvm::formatv(
+  dict["TYPE_PRINTER"] = llvm::formatv(
       R"(static ::llvm::LogicalResult generatedTypePrinter(::mlir::Type def, ::mlir::AsmPrinter &printer) {
   return ::llvm::TypeSwitch<::mlir::Type, ::llvm::LogicalResult>(def)
     {0}
@@ -343,8 +331,7 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  }),
                  "\n"));
 
-  const auto typeIdDefinitions =
-      llvm::join(llvm::map_range(typeNames,
+  dict["TYPE_DEFINES"] = llvm::join(llvm::map_range(typeNames,
                                  [&](StringRef name) -> std::string {
                                    return llvm::formatv(
                                        "MLIR_DEFINE_EXPLICIT_TYPE_ID({1}::{0})",
@@ -352,16 +339,14 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  }),
                  "\n");
 
-  output << llvm::formatv(
-      typeDefTemplateText, commaSeparatedTypeList, generatedTypeParser,
-      generatedTypePrinter, dialectStrings.dialectCppName, typeIdDefinitions,
-      dialectStrings.namespaceOpen, dialectStrings.namespaceClose);
+  typeDefTemplate.render(output, dict);
 
   // get op list
   auto operations = dialectBlock.getOps<irdl::OperationOp>();
   llvm::SmallVector<std::string> opNames;
   if (failed(generateOpList(dialectBlock, opNames)))
     return failure();
+    
   const auto commaSeparatedOpList = llvm::join(
       llvm::map_range(opNames,
                       [&dialectStrings](llvm::StringRef name) -> std::string {
@@ -373,8 +358,9 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
   const auto perOpDefinitions = llvm::join(
       llvm::map_range(
           operations,
-          [&dialectStrings](irdl::OperationOp op) -> std::string {
+          [&dict, &perOpDefTemplate](irdl::OperationOp op) -> std::string {
             auto opStrings = getStrings(op);
+            fillDict(dict, opStrings);
 
             constexpr auto stringify = [](auto &&names) -> std::string {
               std::string nameArray;
@@ -388,7 +374,6 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
             const auto operandNames =
                 operandCount ? stringify(opStrings.opOperandNames) : "{\"\"}";
 
-            const auto resultCount = opStrings.opResultNames.size();
             const auto resultNames = stringify(opStrings.opResultNames);
 
             const auto buildDefinition = llvm::formatv(
@@ -425,23 +410,19 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
                                                  attr);
                                            }),
                            "\n"));
-            return llvm::formatv(
-                perOpDefTemplateText, opStrings.opCppName, operandCount,
-                resultCount, buildDefinition, dialectStrings.namespaceOpen,
-                dialectStrings.namespaceClose, dialectStrings.namespacePath);
+            dict["OP_BUILD_DEFS"] = buildDefinition;
+
+            std::string str;
+            llvm::raw_string_ostream stream{str};
+            perOpDefTemplate.render(stream, dict);
+            return str;
           }),
       "\n");
 
-  irdl::detail::dictionary dict;
   dict["OP_LIST"] = commaSeparatedOpList;
   dict["OP_CLASSES"] = perOpDefinitions;
-  opDefTemplateText.render(output, dict); 
-
-  output << llvm::formatv(dialectDefTemplateText, dialectStrings.namespaceOpen,
-                          dialectStrings.namespaceClose,
-                          dialectStrings.dialectCppName,
-                          dialectStrings.namespacePath, commaSeparatedOpList,
-                          commaSeparatedTypeList);
+  opDefTemplate.render(output, dict); 
+  dialectDefTemplate.render(output, dict);
 
   output << "#endif // " << definitionMacroFlag << "\n";
   return success();
@@ -502,9 +483,8 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
   if (failed(generateInclude(dialect, output, dialectStrings)))
     return failure();
 
-  // if (failed(generateLib(dialect, output, dialectStrings)))
-  //   return failure();
+  if (failed(generateLib(dialect, output, dialectStrings)))
+    return failure();
 
-  // dict.set<detail::tv_index("SOME_NONSENSE")>("test");
   return success();
 }

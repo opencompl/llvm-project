@@ -25,7 +25,7 @@ protected:
   ::mlir::RegionRange odsRegions;
 public:
   __OP_CPP_NAME__GenericAdaptorBase(::mlir::DictionaryAttr attrs = {}, const ::mlir::EmptyProperties &properties = {}, ::mlir::RegionRange regions = {}) : odsAttrs(attrs), odsRegions(regions) {  if (odsAttrs)
-      odsOpName.emplace("__DIALECT_NAME__._OP_NAME__", odsAttrs.getContext());
+      odsOpName.emplace("__DIALECT_NAME__.__OP_NAME__", odsAttrs.getContext());
   }
 
   __OP_CPP_NAME__GenericAdaptorBase(::mlir::Operation *op) : odsAttrs(op->getRawDictionaryAttrs()), odsOpName(op->getName()), odsRegions(op->getRegions()) {}
