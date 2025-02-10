@@ -57,6 +57,14 @@ static std::string capitalize(StringRef str) {
                        str.slice(1, str.size()));
 }
 
+static std::string stringifyNameList(llvm::ArrayRef<std::string> names) {
+  std::string nameArray;
+  llvm::raw_string_ostream nameArrayStream(nameArray);
+  nameArrayStream << "{\"" << llvm::join(names, "\", \"") << "\"}";
+
+  return nameArray;
+}
+
 static TypeStrings getStrings(irdl::TypeOp type) {
   TypeStrings strings;
   strings.typeName = type.getSymName();
@@ -96,13 +104,6 @@ static void fillDict(irdl::detail::dictionary& dict, const TypeStrings& strings)
 }
 
 static void fillDict(irdl::detail::dictionary& dict, const OpStrings& strings) {
-  constexpr auto stringify = [](auto &&names) -> std::string {
-    std::string nameArray;
-    llvm::raw_string_ostream nameArrayStream(nameArray);
-    nameArrayStream << "{\"" << llvm::join(names, "\", \"") << "\"}";
-
-    return nameArray;
-  };
 
   const auto operandCount = strings.opOperandNames.size();
   const auto resultCount = strings.opResultNames.size();
@@ -111,8 +112,8 @@ static void fillDict(irdl::detail::dictionary& dict, const OpStrings& strings) {
   dict["OP_CPP_NAME"] = strings.opCppName;
   dict["OP_OPERAND_COUNT"] = std::to_string(strings.opOperandNames.size());
   dict["OP_RESULT_COUNT"] = std::to_string(strings.opResultNames.size());
-  dict["OP_OPERAND_INITIALIZER_LIST"] = operandCount ? stringify(strings.opOperandNames) : "{\"\"}";
-  dict["OP_RESULT_INITIALIZER_LIST"] = resultCount ? stringify(strings.opResultNames) : "{\"\"}";
+  dict["OP_OPERAND_INITIALIZER_LIST"] = operandCount ? stringifyNameList(strings.opOperandNames) : "{\"\"}";
+  dict["OP_RESULT_INITIALIZER_LIST"] = resultCount ? stringifyNameList(strings.opResultNames) : "{\"\"}";
 
 }
 
@@ -151,7 +152,7 @@ static LogicalResult generateOpList(mlir::Block &dialectBlock,
 static LogicalResult generateTypeInclude(irdl::TypeOp type, raw_ostream &output,
                                          irdl::detail::dictionary &dict) {
 
-  const auto typeDeclTemplate = irdl::detail::Template(
+  static const auto typeDeclTemplate = irdl::detail::Template(
     #include "Templates/TypeDecl.txt"
   );
 
@@ -166,7 +167,7 @@ static LogicalResult generateTypeInclude(irdl::TypeOp type, raw_ostream &output,
 static LogicalResult generateOperationInclude(irdl::OperationOp op,
                                               raw_ostream &output,
                                               irdl::detail::dictionary &dict) {
-  const auto perOpDeclTemplate = irdl::detail::Template(
+  static const auto perOpDeclTemplate = irdl::detail::Template(
     #include "Templates/PerOperationDecl.txt"
   ); 
   const auto opStrings = getStrings(op);
@@ -252,20 +253,19 @@ static LogicalResult generateInclude(irdl::DialectOp dialect,
 static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  DialectStrings &dialectStrings) {
 
-  const auto typeHeaderDefTemplate = mlir::irdl::detail::Template{
+  static const auto typeHeaderDefTemplate = mlir::irdl::detail::Template{
   #include "Templates/TypeHeaderDef.txt"
   };
-  const auto opDefTemplate = mlir::irdl::detail::Template{
+  static const auto opDefTemplate = mlir::irdl::detail::Template{
   #include "Templates/OperationDef.txt"
   };
-  const auto typeDefTemplate = mlir::irdl::detail::Template{
+  static const auto typeDefTemplate = mlir::irdl::detail::Template{
   #include "Templates/TypeDef.txt"
   };
-  const auto dialectDefTemplate = mlir::irdl::detail::Template{
+  static const auto dialectDefTemplate = mlir::irdl::detail::Template{
   #include "Templates/DialectDef.txt"
   };
-
-  const auto perOpDefTemplate = mlir::irdl::detail::Template {
+  static const auto perOpDefTemplate = mlir::irdl::detail::Template {
   #include "Templates/PerOperationDef.txt"
   };
 
@@ -358,23 +358,15 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
   const auto perOpDefinitions = llvm::join(
       llvm::map_range(
           operations,
-          [&dict, &perOpDefTemplate](irdl::OperationOp op) -> std::string {
+          [&dict, &perOpDefTemplate = perOpDefTemplate](irdl::OperationOp op) -> std::string {
             auto opStrings = getStrings(op);
             fillDict(dict, opStrings);
 
-            constexpr auto stringify = [](auto &&names) -> std::string {
-              std::string nameArray;
-              llvm::raw_string_ostream nameArrayStream(nameArray);
-              nameArrayStream << "{\"" << llvm::join(names, "\", \"") << "\"}";
-
-              return nameArray;
-            };
-
             const auto operandCount = opStrings.opOperandNames.size();
             const auto operandNames =
-                operandCount ? stringify(opStrings.opOperandNames) : "{\"\"}";
+                operandCount ? stringifyNameList(opStrings.opOperandNames) : "{\"\"}";
 
-            const auto resultNames = stringify(opStrings.opResultNames);
+            const auto resultNames = stringifyNameList(opStrings.opResultNames);
 
             const auto buildDefinition = llvm::formatv(
                 R"(
@@ -430,7 +422,7 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
 
 LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
                                               raw_ostream &output) {
-  const auto typeDefTempl = detail::Template(
+  static const auto typeDefTempl = detail::Template(
 #include "Templates/TypeDefTest.cpp"
   );
 
