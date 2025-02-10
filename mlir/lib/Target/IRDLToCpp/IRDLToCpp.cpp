@@ -66,9 +66,6 @@ constexpr char perOpDefTemplateText[] =
 #include "Templates/PerOperationDef.txt"
     ;
 
-constexpr char opDefTemplateText[] =
-#include "Templates/OperationDef.txt"
-    ;
 
 namespace {
 
@@ -117,12 +114,6 @@ static OpStrings getStrings(irdl::OperationOp op) {
 
   auto resultsOp = *block.getOps<irdl::ResultsOp>().begin();
 
-  constexpr auto getNames = [](auto op) {
-    auto names = llvm::map_range(
-        op.getNames(), [](auto &attr) { return mlir::cast<StringAttr>(attr); });
-    return names;
-  };
-
   OpStrings strings;
   strings.opName = op.getSymName();
   strings.opCppName = llvm::formatv("{0}Op", capitalize(strings.opName));
@@ -137,6 +128,29 @@ static OpStrings getStrings(irdl::OperationOp op) {
       }));
 
   return strings;
+}
+
+static void fillDict(irdl::detail::dictionary& dict, const TypeStrings& strings) {
+  dict["TYPE_NAME"] = strings.typeName;
+  dict["TYPE_CPP_NAME"] = strings.typeCppName;
+}
+
+static void fillDict(irdl::detail::dictionary& dict, const OpStrings& strings) {
+  dict["OP_NAME"] = strings.opName;
+  dict["OP_CPP_NAME"] = strings.opCppName;
+  dict["OPERAND_COUNT"] = std::to_string(strings.opOperandNames.size());
+  dict["RESULT_COUNT"] = std::to_string(strings.opResultNames.size());
+}
+
+
+static void fillDict(irdl::detail::dictionary& dict, const DialectStrings& strings) {
+  dict["DIALECT_NAME"] = strings.dialectName;
+  dict["DIALECT_BASE_TYPE_NAME"] = strings.dialectBaseTypeName;
+  dict["DIALECT_CPP_NAME"] = strings.dialectCppName;
+  dict["DIALECT_CPP_SHORT_NAME"] = strings.dialectCppShortName;
+  dict["NAMESPACE_OPEN"] = strings.namespaceOpen;
+  dict["NAMESPACE_CLOSE"] = strings.namespaceClose;
+  dict["NAMESPACE_PATH"] = strings.namespacePath;
 }
 
 static LogicalResult
@@ -222,18 +236,22 @@ static LogicalResult generateOperationInclude(irdl::OperationOp op,
 static LogicalResult generateInclude(irdl::DialectOp dialect,
                                      raw_ostream &output,
                                      DialectStrings &dialectStrings) {
+  const auto dialectDeclTemplate = irdl::detail::Template(
+    #include "Templates/DialectDecl.txt"
+  );
+  const auto typeHeaderDeclTemplate = irdl::detail::Template(
+    #include "Templates/TypeHeaderDecl.txt"
+  );
+                                      
   output << "#ifdef " << declarationMacroFlag << "\n#undef "
          << declarationMacroFlag << "\n";
 
-  output << llvm::formatv(
-      dialectDeclTemplateText, dialectStrings.namespaceOpen,
-      dialectStrings.namespaceClose, dialectStrings.dialectCppName,
-      dialectStrings.namespacePath, dialectStrings.dialectName);
+  irdl::detail::dictionary dict;
+  fillDict(dict, dialectStrings);
 
-  output << llvm::formatv(
-      typeHeaderDeclTemplateText, dialectStrings.dialectBaseTypeName,
-      dialectStrings.namespaceOpen, dialectStrings.namespaceClose,
-      dialectStrings.namespacePath);
+  dialectDeclTemplate.render(output, dict);
+  typeHeaderDeclTemplate.render(output, dict);
+  return success();
 
   auto &dialectBlock = *dialect.getRegion().getBlocks().begin();
   auto typeOps = dialectBlock.getOps<irdl::TypeOp>();
@@ -273,6 +291,11 @@ static LogicalResult generateInclude(irdl::DialectOp dialect,
 
 static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
                                  DialectStrings &dialectStrings) {
+
+  const auto opDefTemplateText = mlir::irdl::detail::Template{
+  #include "Templates/OperationDef.txt"
+  };
+
   output << "#ifdef " << definitionMacroFlag << "\n#undef "
          << definitionMacroFlag << "\n";
 
@@ -426,8 +449,10 @@ void {0}::build(::mlir::OpBuilder &odsBuilder, ::mlir::OperationState &odsState,
           }),
       "\n");
 
-  output << llvm::formatv(opDefTemplateText, commaSeparatedOpList,
-                          perOpDefinitions);
+  irdl::detail::dictionary dict;
+  dict["OP_LIST"] = commaSeparatedOpList;
+  dict["OP_CLASSES"] = perOpDefinitions;
+  opDefTemplateText.render(output, dict); 
 
   output << llvm::formatv(dialectDefTemplateText, dialectStrings.namespaceOpen,
                           dialectStrings.namespaceClose,
@@ -490,20 +515,9 @@ LogicalResult irdl::translateIRDLDialectToCpp(irdl::DialectOp dialect,
 
   output << headerTemplateText;
 
-  detail::dictionary dict;
-  dict["NAMESPACE_OPEN"] = "namespace irdl {";
-  dict["NAMESPACE_CLOSE"] = "} // namespace irdl";
-  dict["NAMESPACE_PATH"] = "irdl::test";
-  dict["TYPE_CPP_NAME"] = "Foo";
-  dict["TYPE_NAME"] = "foo";
-  dict["DIALECT_CPP_NAME"] = "Test";
-  dict["DIALECT_NAME"] = "test";
 
-  typeDefTempl.render(llvm::errs(), dict);
-  llvm::errs() << "\n";
-
-  // if (failed(generateInclude(dialect, output, dialectStrings)))
-  //   return failure();
+  if (failed(generateInclude(dialect, output, dialectStrings)))
+    return failure();
 
   // if (failed(generateLib(dialect, output, dialectStrings)))
   //   return failure();
