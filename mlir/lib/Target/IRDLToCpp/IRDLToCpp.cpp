@@ -57,7 +57,7 @@ static std::string capitalize(StringRef str) {
                        str.slice(1, str.size()));
 }
 
-static std::string stringifyNameList(llvm::ArrayRef<std::string> names) {
+static std::string joinNameList(llvm::ArrayRef<std::string> names) {
   std::string nameArray;
   llvm::raw_string_ostream nameArrayStream(nameArray);
   nameArrayStream << "{\"" << llvm::join(names, "\", \"") << "\"}";
@@ -112,8 +112,8 @@ static void fillDict(irdl::detail::dictionary& dict, const OpStrings& strings) {
   dict["OP_CPP_NAME"] = strings.opCppName;
   dict["OP_OPERAND_COUNT"] = std::to_string(strings.opOperandNames.size());
   dict["OP_RESULT_COUNT"] = std::to_string(strings.opResultNames.size());
-  dict["OP_OPERAND_INITIALIZER_LIST"] = operandCount ? stringifyNameList(strings.opOperandNames) : "{\"\"}";
-  dict["OP_RESULT_INITIALIZER_LIST"] = resultCount ? stringifyNameList(strings.opResultNames) : "{\"\"}";
+  dict["OP_OPERAND_INITIALIZER_LIST"] = operandCount ? joinNameList(strings.opOperandNames) : "{\"\"}";
+  dict["OP_RESULT_INITIALIZER_LIST"] = resultCount ? joinNameList(strings.opResultNames) : "{\"\"}";
 
 }
 
@@ -364,9 +364,9 @@ static LogicalResult generateLib(irdl::DialectOp dialect, raw_ostream &output,
 
             const auto operandCount = opStrings.opOperandNames.size();
             const auto operandNames =
-                operandCount ? stringifyNameList(opStrings.opOperandNames) : "{\"\"}";
+                operandCount ? joinNameList(opStrings.opOperandNames) : "{\"\"}";
 
-            const auto resultNames = stringifyNameList(opStrings.opResultNames);
+            const auto resultNames = joinNameList(opStrings.opResultNames);
 
             const auto buildDefinition = llvm::formatv(
                 R"(
