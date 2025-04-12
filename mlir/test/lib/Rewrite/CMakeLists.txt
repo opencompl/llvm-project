@@ -2,6 +2,7 @@ if (MLIR_ENABLE_PDL_IN_PATTERNMATCH)
   # Exclude tests from libMLIR.so
   add_mlir_library(MLIRTestRewrite
     TestPDLByteCode.cpp
+    TestRewriteRecorder.cpp
 
     EXCLUDE_FROM_LIBMLIR
 
@@ -13,5 +14,6 @@ if (MLIR_ENABLE_PDL_IN_PATTERNMATCH)
     MLIRPass
     MLIRSupport
     MLIRTransformUtils
+    MLIRArithDialect
     )
 endif()

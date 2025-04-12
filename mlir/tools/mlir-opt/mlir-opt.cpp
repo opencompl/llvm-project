@@ -69,6 +69,7 @@ void registerTosaTestQuantUtilAPIPass();
 void registerVectorizerTestPass();
 
 namespace test {
+void registerTestRewriteRecordPass();
 void registerCommutativityUtils();
 void registerConvertCallOpPass();
 void registerConvertFuncOpPass();
@@ -175,6 +176,8 @@ void registerTestTransformsTransformDialectExtension(DialectRegistry &);
 
 #ifdef MLIR_INCLUDE_TESTS
 void registerTestPasses() {
+
+  mlir::test::registerTestRewriteRecordPass();
   registerCloneTestPasses();
   registerConvertToTargetEnvPass();
   registerPrintTosaAvailabilityPass();
