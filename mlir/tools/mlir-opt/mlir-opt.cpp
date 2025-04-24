@@ -88,6 +88,7 @@ void registerTestCFGLoopInfoPass();
 void registerTestComposeSubView();
 void registerTestCompositePass();
 void registerTestConstantFold();
+void registerTestConstantMulToAdd();
 void registerTestControlFlowSink();
 void registerTestConvertToSPIRVPass();
 void registerTestDataLayoutPropagation();
@@ -232,6 +233,7 @@ void registerTestPasses() {
   mlir::test::registerTestComposeSubView();
   mlir::test::registerTestCompositePass();
   mlir::test::registerTestConstantFold();
+  mlir::test::registerTestConstantMulToAdd();
   mlir::test::registerTestControlFlowSink();
   mlir::test::registerTestConvertToSPIRVPass();
   mlir::test::registerTestDataLayoutPropagation();

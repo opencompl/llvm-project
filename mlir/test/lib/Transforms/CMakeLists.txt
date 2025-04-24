@@ -27,6 +27,7 @@ add_mlir_library(MLIRTestTransforms
   TestCommutativityUtils.cpp
   TestCompositePass.cpp
   TestConstantFold.cpp
+  TestConstantMulToAdd.cpp
   TestControlFlowSink.cpp
   TestInlining.cpp
   TestMakeIsolatedFromAbove.cpp
