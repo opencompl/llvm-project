@@ -8,7 +8,6 @@
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Pass/Pass.h"
-#include "mlir/Transforms/FoldUtils.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 using namespace mlir;
 
@@ -19,7 +18,7 @@ struct RewriteMul2ToAdd : OpRewritePattern<arith::MulIOp> {
 
   LogicalResult matchAndRewrite(arith::MulIOp op,
                                 PatternRewriter &rewriter) const override {
-    auto rhsOp = op.getRhs().getDefiningOp();
+    auto *rhsOp = op.getRhs().getDefiningOp();
     if (!rhsOp)
       return failure();
 
@@ -56,10 +55,10 @@ struct TestConstantMulToAdd
 } // namespace
 
 void TestConstantMulToAdd::runOnOperation() {
-  auto ctx = &getContext();
+  auto *ctx = &getContext();
   RewritePatternSet patternSet{ctx};
   patternSet.add<RewriteMul2ToAdd>(ctx);
-  applyPatternsGreedily(getOperation(), std::move(patternSet));
+  (void)applyPatternsGreedily(getOperation(), std::move(patternSet));
 }
 
 namespace mlir {
