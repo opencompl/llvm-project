@@ -3,7 +3,6 @@ set(LLVM_OPTIONAL_SOURCES ByteCode.cpp)
 add_mlir_library(MLIRRewrite
   FrozenRewritePatternSet.cpp
   PatternApplicator.cpp
-  RewriteListener.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/Rewrite
