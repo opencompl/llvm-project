@@ -30,6 +30,7 @@ add_mlir_library(MLIRTestTransforms
   TestConstantMulToAdd.cpp
   TestControlFlowSink.cpp
   TestInlining.cpp
+  TestInliningCallback.cpp
   TestMakeIsolatedFromAbove.cpp
   TestTransformsOps.cpp
   ${MLIRTestTransformsPDLSrc}
