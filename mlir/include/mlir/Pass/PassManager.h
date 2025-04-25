@@ -424,6 +424,12 @@ public:
       OpPrintingFlags opPrintingFlags = OpPrintingFlags());
 
   //===--------------------------------------------------------------------===//
+  // Pass Snapshotting
+
+  /// Enable snapshotting of the IR state after every pass
+  void enableSnapshot();
+
+  //===--------------------------------------------------------------------===//
   // Pass Timing
 
   /// Add an instrumentation to time the execution of passes and the computation

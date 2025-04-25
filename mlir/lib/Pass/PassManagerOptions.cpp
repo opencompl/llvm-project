@@ -43,6 +43,9 @@ struct PassManagerOptions {
   llvm::cl::opt<bool> printAfterAll{"mlir-print-ir-after-all",
                                     llvm::cl::desc("Print IR after each pass"),
                                     llvm::cl::init(false)};
+  llvm::cl::opt<bool> snapshotAfterAll{
+      "mlir-snapshot-after-all", llvm::cl::desc("Snapshot IR after each pass"),
+      llvm::cl::init(false)};
   llvm::cl::opt<bool> printAfterChange{
       "mlir-print-ir-after-change",
       llvm::cl::desc(
@@ -164,6 +167,10 @@ LogicalResult mlir::applyPassManagerCLOptions(PassManager &pm) {
 
   // Add the IR printing instrumentation.
   options->addPrinterInstrumentation(pm);
+
+  // Add the snapshot instrumentation
+  if (options->snapshotAfterAll)
+    pm.enableSnapshot();
   return success();
 }
 

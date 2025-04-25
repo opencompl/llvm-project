@@ -23,10 +23,10 @@
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/Dialect/OpenACC/Transforms/Passes.h"
+#include "mlir/IR/LocationSnapshot.h"
 #include "mlir/InitAllDialects.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
-#include "mlir/Transforms/LocationSnapshot.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace fir::support {

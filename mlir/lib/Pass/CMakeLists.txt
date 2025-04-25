@@ -4,6 +4,7 @@ add_mlir_library(MLIRPass
   PassCrashRecovery.cpp
   PassManagerOptions.cpp
   PassRegistry.cpp
+  PassSnapshot.cpp
   PassStatistics.cpp
   PassTiming.cpp
 
@@ -16,4 +17,5 @@ add_mlir_library(MLIRPass
   LINK_LIBS PUBLIC
   MLIRAnalysis
   MLIRIR
+  MLIRSupport
   )

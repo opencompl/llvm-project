@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_TRANSFORMS_LOCATIONSNAPSHOT_H
-#define MLIR_TRANSFORMS_LOCATIONSNAPSHOT_H
+#ifndef MLIR_IR_LOCATIONSNAPSHOT_H
+#define MLIR_IR_LOCATIONSNAPSHOT_H
 
 #include "mlir/Support/LLVM.h"
 #include "llvm/ADT/StringRef.h"
@@ -24,9 +24,6 @@ class Location;
 class Operation;
 class OpPrintingFlags;
 class Pass;
-
-#define GEN_PASS_DECL_LOCATIONSNAPSHOT
-#include "mlir/Transforms/Passes.h.inc"
 
 /// This function generates new locations from the given IR by snapshotting the
 /// IR to the given stream, and using the printed locations within that stream.
@@ -53,4 +50,4 @@ LogicalResult generateLocationsFromIR(StringRef fileName, StringRef tag,
 
 } // namespace mlir
 
-#endif // MLIR_TRANSFORMS_LOCATIONSNAPSHOT_H
+#endif // MLIR_IR_LOCATIONSNAPSHOT_H
