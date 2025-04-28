@@ -11,8 +11,6 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 using namespace mlir;
 
-namespace {
-
 struct RewriteMul2ToAdd : OpRewritePattern<arith::MulIOp> {
   using OpRewritePattern::OpRewritePattern;
 
@@ -36,6 +34,7 @@ struct RewriteMul2ToAdd : OpRewritePattern<arith::MulIOp> {
     return failure();
   }
 };
+
 /// Simple constant folding pass.
 struct TestConstantMulToAdd
     : public PassWrapper<TestConstantMulToAdd, OperationPass<>>,
@@ -52,7 +51,6 @@ struct TestConstantMulToAdd
     registry.insert<arith::ArithDialect>();
   }
 };
-} // namespace
 
 void TestConstantMulToAdd::runOnOperation() {
   auto *ctx = &getContext();
