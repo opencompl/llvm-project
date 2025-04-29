@@ -1,3 +1,5 @@
+add_subdirectory(MLDR)
+
 add_mlir_library(MLIRPass
   IRPrinting.cpp
   Pass.cpp
@@ -18,4 +20,5 @@ add_mlir_library(MLIRPass
   MLIRAnalysis
   MLIRIR
   MLIRSupport
+  MLIRMLDR
   )

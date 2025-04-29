@@ -8,7 +8,7 @@ add_dependencies(mlir-generic-headers MLIRIRDLOpsIncGen)
 
 
 set(LLVM_TARGET_DEFINITIONS MLDRTypes.td)
-mlir_tablegen(MLDRTypesGen.h.inc -gen-typedef-decls -dialect=mldr)
-mlir_tablegen(MLDRTypesGen.cpp.inc -gen-typedef-defs -dialect=mldr)
+mlir_tablegen(MLDRTypesGen.h.inc -gen-typedef-decls)
+mlir_tablegen(MLDRTypesGen.cpp.inc -gen-typedef-defs)
 add_public_tablegen_target(MLIRMLDRTypesIncGen)
-add_dependencies(mlir-generic-headers MLIRIRDLTypesIncGen)
+add_dependencies(mlir-generic-headers MLIRMLDRTypesIncGen)

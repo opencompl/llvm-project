@@ -7,7 +7,8 @@ def MLDR_Dialect : Dialect
 {
   let name = "mldr";
   let cppNamespace = "::mlir::mldr";
-  let useDefaultAttributePrinterParser = 1;
+
+  let useDefaultTypePrinterParser = 1;
 }
 
 #endif // MLIR_DIALECT_MLDR_IR_MLDR

@@ -99,6 +99,7 @@
 #include "mlir/Dialect/XeGPU/IR/XeGPU.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/Interfaces/CastInterfaces.h"
+#include "mlir/Pass/MLDR/MLDR.h"
 #include "mlir/Target/LLVM/NVVM/Target.h"
 #include "mlir/Target/LLVM/ROCDL/Target.h"
 #include "mlir/Target/SPIRV/Target.h"
@@ -131,6 +132,7 @@ inline void registerAllDialects(DialectRegistry &registry) {
                   math::MathDialect,
                   memref::MemRefDialect,
                   mesh::MeshDialect,
+                  mldr::MLDRDialect,
                   ml_program::MLProgramDialect,
                   mpi::MPIDialect,
                   nvgpu::NVGPUDialect,

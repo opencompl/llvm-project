@@ -1,0 +1,18 @@
+mldr.trace "test.mlir" (%p0) {
+  %0  = mldr.loc [%p0:1:18] ()
+  %1  = mldr.loc [%p0:2:8]  ()
+  %2  = mldr.loc [%p0:3:8]  ()
+  %3  = mldr.loc [%p0:4:3]  ()
+  %4  = mldr.loc [%p0:1:1]  ()
+  %5  = mldr.loc [%p0:0:0]  ()
+  %p1 = mldr.pass "snap-pass1.mlir" (%p0)
+  %6  = mldr.loc [%p1:4:4] (%1, %2)
+  %7  = mldr.loc [%p1:5:4] (%3)
+  %8  = mldr.loc [%p1:3:2] (%4)
+  %9  = mldr.loc [%p1:2:0] (%5)
+  %p2 = mldr.pass "snap-pass2.mlir" (%p1)
+  %10 = mldr.loc [%p2:4:4] (%6)
+  %11 = mldr.loc [%p2:5:4] (%7)
+  %12 = mldr.loc [%p2:3:2] (%8)
+  %13 = mldr.loc [%p2:2:0] (%9)
+}
