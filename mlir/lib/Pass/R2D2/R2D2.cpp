@@ -1,26 +1,26 @@
-#include "mlir/Pass/MLDR/MLDR.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/Pass/R2D2/R2D2.h"
 #include "llvm/ADT/TypeSwitch.h"
 
-#include "mlir/Pass/MLDR/MLDR.cpp.inc"
-#include "mlir/Pass/MLDR/MLDRDialect.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2Dialect.cpp.inc"
 #define GET_TYPEDEF_CLASSES
-#include "mlir/Pass/MLDR/MLDRTypesGen.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2TypesGen.cpp.inc"
 #define GET_OP_CLASSES
-#include "mlir/Pass/MLDR/MLDROps.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2Ops.cpp.inc"
 
 using namespace mlir;
-using namespace mlir::mldr;
+using namespace mlir::r2d2;
 
-void MLDRDialect::initialize() {
+void R2D2Dialect::initialize() {
   addOperations<
 #define GET_OP_LIST
-#include "mlir/Pass/MLDR/MLDROps.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2Ops.cpp.inc"
       >();
   addTypes<
 #define GET_TYPEDEF_LIST
-#include "mlir/Pass/MLDR/MLDRTypesGen.cpp.inc"
+#include "mlir/Pass/R2D2/R2D2TypesGen.cpp.inc"
       >();
 }
 
@@ -79,7 +79,7 @@ void PassOp::build(::mlir::OpBuilder &odsBuilder,
     return failure();
 
   result.addAttribute("snapshot", StringAttr::get(ctx, fileName));
-  arg.type = mldr::SnapshotType::get(ctx);
+  arg.type = r2d2::SnapshotType::get(ctx);
 
   auto *body = result.addRegion();
   if (parser.parseRegion(*body, arg))

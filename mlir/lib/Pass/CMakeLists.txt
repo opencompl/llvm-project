@@ -1,4 +1,4 @@
-add_subdirectory(MLDR)
+add_subdirectory(R2D2)
 
 add_mlir_library(MLIRPass
   IRPrinting.cpp
@@ -20,5 +20,5 @@ add_mlir_library(MLIRPass
   MLIRAnalysis
   MLIRIR
   MLIRSupport
-  MLIRMLDR
+  MLIRR2D2
   )

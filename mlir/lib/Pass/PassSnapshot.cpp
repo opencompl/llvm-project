@@ -2,8 +2,8 @@
 #include "PassDetail.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/LocationSnapshot.h"
-#include "mlir/Pass/MLDR/MLDR.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/R2D2/R2D2.h"
 #include "llvm/ADT/StringExtras.h"
 
 using namespace mlir;
@@ -16,7 +16,7 @@ private:
   struct TraceBuilder {
     MLIRContext context{MLIRContext::Threading::DISABLED};
     OpBuilder builder{&context};
-    mldr::TraceOp trace;
+    r2d2::TraceOp trace;
     Value currentSnapshot;
     DenseMap<size_t, Value> prevHashToValue;
     DenseMap<size_t, Value> currHashToValue;
@@ -31,23 +31,23 @@ private:
       assert(sourceFlcl);
       auto sourceFile = sourceFlcl.getFilename().strref();
 
-      context.loadDialect<mldr::MLDRDialect>();
-      trace = builder.create<mldr::TraceOp>(
+      context.loadDialect<r2d2::R2D2Dialect>();
+      trace = builder.create<r2d2::TraceOp>(
           FileLineColLoc::get(&context, sourceFile, 0, 0), sourceFile);
 
       auto &region = trace.getBody();
       auto &block = trace.getBody().emplaceBlock();
       currentSnapshot =
-          region.addArgument(mldr::SnapshotType::get(&context),
+          region.addArgument(r2d2::SnapshotType::get(&context),
                              FileLineColLoc::get(&context, sourceFile, 0, 0));
 
       builder.setInsertionPoint(&block, block.begin());
       op->walk([this](Operation *operation) {
         if (auto flcl = dyn_cast<FileLineColLoc>(operation->getLoc())) {
-          auto locOp = builder.create<mldr::LocationOp>(
+          auto locOp = builder.create<r2d2::LocationOp>(
               FileLineColLoc::get(&context, flcl.getFilename(), flcl.getLine(),
                                   flcl.getColumn()),
-              mldr::LocationType::get(&context), currentSnapshot,
+              r2d2::LocationType::get(&context), currentSnapshot,
               flcl.getLine(), flcl.getColumn(), ValueRange{});
           currHashToValue.try_emplace(hash(flcl), locOp);
         } else
@@ -57,7 +57,7 @@ private:
     }
 
     void addPass(StringRef snapshotFileName) {
-      auto snapshot = builder.create<mldr::PassOp>(
+      auto snapshot = builder.create<r2d2::PassOp>(
           FileLineColLoc::get(&context, snapshotFileName, 0, 0),
           snapshotFileName, currentSnapshot);
       currentSnapshot = snapshot;
@@ -75,7 +75,7 @@ private:
             return itr->second;
           }));
 
-      auto locOp = builder.create<mldr::LocationOp>(
+      auto locOp = builder.create<r2d2::LocationOp>(
           FileLineColLoc::get(&context, flcl.getFilename().strref(),
                               flcl.getLine(), flcl.getColumn()),
           currentSnapshot, flcl.getLine(), flcl.getColumn(), ValueRange{vals});

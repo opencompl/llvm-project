@@ -1,16 +1,16 @@
-#ifndef MLDR_OPS
-#define MLDR_OPS
+#ifndef R2D2_OPS
+#define R2D2_OPS
 
-include "mlir/Pass/MLDR/MLDR.td"
-include "mlir/Pass/MLDR/MLDRTypes.td"
+include "mlir/Pass/R2D2/R2D2.td"
+include "mlir/Pass/R2D2/R2D2Types.td"
 include "mlir/IR/CommonAttrConstraints.td"
 
-def MLDR_LocationOp : Op<MLDR_Dialect, "loc", [NoRegionArguments]> {
-  let arguments = (ins  MLDR_SnapshotType: $snapshot, 
+def R2D2_LocationOp : Op<R2D2_Dialect, "loc", [NoRegionArguments]> {
+  let arguments = (ins  R2D2_SnapshotType: $snapshot, 
                         I32Attr: $line, 
                         I32Attr: $column, 
-                        Variadic<MLDR_LocationType>: $args);
-  let results = (outs MLDR_LocationType: $result);
+                        Variadic<R2D2_LocationType>: $args);
+  let results = (outs R2D2_LocationType: $result);
   
   let assemblyFormat = [{
       `[` $snapshot `:` $line `:` $column `]` `(` $args `)` attr-dict
@@ -29,10 +29,10 @@ def MLDR_LocationOp : Op<MLDR_Dialect, "loc", [NoRegionArguments]> {
   }];
 }
 
-def MLDR_PassOp : Op<MLDR_Dialect, "pass", [NoRegionArguments]> {
+def R2D2_PassOp : Op<R2D2_Dialect, "pass", [NoRegionArguments]> {
   let arguments = (ins StrAttr: $snapshot,
-                       MLDR_SnapshotType: $prev);
-  let results = (outs MLDR_SnapshotType: $result);
+                       R2D2_SnapshotType: $prev);
+  let results = (outs R2D2_SnapshotType: $result);
   
   let assemblyFormat = [{
     $snapshot `(` $prev `)` attr-dict
@@ -44,11 +44,11 @@ def MLDR_PassOp : Op<MLDR_Dialect, "pass", [NoRegionArguments]> {
   ];
 }
 
-def MLDR_TraceOp : Op<MLDR_Dialect, "trace", [NoTerminator, IsolatedFromAbove]> {
+def R2D2_TraceOp : Op<R2D2_Dialect, "trace", [NoTerminator, IsolatedFromAbove]> {
   let arguments = (ins StrAttr: $snapshot);
   let regions = (region SizedRegion<1>:$body);
 
   let hasCustomAssemblyFormat = 1;
 }
 
-#endif // MLDR_OPS
+#endif // R2D2_OPS
