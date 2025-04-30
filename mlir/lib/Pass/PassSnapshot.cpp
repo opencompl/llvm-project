@@ -72,7 +72,7 @@ private:
     void addPass(StringRef snapshotFileName) {
       auto snapshot = builder.create<mldr::PassOp>(
           FileLineColLoc::get(&context, snapshotFileName, 0, 0),
-          mldr::SnapshotType::get(&context), snapshotFileName, currentSnapshot);
+          snapshotFileName, currentSnapshot);
       currentSnapshot = snapshot;
       std::swap(currHashToValue, prevHashToValue);
       currHashToValue.clear();
@@ -91,8 +91,7 @@ private:
       auto locOp = builder.create<mldr::LocationOp>(
           FileLineColLoc::get(&context, flcl.getFilename().strref(),
                               flcl.getLine(), flcl.getColumn()),
-          mldr::LocationType::get(&context), currentSnapshot, flcl.getLine(),
-          flcl.getColumn(), ValueRange{vals});
+          currentSnapshot, flcl.getLine(), flcl.getColumn(), ValueRange{vals});
       currHashToValue.try_emplace(hash(flcl), locOp);
     }
   };

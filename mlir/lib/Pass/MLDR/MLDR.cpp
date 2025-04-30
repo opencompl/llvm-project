@@ -24,6 +24,44 @@ void MLDRDialect::initialize() {
       >();
 }
 
+void LocationOp::build(::mlir::OpBuilder &odsBuilder,
+                       ::mlir::OperationState &odsState, Value snapshot,
+                       unsigned line, unsigned column,
+                       ::mlir::ValueRange args) {
+  build(odsBuilder, odsState, LocationType::get(odsBuilder.getContext()),
+        snapshot, line, column, args);
+}
+
+StringAttr LocationOp::getSnapshotFile() {
+  auto pass = getSnapshot();
+  if (auto passOp = dyn_cast<PassOp>(pass.getDefiningOp()))
+    return passOp.getSnapshotAttr();
+
+  // otherwise it is the source file
+  auto traceOp = dyn_cast<TraceOp>(getOperation()->getParentOp());
+  assert(traceOp);
+  return traceOp.getSnapshotAttr();
+}
+
+FileLineColLoc LocationOp::getContainedLocation() {
+  auto snapshot = getSnapshotFile();
+  return FileLineColLoc::get(snapshot, getLine(), getColumn());
+}
+
+void PassOp::build(::mlir::OpBuilder &odsBuilder,
+                   ::mlir::OperationState &odsState, StringAttr snapshot,
+                   ::mlir::Value prev) {
+  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()),
+        snapshot, prev);
+}
+
+void PassOp::build(::mlir::OpBuilder &odsBuilder,
+                   ::mlir::OperationState &odsState, StringRef snapshot,
+                   ::mlir::Value prev) {
+  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()),
+        snapshot, prev);
+}
+
 ::mlir::ParseResult TraceOp::parse(::mlir::OpAsmParser &parser,
                                    ::mlir::OperationState &result) {
   auto *ctx = parser.getContext();
