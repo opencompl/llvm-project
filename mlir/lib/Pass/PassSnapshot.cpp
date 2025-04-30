@@ -13,7 +13,7 @@ namespace {
 
 class PassSnapshotInstrumentation : public PassInstrumentation {
 private:
-  struct Trace {
+  struct TraceBuilder {
     MLIRContext context{MLIRContext::Threading::DISABLED};
     OpBuilder builder{&context};
     mldr::TraceOp trace;
@@ -26,47 +26,34 @@ private:
                                 flcl.getColumn());
     }
 
-    explicit Trace(Operation *op) {
-      auto flcLoc = dyn_cast<FileLineColLoc>(op->getLoc());
-      assert(flcLoc);
-      auto source = flcLoc.getFilename().strref();
+    explicit TraceBuilder(Operation *op) {
+      auto sourceFlcl = dyn_cast<FileLineColLoc>(op->getLoc());
+      assert(sourceFlcl);
+      auto sourceFile = sourceFlcl.getFilename().strref();
 
       context.loadDialect<mldr::MLDRDialect>();
-      llvm::errs() << llvm::join(llvm::map_range(
-                                     builder.getContext()->getLoadedDialects(),
-                                     [](Dialect *dialect) -> StringRef {
-                                       return dialect->getNamespace();
-                                     }),
-                                 ",")
-                   << "\n";
-
       trace = builder.create<mldr::TraceOp>(
-          FileLineColLoc::get(&context, source, 0, 0), source.str());
+          FileLineColLoc::get(&context, sourceFile, 0, 0), sourceFile);
 
       auto &region = trace.getBody();
       auto &block = trace.getBody().emplaceBlock();
       currentSnapshot =
           region.addArgument(mldr::SnapshotType::get(&context),
-                             FileLineColLoc::get(&context, source, 0, 0));
+                             FileLineColLoc::get(&context, sourceFile, 0, 0));
 
       builder.setInsertionPoint(&block, block.begin());
       op->walk([this](Operation *operation) {
-        auto flcl = dyn_cast<FileLineColLoc>(operation->getLoc());
-        if (flcl) {
+        if (auto flcl = dyn_cast<FileLineColLoc>(operation->getLoc())) {
           auto locOp = builder.create<mldr::LocationOp>(
               FileLineColLoc::get(&context, flcl.getFilename(), flcl.getLine(),
                                   flcl.getColumn()),
               mldr::LocationType::get(&context), currentSnapshot,
               flcl.getLine(), flcl.getColumn(), ValueRange{});
           currHashToValue.try_emplace(hash(flcl), locOp);
-        } else {
-          llvm::errs() << *operation << "\n";
-        }
+        } else
+          assert(false && "unhandled case: location from source file is not a "
+                          "FileLineColLoc.");
       });
-
-      llvm::errs() << "// ----- start dump of debug\n";
-      trace.print(llvm::errs(), OpPrintingFlags().enableDebugInfo(false));
-      llvm::errs() << "// ----- end dump of debug\n";
     }
 
     void addPass(StringRef snapshotFileName) {
@@ -105,32 +92,28 @@ private:
                         const PipelineParentInfo &parentInfo) override;
 
   unsigned passCount = 1;
-  std::vector<StringRef> passNames;
-  std::unique_ptr<Trace> trace;
+  std::unique_ptr<TraceBuilder> traceBuilder;
 };
 } // namespace
 
 namespace {
 
 void PassSnapshotInstrumentation::runBeforePass(Pass *pass, Operation *op) {
-  if (!trace) {
+  if (!traceBuilder) {
     // first pass, snapshot the first op
-    trace = std::make_unique<Trace>(op);
+    traceBuilder = std::make_unique<TraceBuilder>(op);
   }
 }
 
 void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
 
   const auto passId = passCount++;
-  passNames.push_back(pass->getName());
 
   const auto filename = llvm::formatv("snap-pass{}.mlir", passId).str();
   const auto tagname = llvm::formatv("tag{}", passId).str();
 
-  trace->addPass(filename);
+  traceBuilder->addPass(filename);
   (void)generateLocationsFromIR(filename, tagname, op, OpPrintingFlags());
-
-  llvm::errs() << "// Start dump of " << op->getName() << "\n";
 
   op->walk([this, passId](Operation *op) {
     if (auto fusedLoc = dyn_cast<FusedLoc>(op->getLoc())) {
@@ -152,6 +135,8 @@ void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
           if (locPass == passId) {
             // location is generated this pass, should always be last in list
             // since list is reversed, should always be visited first
+            // also, we should never have more than one loc from this pass
+            // assert that thisLoc is never initialized twice
             assert(!thisLoc);
             thisLoc = flcLoc;
           } else if (locPass + 1 == passId) {
@@ -164,27 +149,31 @@ void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
         // this is an untagged location
         // this can only be the root MLIR file
         if (auto flcLoc = dyn_cast<FileLineColLoc>(subloc)) {
-          // process nothing
-          if (passId == 1) {
+          // the first pass should capture the changes to the root mlir file
+          if (passId == 1)
             prevLocs.push_back(flcLoc);
-          }
+
+          // otherwise, process nothing
           continue;
         }
       }
 
-      trace->addLocation(*thisLoc, prevLocs);
+      traceBuilder->addLocation(*thisLoc, prevLocs);
     }
   });
-
-  trace->trace.print(llvm::errs(), OpPrintingFlags().enableDebugInfo(false));
-  llvm::errs() << "// End dump\n";
 }
 
 void PassSnapshotInstrumentation::runBeforePipeline(
-    std::optional<OperationName> name, const PipelineParentInfo &parentInfo) {}
+    std::optional<OperationName> name, const PipelineParentInfo &parentInfo) {
+  llvm::errs() << "test runBefore\n";
+}
 
 void PassSnapshotInstrumentation::runAfterPipeline(
-    std::optional<OperationName> name, const PipelineParentInfo &parentInfo) {}
+    std::optional<OperationName> name, const PipelineParentInfo &parentInfo) {
+  if (traceBuilder) {
+    llvm::errs() << traceBuilder->trace << "\n";
+  }
+}
 } // namespace
 
 void PassManager::enableSnapshot() {
