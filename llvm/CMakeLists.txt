@@ -164,6 +164,20 @@ if ("compiler-rt" IN_LIST LLVM_ENABLE_PROJECTS)
     "https://compiler-rt.llvm.org/ for building the runtimes.")
 endif()
 
+if ("offload" IN_LIST LLVM_ENABLE_PROJECTS)
+  message(WARNING "Using LLVM_ENABLE_PROJECTS=offload is deprecated now, and will "
+    "become a fatal error in the LLVM 21 release.  Please use "
+    "-DLLVM_ENABLE_RUNTIMES=offload or see the instructions at "
+    "https://openmp.llvm.org/ for building the runtimes.")
+endif()
+
+if ("openmp" IN_LIST LLVM_ENABLE_PROJECTS)
+  message(WARNING "Using LLVM_ENABLE_PROJECTS=openmp is deprecated now, and will "
+    "become a fatal error in the LLVM 21 release.  Please use "
+    "-DLLVM_ENABLE_RUNTIMES=openmp or see the instructions at "
+    "https://openmp.llvm.org/ for building the runtimes.")
+endif()
+
 if ("flang-rt" IN_LIST LLVM_ENABLE_RUNTIMES)
   if (NOT "flang" IN_LIST LLVM_ENABLE_PROJECTS)
     message(FATAL_ERROR "Flang is not enabled, but is required for the Flang-RT runtime")
@@ -1401,7 +1415,8 @@ if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
 
   # Installing the headers needs to depend on generating any public
   # tablegen'd headers.
-  add_custom_target(llvm-headers DEPENDS intrinsics_gen omp_gen)
+  add_custom_target(llvm-headers)
+  add_dependencies(llvm-headers intrinsics_gen omp_gen target_parser_gen)
   set_target_properties(llvm-headers PROPERTIES FOLDER "LLVM/Resources")
 
   if (NOT LLVM_ENABLE_IDE)

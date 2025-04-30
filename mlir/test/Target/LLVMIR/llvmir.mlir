@@ -1057,6 +1057,14 @@ llvm.func @gep(%ptr: !llvm.ptr, %idx: i64,
   llvm.getelementptr %ptr[%idx, 1, 0] : (!llvm.ptr, i64) -> !llvm.ptr, !llvm.struct<(i32, struct<(i32, f32)>)>
   // CHECK: = getelementptr inbounds { [10 x float] }, ptr %{{.*}}, i64 %{{.*}}, i32 0, i64 %{{.*}}
   llvm.getelementptr inbounds %ptr2[%idx, 0, %idx] : (!llvm.ptr, i64, i64) -> !llvm.ptr, !llvm.struct<(array<10 x f32>)>
+  // CHECK: = getelementptr inbounds nuw { [10 x float] }, ptr %{{.*}}, i64 %{{.*}}, i32 0, i64 %{{.*}}
+  llvm.getelementptr inbounds | nuw %ptr2[%idx, 0, %idx] : (!llvm.ptr, i64, i64) -> !llvm.ptr, !llvm.struct<(array<10 x f32>)>
+  // CHECK: = getelementptr nusw { [10 x float] }, ptr %{{.*}}, i64 %{{.*}}, i32 0, i64 %{{.*}}
+  llvm.getelementptr nusw %ptr2[%idx, 0, %idx] : (!llvm.ptr, i64, i64) -> !llvm.ptr, !llvm.struct<(array<10 x f32>)>
+  // CHECK: = getelementptr nusw nuw { [10 x float] }, ptr %{{.*}}, i64 %{{.*}}, i32 0, i64 %{{.*}}
+  llvm.getelementptr nusw | nuw %ptr2[%idx, 0, %idx] : (!llvm.ptr, i64, i64) -> !llvm.ptr, !llvm.struct<(array<10 x f32>)>
+  // CHECK: = getelementptr nuw { [10 x float] }, ptr %{{.*}}, i64 %{{.*}}, i32 0, i64 %{{.*}}
+  llvm.getelementptr nuw %ptr2[%idx, 0, %idx] : (!llvm.ptr, i64, i64) -> !llvm.ptr, !llvm.struct<(array<10 x f32>)>
   llvm.return
 }
 
@@ -2840,7 +2848,7 @@ module {
 
 llvm.module_flags [#llvm.mlir.module_flag<append, "CG Profile", [
   #llvm.cgprofile_entry<from = @from, to = @to, count = 222>,
-  #llvm.cgprofile_entry<from = @from, to = @from, count = 222>,
+  #llvm.cgprofile_entry<from = @from, count = 222>,
   #llvm.cgprofile_entry<from = @to, to = @from, count = 222>
 ]>]
 llvm.func @from(i32)
@@ -2851,7 +2859,7 @@ llvm.func @to()
 // CHECK: ![[#CGPROF]] = !{i32 5, !"CG Profile", ![[#LIST:]]}
 // CHECK: ![[#LIST]] = distinct !{![[#ENTRY_A:]], ![[#ENTRY_B:]], ![[#ENTRY_C:]]}
 // CHECK: ![[#ENTRY_A]] = !{ptr @from, ptr @to, i64 222}
-// CHECK: ![[#ENTRY_B]] = !{ptr @from, ptr @from, i64 222}
+// CHECK: ![[#ENTRY_B]] = !{ptr @from, null, i64 222}
 // CHECK: ![[#ENTRY_C]] = !{ptr @to, ptr @from, i64 222}
 // CHECK: ![[#DBG]] = !{i32 2, !"Debug Info Version", i32 3}
 
