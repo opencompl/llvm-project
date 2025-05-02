@@ -4,8 +4,9 @@ alias mlir-opt=${BUILD_DIR}/bin/mlir-opt
 
 cmake --build ${BUILD_DIR} &&
   mlir-opt  -mlir-snapshot-after-all -mlir-print-debuginfo --pass-pipeline="builtin.module\
-    ( test-constant-mul \
+    ( cse,
+    test-constant-mul \
     , convert-arith-to-llvm
-    )" test.mlir > snapshot-out.mlir
+    )" test.mlir > snapshot-out.mlir &&
+  echo "command ran with no issues"
   
-# -mlir-print-debuginfo
