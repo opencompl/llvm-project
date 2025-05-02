@@ -1,6 +1,6 @@
+#include "mlir/Pass/R2D2/R2D2.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
-#include "mlir/Pass/R2D2/R2D2.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 #include "mlir/Pass/R2D2/R2D2.cpp.inc"

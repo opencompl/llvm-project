@@ -464,7 +464,6 @@ llvm::hash_code OpPassManager::hash() {
   return hashCode;
 }
 
-
 //===----------------------------------------------------------------------===//
 // OpToOpPassAdaptor
 //===----------------------------------------------------------------------===//
@@ -581,7 +580,7 @@ LogicalResult OpToOpPassAdaptor::runPipeline(
     // we can re-evaluate this.
     am.clear();
   });
-
+  llvm::errs() << "instrumentor: " << am.getPassInstrumentor() << "\n";
   // Run the pipeline over the provided operation.
   if (instrumentor) {
     instrumentor->runBeforePipeline(pm.getOpName(*op->getContext()),
@@ -591,7 +590,7 @@ LogicalResult OpToOpPassAdaptor::runPipeline(
   for (Pass &pass : pm.getPasses())
     if (failed(run(&pass, op, am, verifyPasses, parentInitGeneration)))
       return failure();
-
+  llvm::errs() << "help";
   if (instrumentor) {
     instrumentor->runAfterPipeline(pm.getOpName(*op->getContext()),
                                    *parentInfo);
@@ -869,7 +868,8 @@ LogicalResult PassManager::run(Operation *op) {
   // Initialize all of the passes within the pass manager with a new generation.
   llvm::hash_code newInitKey = context->getRegistryHash();
   llvm::hash_code pipelineKey = hash();
-  if (newInitKey != initializationKey || pipelineKey != pipelineInitializationKey) {
+  if (newInitKey != initializationKey ||
+      pipelineKey != pipelineInitializationKey) {
     if (failed(initialize(context, impl->initializationGeneration + 1)))
       return failure();
     initializationKey = newInitKey;

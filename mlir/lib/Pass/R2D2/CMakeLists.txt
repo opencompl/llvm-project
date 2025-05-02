@@ -1,5 +1,6 @@
 add_mlir_library(MLIRR2D2
     R2D2.cpp
+    R2D2Support.cpp
 
     ADDITIONAL_HEADER_DIRS 
     ${MLIR_MAIN_INCLUDE_DIR}

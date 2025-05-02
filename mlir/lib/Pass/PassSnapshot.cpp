@@ -161,6 +161,10 @@ void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
       traceBuilder->addLocation(*thisLoc, prevLocs);
     }
   });
+
+  llvm::errs() << "// ----\n";
+  traceBuilder->trace.print(llvm::errs(),
+                            OpPrintingFlags{}.enableDebugInfo(false));
 }
 
 void PassSnapshotInstrumentation::runBeforePipeline(
