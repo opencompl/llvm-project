@@ -11,7 +11,7 @@ struct R2D2ServerForwarder {
 public:
   R2D2ServerForwarder(R2D2Server &server) : r2d2{server} {}
 
-  void onInitialize(const NoParams &params, Callback<llvm::json::Value> reply);
+  void onInitialize(const NoParams &params, Callback<std::string> reply);
   void onShutdown(const NoParams &params, Callback<std::nullptr_t> reply);
 
   R2D2Server &r2d2;
@@ -19,24 +19,25 @@ public:
 };
 
 void R2D2ServerForwarder::onInitialize(const NoParams &params,
-                                       Callback<llvm::json::Value> reply) {
-  reply(llvm::json::Value{});
+                                       Callback<std::string> reply) {
+  Logger::debug("initialize");
+  reply("initialized");
 }
 void R2D2ServerForwarder::onShutdown(const NoParams &params,
                                      Callback<std::nullptr_t> reply) {
+  Logger::debug("shutdown requested");
   shutdownRequestReceived = true;
-  reply(nullptr);
+  // reply(nullptr);
 }
 
 llvm::LogicalResult runR2D2Server(R2D2Server &server,
                                   JSONTransport &transport) {
-  MessageHandler messageHandler{transport};
   R2D2ServerForwarder forwarder{server};
+  MessageHandler messageHandler{transport};
 
   messageHandler.method("initialize", &forwarder,
                         &R2D2ServerForwarder::onInitialize);
-  messageHandler.method("shutdown", &forwarder,
-                        &R2D2ServerForwarder::onShutdown);
+  messageHandler.method("exit", &forwarder, &R2D2ServerForwarder::onShutdown);
 
   if (auto error = transport.run(messageHandler)) {
     Logger::error("Transport error: {0}", error);

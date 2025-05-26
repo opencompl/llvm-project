@@ -13,7 +13,8 @@ LogicalResult mlir::MlirR2D2ServerMain(int argc, char **argv) {
   if (auto err = llvm::sys::ChangeStdinToBinary())
     return failure();
 
-  JSONTransport transport(stdin, llvm::outs());
+  JSONTransport transport(stdin, llvm::outs(), JSONStreamStyle::Delimited,
+                          true);
   r2d2::R2D2Server server;
 
   return r2d2::runR2D2Server(server, transport);
