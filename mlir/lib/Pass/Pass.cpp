@@ -582,7 +582,8 @@ LogicalResult OpToOpPassAdaptor::runPipeline(
     // we can re-evaluate this.
     am.clear();
   });
-  llvm::errs() << "instrumentor: " << am.getPassInstrumentor() << "\n";
+  llvm::errs() << "instrumentor: " << instrumentor
+               << ", am: " << am.getPassInstrumentor() << "\n";
   // Run the pipeline over the provided operation.
   if (instrumentor) {
     instrumentor->runBeforePipeline(pm.getOpName(*op->getContext()),
@@ -592,7 +593,6 @@ LogicalResult OpToOpPassAdaptor::runPipeline(
   for (Pass &pass : pm.getPasses())
     if (failed(run(&pass, op, am, verifyPasses, parentInitGeneration)))
       return failure();
-  llvm::errs() << "help";
   if (instrumentor) {
     instrumentor->runAfterPipeline(pm.getOpName(*op->getContext()),
                                    *parentInfo);

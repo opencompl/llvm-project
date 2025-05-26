@@ -55,6 +55,8 @@ struct PassTiming : public PassInstrumentation {
 
   void runBeforePipeline(std::optional<OperationName> name,
                          const PipelineParentInfo &parentInfo) override {
+    llvm::errs() << "BEFORE PIPELINE\n";
+
     auto tid = llvm::get_threadid();
     auto &activeTimers = activeThreadTimers[tid];
 
@@ -149,6 +151,7 @@ void PassManager::enableTiming(TimingScope &timingScope) {
   if (!timingScope)
     return;
   addInstrumentation(std::make_unique<PassTiming>(timingScope));
+  llvm::errs() << "ENABLE TIMING\n";
 }
 
 /// Add an instrumentation to time the execution of passes and the computation
@@ -157,6 +160,7 @@ void PassManager::enableTiming(std::unique_ptr<TimingManager> tm) {
   if (!tm->getRootTimer())
     return; // no need to keep the timing manager around if it's disabled
   addInstrumentation(std::make_unique<PassTiming>(std::move(tm)));
+  llvm::errs() << "ENABLE TIMING\n";
 }
 
 /// Add an instrumentation to time the execution of passes and the computation

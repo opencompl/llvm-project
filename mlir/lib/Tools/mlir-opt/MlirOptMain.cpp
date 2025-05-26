@@ -434,6 +434,7 @@ static LogicalResult
 performActions(raw_ostream &os,
                const std::shared_ptr<llvm::SourceMgr> &sourceMgr,
                MLIRContext *context, const MlirOptMainConfig &config) {
+  llvm::errs() << "PERFORM ACTIONS\n";
   DefaultTimingManager tm;
   applyDefaultTimingManagerCLOptions(tm);
   TimingScope timing = tm.getRootScope();
