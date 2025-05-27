@@ -12,25 +12,28 @@ static LogicalResult traverseAncestors(LocationQuery &out, LocationOp source,
   std::queue<std::pair<LocationOp, unsigned>> queue;
   llvm::DenseSet<Operation *> visited;
   queue.emplace(source, 0);
+  visited.insert(source);
 
   while (queue.size() > 0) {
-    auto top = queue.back();
+    auto top = queue.front();
     auto locOp = top.first;
     auto locDepth = top.second;
     queue.pop();
 
+    out.insert(locOp);
+
     assert(top.second <= depth);
 
-    for (auto elem : locOp.getOperands()) {
-      auto *op = elem.getDefiningOp();
-      if (auto loc = dyn_cast<LocationOp>(op)) {
-        if (locDepth < depth && !visited.contains(op)) {
+    if (locDepth < depth)
+      for (auto elem : locOp.getArgs()) {
+        auto *op = elem.getDefiningOp();
+        if (!visited.contains(op)) {
+          auto loc = dyn_cast<LocationOp>(op);
+
           visited.insert(op);
-          out.insert(loc);
           queue.emplace(loc, locDepth + 1);
         }
       }
-    }
   }
   return success();
 }
@@ -42,26 +45,27 @@ static LogicalResult traverseDescendants(LocationQuery &out, LocationOp source,
   queue.emplace(source, 0);
 
   while (queue.size() > 0) {
-    auto top = queue.back();
+    auto top = queue.front();
     auto locOp = top.first;
     auto locDepth = top.second;
     queue.pop();
 
     assert(top.second <= depth);
 
-    for (auto *op : locOp->getUsers()) {
-      if (auto loc = dyn_cast<LocationOp>(op)) {
-        if (locDepth < depth && !visited.contains(op)) {
-          visited.insert(op);
-          out.insert(loc);
-          queue.emplace(loc, locDepth + 1);
+    if (locDepth < depth)
+      for (auto *op : locOp->getUsers()) {
+        if (auto loc = dyn_cast<LocationOp>(op)) {
+          if (!visited.contains(op)) {
+            visited.insert(op);
+            out.insert(loc);
+            queue.emplace(loc, locDepth + 1);
+          }
         }
       }
-    }
   }
+
   return success();
 }
-
 } // namespace
 
 namespace mlir {

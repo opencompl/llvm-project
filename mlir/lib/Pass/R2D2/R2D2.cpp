@@ -34,8 +34,10 @@ void LocationOp::build(::mlir::OpBuilder &odsBuilder,
 
 StringAttr LocationOp::getSnapshotFile() {
   auto pass = getSnapshot();
-  if (auto passOp = dyn_cast<PassOp>(pass.getDefiningOp()))
-    return passOp.getSnapshotAttr();
+  if (auto *op = pass.getDefiningOp()) {
+    if (auto passOp = dyn_cast<PassOp>(op))
+      return passOp.getSnapshotAttr();
+  }
 
   // otherwise it is the source file
   auto traceOp = dyn_cast<TraceOp>(getOperation()->getParentOp());

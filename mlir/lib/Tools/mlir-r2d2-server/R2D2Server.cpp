@@ -9,11 +9,19 @@ namespace mlir {
 namespace r2d2 {
 using namespace lsp;
 
+namespace {
+FileLineCol toFlc(LocationOp loc) {
+  auto snapshotFile = loc.getSnapshotFile();
+  return FileLineCol{snapshotFile.str(), loc.getLine(), loc.getColumn()};
+}
+} // namespace
+
 struct R2D2Server::impl {
   mlir::MLIRContext ctx;
   llvm::SourceMgr sourceMgr;
   OwningOpRef<ModuleOp> module;
   TraceOp trace;
+  llvm::StringMap<Value> snapshotCache;
 
   impl() { ctx.loadDialect<r2d2::R2D2Dialect>(); }
 };
@@ -26,24 +34,50 @@ R2D2Server::~R2D2Server() noexcept = default;
 llvm::LogicalResult R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
   auto *ctx = &pimpl->ctx;
   auto &sourceMgr = pimpl->sourceMgr;
+  auto &trace = pimpl->trace;
+  auto &module = pimpl->module;
+
   auto src = llvm::MemoryBuffer::getMemBuffer(r2d2);
   sourceMgr.AddNewSourceBuffer(std::move(src), SMLoc());
-  pimpl->module = parseSourceFile<ModuleOp>(sourceMgr, ctx);
-  pimpl->trace = *pimpl->module->getOps<TraceOp>().begin();
+  module = parseSourceFile<ModuleOp>(sourceMgr, ctx);
+  if (!module)
+    return failure();
+
+  if (auto traces = module->getOps<TraceOp>(); !traces.empty())
+    trace = *traces.begin();
+  else
+    return failure();
 
   std::string output;
   llvm::raw_string_ostream stringStream(output);
-  pimpl->trace.print(stringStream);
+  trace.print(stringStream);
 
   Logger::info("loaded r2d2: {}", output);
+
+  auto &snapshotCache = pimpl->snapshotCache;
+  snapshotCache[trace.getSnapshot()] = trace.getBody().getArgument(0);
+
+  for (auto pass : trace.getOps<PassOp>())
+    snapshotCache[pass.getSnapshot()] = pass;
+
+  for (auto &&[name, val] : snapshotCache)
+    Logger::info("detected snapshot {0} at {1}", name, val);
 
   return llvm::success(pimpl->trace);
 }
 
 LocationOp R2D2Server::findOp(llvm::StringRef source, unsigned line,
                               unsigned col) {
-  auto trace = pimpl->trace;
-  trace.getOps();
+  auto &snapshotCache = pimpl->snapshotCache;
+  if (auto itr = snapshotCache.find(source); itr != snapshotCache.end()) {
+    for (auto *user : itr->second.getUsers()) {
+      if (auto loc = dyn_cast<LocationOp>(user)) {
+        if (loc.getLine() == line && loc.getColumn() == col)
+          return loc;
+      }
+    }
+  }
+  return {};
 }
 
 std::optional<LocationQuery> R2D2Server::findRelatives(LocationOp source,
@@ -99,7 +133,24 @@ void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
 
 void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,
                                              Callback<TraceResponse> reply) {
-  auto srcLoc = params.source;
+  auto srcLoc = r2d2.findOp(params.source.filename, params.source.line,
+                            params.source.column);
+  if (!srcLoc)
+    return;
+
+  Logger::info("found {0}", srcLoc);
+
+  auto query =
+      r2d2.findRelatives(srcLoc, params.traceDirection, params.maxDepth);
+
+  if (query) {
+    TraceResponse response;
+    response.locations.reserve(query->size());
+    for (auto loc : *query)
+      response.locations.emplace_back(toFlc(loc));
+
+    reply(response);
+  }
 }
 
 llvm::LogicalResult runR2D2Server(R2D2Server &server,
