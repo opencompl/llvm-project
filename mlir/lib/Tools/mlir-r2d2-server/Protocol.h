@@ -18,8 +18,16 @@ bool fromJSON(const llvm::json::Value &value, FileLineCol &result,
               llvm::json::Path path);
 llvm::json::Value toJSON(const FileLineCol &diag);
 
+using LoadRequest = std::string;
+
+enum class TraceDirection { Backward, Forward };
+/// Add support for JSON serialization.
+bool fromJSON(const llvm::json::Value &value, TraceDirection &result,
+              llvm::json::Path path);
+
 struct TraceRequest {
   FileLineCol source;
+  TraceDirection traceDirection;
   unsigned maxDepth = UINT_MAX;
 };
 
@@ -35,6 +43,7 @@ struct TraceResponse {
 /// Add support for JSON serialization.
 bool fromJSON(const llvm::json::Value &value, TraceResponse &result,
               llvm::json::Path path);
+llvm::json::Value toJSON(const std::vector<FileLineCol> &diag);
 llvm::json::Value toJSON(const TraceResponse &diag);
 
 } // namespace r2d2

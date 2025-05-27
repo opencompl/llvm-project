@@ -10,6 +10,7 @@ add_mlir_library(MLIRR2D2ServerLib
   Support
 
   LINK_LIBS
+  MLIRParser
   MLIRPass
   MLIRLspServerSupportLib
 )

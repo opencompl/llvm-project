@@ -16,16 +16,44 @@ llvm::json::Value toJSON(const FileLineCol &diag) {
                             {"column", diag.column}};
 }
 
+bool fromJSON(const llvm::json::Value &value, TraceDirection &result,
+              llvm::json::Path path) {
+  if (std::optional<StringRef> str = value.getAsString()) {
+    if (*str == "back") {
+      result = TraceDirection::Backward;
+      return true;
+    }
+    if (*str == "fwd") {
+      result = TraceDirection::Forward;
+      return true;
+    }
+  }
+  return false;
+}
+
 bool fromJSON(const llvm::json::Value &value, TraceRequest &result,
               llvm::json::Path path) {
   llvm::json::ObjectMapper o(value, path);
   return o && o.map("source", result.source) &&
+         o.map("traceDirection", result.traceDirection) &&
          o.map("maxDepth", result.maxDepth);
 }
 
 llvm::json::Value toJSON(const TraceRequest &diag) {
   return llvm::json::Object{{"source", diag.source},
                             {"maxDepth", diag.maxDepth}};
+}
+
+llvm::json::Value toJSON(const std::vector<FileLineCol> &diag) {
+  auto a = llvm::json::Array();
+  a.reserve(diag.size());
+  for (auto &elem : diag)
+    a.push_back(toJSON(elem));
+  return a;
+}
+
+llvm::json::Value toJSON(const TraceResponse &diag) {
+  return llvm::json::Object{{"locations", diag.locations}};
 }
 } // namespace r2d2
 } // namespace mlir
