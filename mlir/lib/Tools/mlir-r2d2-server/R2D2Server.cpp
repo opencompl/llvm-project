@@ -61,7 +61,7 @@ llvm::LogicalResult R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
     snapshotCache[pass.getSnapshot()] = pass;
 
   for (auto &&[name, val] : snapshotCache)
-    Logger::info("detected snapshot {0} at {1}", name, val);
+    Logger::debug("detected snapshot {0} at {1}", name, val);
 
   return llvm::success(pimpl->trace);
 }

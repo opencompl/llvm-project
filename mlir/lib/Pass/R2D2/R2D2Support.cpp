@@ -8,7 +8,7 @@ using namespace mlir::r2d2;
 
 namespace {
 static LogicalResult traverseAncestors(LocationQuery &out, LocationOp source,
-                                       unsigned depth) {
+                                       unsigned maxDepth) {
   std::queue<std::pair<LocationOp, unsigned>> queue;
   llvm::DenseSet<Operation *> visited;
   queue.emplace(source, 0);
@@ -22,9 +22,9 @@ static LogicalResult traverseAncestors(LocationQuery &out, LocationOp source,
 
     out.insert(locOp);
 
-    assert(top.second <= depth);
+    assert(top.second <= maxDepth);
 
-    if (locDepth < depth)
+    if (locDepth < maxDepth)
       for (auto elem : locOp.getArgs()) {
         auto *op = elem.getDefiningOp();
         if (!visited.contains(op)) {
@@ -39,7 +39,7 @@ static LogicalResult traverseAncestors(LocationQuery &out, LocationOp source,
 }
 
 static LogicalResult traverseDescendants(LocationQuery &out, LocationOp source,
-                                         unsigned depth) {
+                                         unsigned maxDepth) {
   std::queue<std::pair<LocationOp, unsigned>> queue;
   llvm::DenseSet<Operation *> visited;
   queue.emplace(source, 0);
@@ -50,9 +50,9 @@ static LogicalResult traverseDescendants(LocationQuery &out, LocationOp source,
     auto locDepth = top.second;
     queue.pop();
 
-    assert(top.second <= depth);
+    assert(top.second <= maxDepth);
 
-    if (locDepth < depth)
+    if (locDepth < maxDepth)
       for (auto *op : locOp->getUsers()) {
         if (auto loc = dyn_cast<LocationOp>(op)) {
           if (!visited.contains(op)) {
