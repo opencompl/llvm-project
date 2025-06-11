@@ -19,10 +19,12 @@ class JSONTransport;
 namespace r2d2 {
 class R2D2Server {
 public:
-  llvm::LogicalResult loadR2D2File(llvm::StringRef r2d2);
+  llvm::Error loadR2D2File(llvm::StringRef r2d2);
   LocationOp findOp(llvm::StringRef source, unsigned line, unsigned col);
   std::optional<LocationQuery>
   findRelatives(LocationOp source, TraceDirection direction, unsigned maxDepth);
+
+  std::vector<std::string> getSnapshots() const;
 
   R2D2Server();
   R2D2Server(R2D2Server &&) noexcept;

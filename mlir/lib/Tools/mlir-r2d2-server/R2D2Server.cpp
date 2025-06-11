@@ -31,7 +31,7 @@ R2D2Server::R2D2Server(R2D2Server &&) noexcept = default;
 R2D2Server &R2D2Server::operator=(R2D2Server &&) noexcept = default;
 R2D2Server::~R2D2Server() noexcept = default;
 
-llvm::LogicalResult R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
+llvm::Error R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
   auto *ctx = &pimpl->ctx;
   auto &sourceMgr = pimpl->sourceMgr;
   auto &trace = pimpl->trace;
@@ -41,12 +41,12 @@ llvm::LogicalResult R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
   sourceMgr.AddNewSourceBuffer(std::move(src), SMLoc());
   module = parseSourceFile<ModuleOp>(sourceMgr, ctx);
   if (!module)
-    return failure();
+    return llvm::createStringError("failed to parse module \n" + r2d2);
 
   if (auto traces = module->getOps<TraceOp>(); !traces.empty())
     trace = *traces.begin();
   else
-    return failure();
+    return llvm::createStringError("module has no trace op");
 
   std::string output;
   llvm::raw_string_ostream stringStream(output);
@@ -63,7 +63,7 @@ llvm::LogicalResult R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
   for (auto &&[name, val] : snapshotCache)
     Logger::debug("detected snapshot {0} at {1}", name, val);
 
-  return llvm::success(pimpl->trace);
+  return llvm::Error::success();
 }
 
 LocationOp R2D2Server::findOp(llvm::StringRef source, unsigned line,
@@ -98,6 +98,13 @@ std::optional<LocationQuery> R2D2Server::findRelatives(LocationOp source,
   }
 }
 
+std::vector<std::string> R2D2Server::getSnapshots() const {
+  std::vector<std::string> retval;
+  for (auto pass : pimpl->trace.getOps<PassOp>())
+    retval.emplace_back(pass.getSnapshot());
+  return retval;
+}
+
 struct R2D2ServerForwarder {
 public:
   R2D2ServerForwarder(R2D2Server &server) : r2d2{server} {}
@@ -106,7 +113,7 @@ public:
   void onShutdown(const NoParams &params, Callback<std::nullptr_t> reply);
 
   void onR2D2LoadRequest(const LoadRequest &params,
-                         Callback<std::string> reply);
+                         Callback<LoadResponse> reply);
   void onR2D2TraceRequest(const TraceRequest &params,
                           Callback<TraceResponse> reply);
 
@@ -126,9 +133,18 @@ void R2D2ServerForwarder::onShutdown(const NoParams &params,
 }
 
 void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
-                                            Callback<std::string> reply) {
-  auto res = r2d2.loadR2D2File(params);
-  reply(succeeded(res) ? "success" : "failed");
+                                            Callback<LoadResponse> reply) {
+  if (auto res = r2d2.loadR2D2File(params.str)) {
+    (void)llvm::handleErrors(
+        std::move(res), [&reply](const llvm::StringError &err) {
+          reply(LoadFailureResponse{.errorMessage = err.getMessage()});
+        });
+  } else {
+    reply(LoadSuccessResponse{
+        .passes = {},
+        .snapshots = r2d2.getSnapshots(),
+    });
+  }
 }
 
 void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,

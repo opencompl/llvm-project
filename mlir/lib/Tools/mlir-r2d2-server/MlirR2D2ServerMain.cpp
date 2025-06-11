@@ -8,13 +8,12 @@ using namespace mlir::lsp;
 
 LogicalResult mlir::MlirR2D2ServerMain(int argc, char **argv) {
 
-  auto logLevel = Logger::Level::Debug;
+  auto logLevel = Logger::Level::Error;
   Logger::setLogLevel(logLevel);
   if (auto err = llvm::sys::ChangeStdinToBinary())
     return failure();
 
-  JSONTransport transport(stdin, llvm::outs(), JSONStreamStyle::Delimited,
-                          true);
+  JSONTransport transport(stdin, llvm::outs(), JSONStreamStyle::Standard, true);
   r2d2::R2D2Server server;
 
   return r2d2::runR2D2Server(server, transport);

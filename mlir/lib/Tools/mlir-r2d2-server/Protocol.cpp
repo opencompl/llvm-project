@@ -16,6 +16,27 @@ llvm::json::Value toJSON(const FileLineCol &diag) {
                             {"column", diag.column}};
 }
 
+bool fromJSON(const llvm::json::Value &value, LoadRequest &result,
+              llvm::json::Path path) {
+  llvm::json::ObjectMapper o(value, path);
+  return o && o.map("str", result.str);
+}
+
+llvm::json::Value toJSON(const LoadSuccessResponse &diag) {
+  return llvm::json::Object{{"status", "success"},
+                            {"snapshots", diag.snapshots},
+                            {"passes", diag.passes}};
+}
+
+llvm::json::Value toJSON(const LoadFailureResponse &diag) {
+  return llvm::json::Object{{"status", "failure"},
+                            {"errorMessage", diag.errorMessage}};
+}
+
+llvm::json::Value toJSON(const LoadResponse &diag) {
+  return std::visit([](auto &&val) { return toJSON(val); }, diag);
+}
+
 bool fromJSON(const llvm::json::Value &value, TraceDirection &result,
               llvm::json::Path path) {
   if (std::optional<StringRef> str = value.getAsString()) {
@@ -42,14 +63,6 @@ bool fromJSON(const llvm::json::Value &value, TraceRequest &result,
 llvm::json::Value toJSON(const TraceRequest &diag) {
   return llvm::json::Object{{"source", diag.source},
                             {"maxDepth", diag.maxDepth}};
-}
-
-llvm::json::Value toJSON(const std::vector<FileLineCol> &diag) {
-  auto a = llvm::json::Array();
-  a.reserve(diag.size());
-  for (auto &elem : diag)
-    a.push_back(toJSON(elem));
-  return a;
 }
 
 llvm::json::Value toJSON(const TraceResponse &diag) {

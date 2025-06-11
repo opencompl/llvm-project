@@ -113,7 +113,8 @@ void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
   const auto tagname = llvm::formatv("tag{}", passId).str();
 
   traceBuilder->addPass(filename);
-  (void)generateLocationsFromIR(filename, tagname, op, OpPrintingFlags());
+  (void)generateLocationsFromIR(filename, tagname, op,
+                                OpPrintingFlags().enableDebugInfo(false));
 
   op->walk([this, passId](Operation *op) {
     if (auto fusedLoc = dyn_cast<FusedLoc>(op->getLoc())) {
