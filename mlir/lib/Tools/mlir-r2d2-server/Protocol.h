@@ -1,6 +1,8 @@
 #ifndef LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
 #define LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
 
+#include <variant>
+
 #include "mlir/IR/Location.h"
 #include "llvm/Support/JSON.h"
 #include <vector>
