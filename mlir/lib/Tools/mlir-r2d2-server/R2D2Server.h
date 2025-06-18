@@ -20,7 +20,7 @@ namespace r2d2 {
 class R2D2Server {
 public:
   llvm::Error loadR2D2File(llvm::StringRef r2d2);
-  LocationOp findOp(llvm::StringRef source, unsigned line, unsigned col);
+  LocationOp findOp(llvm::StringRef source, unsigned line);
   std::optional<LocationQuery>
   findRelatives(LocationOp source, TraceDirection direction, unsigned maxDepth);
 

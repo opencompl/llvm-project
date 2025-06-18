@@ -10,9 +10,9 @@ namespace r2d2 {
 using namespace lsp;
 
 namespace {
-FileLineCol toFlc(LocationOp loc) {
+FileLine toFlc(LocationOp loc) {
   auto snapshotFile = loc.getSnapshotFile();
-  return FileLineCol{snapshotFile.str(), loc.getLine(), loc.getColumn()};
+  return FileLine{snapshotFile.str(), loc.getLine()};
 }
 } // namespace
 
@@ -66,13 +66,12 @@ llvm::Error R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
   return llvm::Error::success();
 }
 
-LocationOp R2D2Server::findOp(llvm::StringRef source, unsigned line,
-                              unsigned col) {
+LocationOp R2D2Server::findOp(llvm::StringRef source, unsigned line) {
   auto &snapshotCache = pimpl->snapshotCache;
   if (auto itr = snapshotCache.find(source); itr != snapshotCache.end()) {
     for (auto *user : itr->second.getUsers()) {
       if (auto loc = dyn_cast<LocationOp>(user)) {
-        if (loc.getLine() == line && loc.getColumn() == col)
+        if (loc.getLine() == line)
           return loc;
       }
     }
@@ -149,8 +148,7 @@ void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
 
 void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,
                                              Callback<TraceResponse> reply) {
-  auto srcLoc = r2d2.findOp(params.source.filename, params.source.line,
-                            params.source.column);
+  auto srcLoc = r2d2.findOp(params.source.filename, params.source.line);
   if (!srcLoc)
     return;
 
