@@ -64,8 +64,19 @@ llvm::json::Value toJSON(const TraceRequest &diag) {
                             {"maxDepth", diag.maxDepth}};
 }
 
+llvm::json::Value toJSON(const TraceSuccessResponse &diag) {
+  return llvm::json::Object{{"status", "success"},
+                            {"locations", diag.locations}};
+}
+
+
+llvm::json::Value toJSON(const TraceFailureResponse &diag) {
+  return llvm::json::Object{{"status", "failure"},
+                            {"errorMessage", diag.errorMessage}};
+}
+
 llvm::json::Value toJSON(const TraceResponse &diag) {
-  return llvm::json::Object{{"locations", diag.locations}};
+  return std::visit([](auto&& val) { return toJSON(val);}, diag);
 }
 } // namespace r2d2
 } // namespace mlir

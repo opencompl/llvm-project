@@ -61,9 +61,15 @@ bool fromJSON(const llvm::json::Value &value, TraceRequest &result,
               llvm::json::Path path);
 llvm::json::Value toJSON(const TraceRequest &diag);
 
-struct TraceResponse {
+struct TraceSuccessResponse {
   std::vector<FileLine> locations;
 };
+
+struct TraceFailureResponse {
+  std::string errorMessage;
+};
+
+using TraceResponse = std::variant<TraceSuccessResponse, TraceFailureResponse>;
 
 /// Add support for JSON serialization.
 bool fromJSON(const llvm::json::Value &value, TraceResponse &result,

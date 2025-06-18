@@ -149,8 +149,10 @@ void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
 void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,
                                              Callback<TraceResponse> reply) {
   auto srcLoc = r2d2.findOp(params.source.filename, params.source.line);
-  if (!srcLoc)
+  if (!srcLoc) {
+    reply(TraceFailureResponse{"unlocatable operation"});
     return;
+  }
 
   Logger::info("found {0}", srcLoc);
 
@@ -158,12 +160,15 @@ void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,
       r2d2.findRelatives(srcLoc, params.traceDirection, params.maxDepth);
 
   if (query) {
-    TraceResponse response;
+    TraceSuccessResponse response;
     response.locations.reserve(query->size());
     for (auto loc : *query)
       response.locations.emplace_back(toFlc(loc));
 
     reply(response);
+  }
+  else {
+    reply(TraceFailureResponse{"operation has no relatives"});
   }
 }
 
