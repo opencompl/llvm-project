@@ -141,8 +141,8 @@ void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
         });
   } else {
     reply(LoadSuccessResponse{
-        .passes = {},
-        .snapshots = r2d2.getSnapshots(),
+        {},
+        r2d2.getSnapshots(),
     });
   }
 }

@@ -3,17 +3,16 @@
 namespace mlir {
 namespace r2d2 {
 
-bool fromJSON(const llvm::json::Value &value, FileLineCol &result,
+bool fromJSON(const llvm::json::Value &value, FileLine &result,
               llvm::json::Path path) {
   llvm::json::ObjectMapper o(value, path);
   return o && o.map("filename", result.filename) &&
-         o.map("line", result.line) && o.map("column", result.column);
+         o.map("line", result.line);
 }
 
-llvm::json::Value toJSON(const FileLineCol &diag) {
+llvm::json::Value toJSON(const FileLine &diag) {
   return llvm::json::Object{{"filename", diag.filename},
-                            {"line", diag.line},
-                            {"column", diag.column}};
+                            {"line", diag.line}};
 }
 
 bool fromJSON(const llvm::json::Value &value, LoadRequest &result,

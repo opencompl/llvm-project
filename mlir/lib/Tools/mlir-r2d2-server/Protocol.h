@@ -1,24 +1,26 @@
 #ifndef LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
 #define LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
+#include <string>
+#include <vector>
+#include <variant>
+#include <type_traits>
 
 #include <variant>
 
 #include "mlir/IR/Location.h"
 #include "llvm/Support/JSON.h"
-#include <vector>
 
 namespace mlir {
 namespace r2d2 {
 
-struct FileLineCol {
+struct FileLine {
   std::string filename;
   unsigned line;
-  unsigned column;
 };
 /// Add support for JSON serialization.
-bool fromJSON(const llvm::json::Value &value, FileLineCol &result,
+bool fromJSON(const llvm::json::Value &value, FileLine &result,
               llvm::json::Path path);
-llvm::json::Value toJSON(const FileLineCol &diag);
+llvm::json::Value toJSON(const FileLine &diag);
 
 struct LoadRequest {
   std::string str;
@@ -49,7 +51,7 @@ bool fromJSON(const llvm::json::Value &value, TraceDirection &result,
               llvm::json::Path path);
 
 struct TraceRequest {
-  FileLineCol source;
+  FileLine source;
   TraceDirection traceDirection;
   unsigned maxDepth = UINT_MAX;
 };
@@ -60,7 +62,7 @@ bool fromJSON(const llvm::json::Value &value, TraceRequest &result,
 llvm::json::Value toJSON(const TraceRequest &diag);
 
 struct TraceResponse {
-  std::vector<FileLineCol> locations;
+  std::vector<FileLine> locations;
 };
 
 /// Add support for JSON serialization.
