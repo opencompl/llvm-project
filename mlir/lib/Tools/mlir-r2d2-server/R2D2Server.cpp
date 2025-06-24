@@ -44,7 +44,7 @@ llvm::Error R2D2Server::loadR2D2File(llvm::StringRef file) {
   if (auto src = llvm::MemoryBuffer::getFile(file, true)) {
     return loadR2D2(std::move(src.get()), file);
   } else {
-    return llvm::make_error<llvm::StringError>(src.getError().message());
+    return llvm::make_error<llvm::StringError>(src.getError());
   }
 }
 
