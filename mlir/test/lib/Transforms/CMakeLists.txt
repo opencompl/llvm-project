@@ -32,6 +32,7 @@ add_mlir_library(MLIRTestTransforms
   TestInlining.cpp
   TestInliningCallback.cpp
   TestMakeIsolatedFromAbove.cpp
+  TestSingleFold.cpp
   TestTransformsOps.cpp
   ${MLIRTestTransformsPDLSrc}
 
