@@ -159,7 +159,7 @@ void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
             if constexpr (std::is_same_v<T, LoadFileRequest>)
               return r2d2.loadR2D2File(v.filePath);
             if constexpr (std::is_same_v<T, LoadStringRequest>)
-              return r2d2.loadR2D2File(v.str);
+              return r2d2.loadR2D2String(v.str);
           },
           params)) {
     (void)llvm::handleErrors(std::move(res),
