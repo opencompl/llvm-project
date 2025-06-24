@@ -153,7 +153,15 @@ void R2D2ServerForwarder::onShutdown(const NoParams &params,
 void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
                                             Callback<LoadResponse> reply) {
 
-  if (auto res = r2d2.loadR2D2String("params")) {
+  if (auto res = std::visit(
+          [this](auto &v) -> llvm::Error {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, LoadFileRequest>)
+              return r2d2.loadR2D2File(v.filePath);
+            if constexpr (std::is_same_v<T, LoadStringRequest>)
+              return r2d2.loadR2D2File(v.str);
+          },
+          params)) {
     (void)llvm::handleErrors(std::move(res),
                              [&reply](const llvm::StringError &err) {
                                reply(LoadFailureResponse{err.getMessage()});
