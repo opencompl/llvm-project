@@ -16,7 +16,19 @@ llvm::json::Value toJSON(const FileLine &diag) {
 bool fromJSON(const llvm::json::Value &value, LoadRequest &result,
               llvm::json::Path path) {
   llvm::json::ObjectMapper o(value, path);
-  return o && o.map("str", result.str);
+  if (!o)
+    return false;
+
+  std::string val;
+  if (o.mapOptional("str", val)) {
+    result = LoadStringRequest{std::move(val)};
+    return true;
+  }
+  if (o.mapOptional("file", val)) {
+    result = LoadFileRequest{std::move(val)};
+    return true;
+  }
+  return false;
 }
 
 llvm::json::Value toJSON(const PassSnapshot &snap) {

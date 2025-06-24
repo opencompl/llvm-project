@@ -22,9 +22,16 @@ bool fromJSON(const llvm::json::Value &value, FileLine &result,
               llvm::json::Path path);
 llvm::json::Value toJSON(const FileLine &diag);
 
-struct LoadRequest {
+struct LoadStringRequest {
   std::string str;
 };
+
+struct LoadFileRequest {
+  std::string filePath;
+};
+
+using LoadRequest = std::variant<LoadStringRequest, LoadFileRequest>;
+
 /// Add support for JSON serialization.
 bool fromJSON(const llvm::json::Value &value, LoadRequest &result,
               llvm::json::Path path);

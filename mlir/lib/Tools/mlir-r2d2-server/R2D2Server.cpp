@@ -4,7 +4,10 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/R2D2/R2D2Support.h"
 #include "mlir/Tools/lsp-server-support/Transport.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include <memory>
 
 namespace mlir {
 namespace r2d2 {
@@ -32,17 +35,30 @@ R2D2Server::R2D2Server(R2D2Server &&) noexcept = default;
 R2D2Server &R2D2Server::operator=(R2D2Server &&) noexcept = default;
 R2D2Server::~R2D2Server() noexcept = default;
 
-llvm::Error R2D2Server::loadR2D2File(llvm::StringRef r2d2) {
+llvm::Error R2D2Server::loadR2D2String(llvm::StringRef r2d2) {
+  auto src = llvm::MemoryBuffer::getMemBuffer(r2d2);
+  return loadR2D2(std::move(src), r2d2);
+}
+
+llvm::Error R2D2Server::loadR2D2File(llvm::StringRef file) {
+  if (auto src = llvm::MemoryBuffer::getFile(file, true)) {
+    return loadR2D2(std::move(src.get()), file);
+  } else {
+    return llvm::make_error<llvm::StringError>(src.getError().message());
+  }
+}
+
+llvm::Error R2D2Server::loadR2D2(std::unique_ptr<llvm::MemoryBuffer> src,
+                                 StringRef id) {
   auto *ctx = &pimpl->ctx;
   auto &sourceMgr = pimpl->sourceMgr;
   auto &trace = pimpl->trace;
   auto &module = pimpl->module;
 
-  auto src = llvm::MemoryBuffer::getMemBuffer(r2d2);
   sourceMgr.AddNewSourceBuffer(std::move(src), SMLoc());
   module = parseSourceFile<ModuleOp>(sourceMgr, ctx);
   if (!module)
-    return llvm::createStringError("failed to parse module \n" + r2d2);
+    return llvm::createStringError("failed to parse module \n" + id);
 
   if (auto traces = module->getOps<TraceOp>(); !traces.empty())
     trace = *traces.begin();
@@ -136,7 +152,8 @@ void R2D2ServerForwarder::onShutdown(const NoParams &params,
 
 void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
                                             Callback<LoadResponse> reply) {
-  if (auto res = r2d2.loadR2D2File(params.str)) {
+
+  if (auto res = r2d2.loadR2D2String("params")) {
     (void)llvm::handleErrors(std::move(res),
                              [&reply](const llvm::StringError &err) {
                                reply(LoadFailureResponse{err.getMessage()});

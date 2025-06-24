@@ -19,7 +19,8 @@ class JSONTransport;
 namespace r2d2 {
 class R2D2Server {
 public:
-  llvm::Error loadR2D2File(llvm::StringRef r2d2);
+  llvm::Error loadR2D2String(llvm::StringRef r2d2);
+  llvm::Error loadR2D2File(llvm::StringRef filePath);
   LocationOp findOp(llvm::StringRef source, unsigned line);
   std::optional<LocationQuery>
   findRelatives(LocationOp source, TraceDirection direction, unsigned maxDepth);
@@ -34,6 +35,7 @@ public:
 private:
   struct impl;
   std::unique_ptr<impl> pimpl;
+  llvm::Error loadR2D2(std::unique_ptr<llvm::MemoryBuffer> src, StringRef id);
 };
 llvm::LogicalResult runR2D2Server(R2D2Server &server,
                                   lsp::JSONTransport &transport);
