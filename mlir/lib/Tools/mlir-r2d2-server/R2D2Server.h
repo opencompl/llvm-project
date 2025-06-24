@@ -24,7 +24,7 @@ public:
   std::optional<LocationQuery>
   findRelatives(LocationOp source, TraceDirection direction, unsigned maxDepth);
 
-  std::vector<std::string> getSnapshots() const;
+  std::vector<PassSnapshot> getSnapshots() const;
 
   R2D2Server();
   R2D2Server(R2D2Server &&) noexcept;

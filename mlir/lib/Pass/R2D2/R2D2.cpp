@@ -51,16 +51,16 @@ FileLineColLoc LocationOp::getContainedLocation() {
 }
 
 void PassOp::build(::mlir::OpBuilder &odsBuilder,
-                   ::mlir::OperationState &odsState, StringAttr snapshot,
-                   ::mlir::Value prev) {
-  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()),
+                   ::mlir::OperationState &odsState, StringAttr pass,
+                   StringAttr snapshot, ::mlir::Value prev) {
+  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()), pass,
         snapshot, prev);
 }
 
 void PassOp::build(::mlir::OpBuilder &odsBuilder,
-                   ::mlir::OperationState &odsState, StringRef snapshot,
-                   ::mlir::Value prev) {
-  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()),
+                   ::mlir::OperationState &odsState, StringRef pass,
+                   StringRef snapshot, ::mlir::Value prev) {
+  build(odsBuilder, odsState, SnapshotType::get(odsBuilder.getContext()), pass,
         snapshot, prev);
 }
 

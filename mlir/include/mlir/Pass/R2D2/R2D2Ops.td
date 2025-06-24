@@ -30,17 +30,18 @@ def R2D2_LocationOp : Op<R2D2_Dialect, "loc", [NoRegionArguments]> {
 }
 
 def R2D2_PassOp : Op<R2D2_Dialect, "pass", [NoRegionArguments]> {
-  let arguments = (ins StrAttr: $snapshot,
+  let arguments = (ins StrAttr: $pass,
+                       StrAttr: $snapshot,
                        R2D2_SnapshotType: $prev);
   let results = (outs R2D2_SnapshotType: $result);
   
   let assemblyFormat = [{
-    $snapshot `(` $prev `)` attr-dict
+    $pass $snapshot `(` $prev `)` attr-dict
   }];
 
   let builders = [
-    OpBuilder<(ins "StringAttr": $snapshot, "::mlir::Value": $prev)>,
-    OpBuilder<(ins "StringRef": $snapshot, "::mlir::Value": $prev)>
+    OpBuilder<(ins "StringAttr": $pass, "StringAttr": $snapshot, "::mlir::Value": $prev)>,
+    OpBuilder<(ins "StringRef": $pass, "StringRef": $snapshot, "::mlir::Value": $prev)>
   ];
 }
 

@@ -87,7 +87,6 @@ void registerTestCfAssertPass();
 void registerTestCFGLoopInfoPass();
 void registerTestComposeSubView();
 void registerTestCompositePass();
-void registerTestConstantFold();
 void registerTestConstantMulToAdd();
 void registerTestControlFlowSink();
 void registerTestConvertToSPIRVPass();
@@ -236,7 +235,6 @@ void registerTestPasses() {
   mlir::test::registerTestCFGLoopInfoPass();
   mlir::test::registerTestComposeSubView();
   mlir::test::registerTestCompositePass();
-  mlir::test::registerTestConstantFold();
   mlir::test::registerTestConstantMulToAdd();
   mlir::test::registerTestControlFlowSink();
   mlir::test::registerTestConvertToSPIRVPass();

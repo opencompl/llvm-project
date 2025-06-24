@@ -4,6 +4,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/R2D2/R2D2Support.h"
 #include "mlir/Tools/lsp-server-support/Transport.h"
+#include "llvm/Support/ErrorHandling.h"
 
 namespace mlir {
 namespace r2d2 {
@@ -95,12 +96,14 @@ std::optional<LocationQuery> R2D2Server::findRelatives(LocationOp source,
     else
       return std::nullopt;
   }
+  llvm_unreachable("support no other directions");
 }
 
-std::vector<std::string> R2D2Server::getSnapshots() const {
-  std::vector<std::string> retval;
+std::vector<PassSnapshot> R2D2Server::getSnapshots() const {
+  std::vector<PassSnapshot> retval;
   for (auto pass : pimpl->trace.getOps<PassOp>())
-    retval.emplace_back(pass.getSnapshot());
+    retval.emplace_back(
+        PassSnapshot{pass.getPass().str(), pass.getSnapshot().str()});
   return retval;
 }
 
@@ -134,13 +137,12 @@ void R2D2ServerForwarder::onShutdown(const NoParams &params,
 void R2D2ServerForwarder::onR2D2LoadRequest(const LoadRequest &params,
                                             Callback<LoadResponse> reply) {
   if (auto res = r2d2.loadR2D2File(params.str)) {
-    (void)llvm::handleErrors(
-        std::move(res), [&reply](const llvm::StringError &err) {
-          reply(LoadFailureResponse{.errorMessage = err.getMessage()});
-        });
+    (void)llvm::handleErrors(std::move(res),
+                             [&reply](const llvm::StringError &err) {
+                               reply(LoadFailureResponse{err.getMessage()});
+                             });
   } else {
     reply(LoadSuccessResponse{
-        {},
         r2d2.getSnapshots(),
     });
   }
@@ -166,8 +168,7 @@ void R2D2ServerForwarder::onR2D2TraceRequest(const TraceRequest &params,
       response.locations.emplace_back(toFlc(loc));
 
     reply(response);
-  }
-  else {
+  } else {
     reply(TraceFailureResponse{"operation has no relatives"});
   }
 }

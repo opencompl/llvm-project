@@ -1,9 +1,9 @@
 #ifndef LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
 #define LIB_MLIR_TOOLS_MLIRR2D2SERVER_TRANSPORT_H_
 #include <string>
-#include <vector>
-#include <variant>
 #include <type_traits>
+#include <variant>
+#include <vector>
 
 #include <variant>
 
@@ -29,9 +29,15 @@ struct LoadRequest {
 bool fromJSON(const llvm::json::Value &value, LoadRequest &result,
               llvm::json::Path path);
 
+struct PassSnapshot {
+  std::string passName;
+  std::string snapshotFileName;
+};
+
+llvm::json::Value toJson(const PassSnapshot &snap);
+
 struct LoadSuccessResponse {
-  std::vector<std::string> passes;
-  std::vector<std::string> snapshots;
+  std::vector<PassSnapshot> passes;
 };
 
 llvm::json::Value toJSON(const LoadSuccessResponse &diag);

@@ -56,9 +56,9 @@ private:
       });
     }
 
-    void addPass(StringRef snapshotFileName) {
+    void addPass(StringRef passName, StringRef snapshotFileName) {
       auto snapshot = builder.create<r2d2::PassOp>(
-          FileLineColLoc::get(&context, snapshotFileName, 0, 0),
+          FileLineColLoc::get(&context, snapshotFileName, 0, 0), passName,
           snapshotFileName, currentSnapshot);
       currentSnapshot = snapshot;
       std::swap(currHashToValue, prevHashToValue);
@@ -112,7 +112,7 @@ void PassSnapshotInstrumentation::runAfterPass(Pass *pass, Operation *op) {
   const auto filename = llvm::formatv("snap-pass{}.mlir", passId).str();
   const auto tagname = llvm::formatv("tag{}", passId).str();
 
-  traceBuilder->addPass(filename);
+  traceBuilder->addPass(pass->getName(), filename);
   (void)generateLocationsFromIR(filename, tagname, op,
                                 OpPrintingFlags().enableDebugInfo(false));
 
