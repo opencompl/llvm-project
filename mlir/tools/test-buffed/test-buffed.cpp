@@ -88,8 +88,9 @@ int main(int argc, char **argv) {
 
   std::chrono::high_resolution_clock::time_point start =
       std::chrono::high_resolution_clock::now();
+  int32_t size = 10'000'000;
 
-  OwningOpRef<ModuleOp> module = createModule(ctx, 10'000'000);
+  OwningOpRef<ModuleOp> module = createModule(ctx, size);
   std::chrono::high_resolution_clock::time_point end =
       std::chrono::high_resolution_clock::now();
 
@@ -98,8 +99,7 @@ int main(int argc, char **argv) {
                << elapsed / std::chrono::milliseconds(1) << " ms"
                << "\n";
   llvm::errs() << "Ns per operation: "
-               << (elapsed / std::chrono::nanoseconds(1)) / 10'000'000
-               << " ns \n";
+               << (elapsed / std::chrono::nanoseconds(1)) / size << " ns \n";
 
   start = std::chrono::high_resolution_clock::now();
   rewriteModule(*module);
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
                << elapsed / std::chrono::milliseconds(1) << " ms"
                << "\n";
   llvm::errs() << "Ns per operation: "
-               << (elapsed / std::chrono::nanoseconds(1)) / 10'000'000 << "\n";
+               << (elapsed / std::chrono::nanoseconds(1)) / size << "\n";
   llvm::errs() << "Final program:" << "\n";
 
   llvm::errs() << "Sanity check\n";
