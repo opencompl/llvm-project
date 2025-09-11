@@ -241,6 +241,20 @@ static Value createTypeConstraint(OpBuilder &builder,
     return op.getOutput();
   }
 
+  if (predRec.getName() == "AnySignlessIntegerOrIndex") {
+    auto integerConstraint =
+        irdl::BaseOp::create(builder, UnknownLoc::get(ctx),
+                             StringAttr::get(ctx, "!builtin.integer"))
+            .getOutput();
+    auto indexConstraint =
+        irdl::BaseOp::create(builder, UnknownLoc::get(ctx),
+                             StringAttr::get(ctx, "!builtin.index"))
+            .getOutput();
+    return irdl::AnyOfOp::create(builder, UnknownLoc::get(ctx),
+                                 {integerConstraint, indexConstraint})
+        .getOutput();
+  }
+
   auto type = recordToType(ctx, predRec);
 
   if (type.has_value()) {

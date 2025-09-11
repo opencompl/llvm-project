@@ -904,9 +904,9 @@ class TensorOrMemRef<list<Type> allowedTypes> :
 // Type constraint for types that are "like" some type or set of types T, that is
 // they're either a T or a mapable container of Ts.
 class TypeOrValueSemanticsContainer<Type allowedType, string name>
-    : Type<Or<[
-  allowedType.predicate,
-  ValueSemanticsContainerOf<[allowedType]>.predicate]>,
+    : AnyTypeOf<[
+  allowedType,
+  ValueSemanticsContainerOf<[allowedType]>],
   name>;
 
 // Type constraint for bool-like types: bools, vectors of bools, tensors of

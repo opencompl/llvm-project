@@ -110,10 +110,10 @@ class Arith_CastOp<string mnemonic, TypeConstraint From, TypeConstraint To,
 
 // Casts do not accept indices. Type constraint for signless-integer-like types
 // excluding indices: signless integers, vectors or tensors thereof.
-def SignlessFixedWidthIntegerLike : TypeConstraint<Or<[
-        AnySignlessInteger.predicate,
-        VectorOfAnyRankOf<[AnySignlessInteger]>.predicate,
-        TensorOf<[AnySignlessInteger]>.predicate]>,
+def SignlessFixedWidthIntegerLike : AnyTypeOf<[
+        AnySignlessInteger,
+        VectorOfAnyRankOf<[AnySignlessInteger]>,
+        TensorOf<[AnySignlessInteger]>],
     "signless-fixed-width-integer-like">;
 
 // Cast from an integer type to another integer type.
