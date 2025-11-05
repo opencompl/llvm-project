@@ -10,6 +10,7 @@ add_subdirectory(mlir-translate)
 add_subdirectory(tblgen-lsp-server)
 add_subdirectory(tblgen-to-irdl)
 add_subdirectory(test-buffed)
+add_subdirectory(test-asymptotic)
 
 # mlir-runner requires ExecutionEngine.
 if(MLIR_ENABLE_EXECUTION_ENGINE)
