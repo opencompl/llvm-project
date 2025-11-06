@@ -12,10 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
+#include "llvm/Support/CommandLine.h"
 #include <chrono>
 
 using namespace llvm;
@@ -64,7 +64,7 @@ void rewriteModule(ModuleOp module) {
   }
 }
 
-OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, int32_t size) {
+OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, uint64_t size) {
   OpBuilder builder(&ctx);
   OwningOpRef<ModuleOp> module =
       builder.create<ModuleOp>(UnknownLoc::get(&ctx));
@@ -72,7 +72,7 @@ OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, int32_t size) {
 
   Operation *rootOp = builder.create<arith::ConstantOp>(
       UnknownLoc::get(&ctx), IntegerAttr::get(IntegerType::get(&ctx, 32), 1));
-  for (int i = 0; i < size / 2; ++i) {
+  for (uint64_t i = 0; i < size; ++i) {
     auto cst0 = builder.create<arith::ConstantOp>(
         UnknownLoc::get(&ctx), IntegerAttr::get(IntegerType::get(&ctx, 32), 1));
     rootOp = builder.create<arith::AddIOp>(
@@ -81,39 +81,53 @@ OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, int32_t size) {
   return module;
 }
 
+template<typename F>
+auto time(std::string_view name, F f) {
+  std::chrono::high_resolution_clock::time_point start =
+      std::chrono::high_resolution_clock::now();
+
+  const auto print_time = [&]() {
+    std::chrono::high_resolution_clock::time_point end =
+        std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double> elapsed = end - start;
+
+    llvm::errs() << name << " time: "
+                 << elapsed / std::chrono::seconds(1) << " s"
+                 << "\n";
+  };
+
+  if constexpr(std::is_void_v<decltype(f())>) {
+    f();
+    print_time();
+    return;
+  } else {
+    auto ret = f();
+    print_time();
+    return ret;
+  }
+}
+
+cl::opt<std::string> BenchmarkMode(cl::Positional, cl::desc("<benchmark>"), cl::Required);
+cl::opt<uint64_t> BenchmarkSize(cl::Positional, cl::desc("<n>"), cl::init(50000));
+
 int main(int argc, char **argv) {
+  cl::ParseCommandLineOptions(argc, argv);
+
   // Initialize.
   MLIRContext ctx;
   ctx.getOrLoadDialect<arith::ArithDialect>();
 
-  std::chrono::high_resolution_clock::time_point start =
-      std::chrono::high_resolution_clock::now();
-  int32_t size = 10'000'000;
-
-  OwningOpRef<ModuleOp> module = createModule(ctx, size);
-  std::chrono::high_resolution_clock::time_point end =
-      std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<double> elapsed = end - start;
-  llvm::errs() << "Time taken to create the program: "
-               << elapsed / std::chrono::milliseconds(1) << " ms"
-               << "\n";
-  llvm::errs() << "Ns per operation: "
-               << (elapsed / std::chrono::nanoseconds(1)) / size << " ns \n";
-
-  start = std::chrono::high_resolution_clock::now();
-  rewriteModule(*module);
-  end = std::chrono::high_resolution_clock::now();
-  elapsed = end - start;
-  llvm::errs() << "Time taken to rewrite the program: "
-               << elapsed / std::chrono::milliseconds(1) << " ms"
-               << "\n";
-  llvm::errs() << "Ns per operation: "
-               << (elapsed / std::chrono::nanoseconds(1)) / size << "\n";
-  llvm::errs() << "Final program:" << "\n";
-
-  llvm::errs() << "Sanity check\n";
-  module->dump();
+  if (BenchmarkMode == "constant-folding") {
+    OwningOpRef<ModuleOp> module = time("create", [&]() {
+        return createModule(ctx, BenchmarkSize);
+    });
+    time("rewrite", [&]() { rewriteModule(*module); });
+    module->dump();
+  } else {
+    llvm::errs() << "Unrecognised benchmark name\n";
+    return EXIT_FAILURE;
+  }
 
   return 0;
 }
