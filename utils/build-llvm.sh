@@ -44,4 +44,4 @@ cmake -G Ninja ../llvm \
   -DLLVM_ENABLE_ASSERTIONS=ON \
   -DMLIR_INCLUDE_INTEGRATION_TESTS=ON
 
-ninja install test-buffed test-asymptotic
+ninja test-buffed test-asymptotic
