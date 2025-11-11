@@ -117,8 +117,8 @@ static auto time(std::string_view name, F f) {
 
     std::chrono::duration<double> elapsed = end - start;
 
-    llvm::errs() << name << " time: "
-                 << elapsed / std::chrono::seconds(1) << " s"
+    llvm::errs() << name << " time (s): "
+                 << elapsed / std::chrono::seconds(1)
                  << "\n";
   };
 
