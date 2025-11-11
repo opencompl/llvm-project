@@ -14,6 +14,7 @@ target_link_libraries(test-buffed
   MLIRArithDialect
   MLIRTblgenLib
   MLIRSupport
+  MLIRTransforms
 )
 
 mlir_check_all_link_libraries(test-buffed)
