@@ -132,6 +132,59 @@ struct AddZeroPattern : public OpRewritePattern<arith::AddIOp> {
   }
 };
 
+static Operation *rewriteMul2Reduce(Operation *op) {
+  auto mulOp = dyn_cast<arith::MulIOp>(op);
+  if (!mulOp)
+    return nullptr;
+  auto lhs = mulOp.getLhs();
+  auto rhs = mulOp.getRhs();
+
+  auto cstRhs = rhs.getDefiningOp<arith::ConstantIntOp>();
+  if (!cstRhs)
+    return nullptr;
+
+  if (cstRhs.value() != 2)
+    return nullptr;
+
+  OpBuilder builder(op);
+  auto addOp = builder.create<arith::AddIOp>(mulOp.getLoc(), lhs, lhs);
+
+  mulOp.replaceAllUsesWith(addOp.getResult());
+  mulOp.erase();
+
+  if (rhs.getUses().empty())
+    cstRhs.erase();
+
+  return nullptr;
+}
+
+struct Mul2ReducePattern : public OpRewritePattern<arith::MulIOp> {
+  using OpRewritePattern::OpRewritePattern;
+  LogicalResult matchAndRewrite(arith::MulIOp mulOp,
+                                PatternRewriter &rewriter) const override {
+    auto lhs = mulOp.getLhs();
+    auto rhs = mulOp.getRhs();
+
+    auto cstRhs = rhs.getDefiningOp<arith::ConstantIntOp>();
+    if (!cstRhs)
+      return failure();
+
+    if (cstRhs.value() != 2)
+      return failure();
+
+    auto addOp = rewriter.create<arith::AddIOp>(mulOp.getLoc(), lhs, lhs);
+
+    // Replace add with the folded constant result.
+    rewriter.replaceOp(mulOp, addOp.getResult());
+
+    // Clean up now-dead constants if they became unused.
+    if (rhs.use_empty())
+      rewriter.eraseOp(cstRhs);
+
+    return success();
+  }
+};
+
 template <typename F>
 static void rewriteModule(ModuleOp module, F f) {
   Operation *op = &module.getBody()->getOperations().front();
@@ -150,9 +203,13 @@ template <typename Rewrite>
 static void rewriteModuleWithPatternRewriter(ModuleOp module) {
   auto *ctx = module->getContext();
 
+  mlir::GreedyRewriteConfig config;
+  config.cseConstants = false;
+  config.fold = false;
+
   mlir::RewritePatternSet patterns(ctx);
   patterns.insert<Rewrite>(ctx);
-  (void)mlir::applyPatternsGreedily(module, std::move(patterns));
+  (void)mlir::applyPatternsGreedily(module, std::move(patterns), config);
 }
 
 static OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, uint64_t size,
@@ -172,6 +229,32 @@ static OwningOpRef<ModuleOp> createModule(MLIRContext &ctx, uint64_t size,
     rootOp = builder.create<arith::AddIOp>(
         UnknownLoc::get(&ctx), cst0->getResult(0), rootOp->getResult(0));
   }
+  OperationState state(UnknownLoc::get(&ctx), "test.test");
+  state.addOperands(rootOp->getResult(0));
+  builder.create(state);
+
+  return module;
+}
+
+static OwningOpRef<ModuleOp> createMul2Module(MLIRContext &ctx, uint64_t size,
+                                              uint32_t root) {
+  OpBuilder builder(&ctx);
+  OwningOpRef<ModuleOp> module =
+      builder.create<ModuleOp>(UnknownLoc::get(&ctx));
+  builder = builder.atBlockBegin(module->getBody());
+
+  Operation *rootOp = builder.create<arith::ConstantOp>(
+      UnknownLoc::get(&ctx),
+      IntegerAttr::get(IntegerType::get(&ctx, 32), root));
+
+  for (uint64_t i = 0; i < size; ++i) {
+    auto cst1 = builder.create<arith::ConstantOp>(
+        UnknownLoc::get(&ctx), IntegerAttr::get(IntegerType::get(&ctx, 32), 2));
+
+    rootOp = builder.create<arith::MulIOp>(
+        UnknownLoc::get(&ctx), rootOp->getResult(0), cst1->getResult(0));
+  }
+
   OperationState state(UnknownLoc::get(&ctx), "test.test");
   state.addOperands(rootOp->getResult(0));
   builder.create(state);
@@ -244,6 +327,16 @@ int main(int argc, char **argv) {
          [&]() { rewriteModuleWithPatternRewriter<AddZeroPattern>(*module); });
     module->dump();
 
+  } else if (BenchmarkMode == "mul2-reduce") {
+    OwningOpRef<ModuleOp> module = time(
+        "create", [&]() { return createMul2Module(ctx, BenchmarkSize, 42); });
+    time("rewrite", [&]() { rewriteModule(*module, rewriteMul2Reduce); });
+  } else if (BenchmarkMode == "mul2-reduce-rewriter") {
+    OwningOpRef<ModuleOp> module = time(
+        "create", [&]() { return createMul2Module(ctx, BenchmarkSize, 42); });
+    time("rewrite", [&]() {
+      rewriteModuleWithPatternRewriter<Mul2ReducePattern>(*module);
+    });
   } else {
     llvm::errs() << "Unrecognised benchmark name\n";
     return EXIT_FAILURE;
