@@ -225,6 +225,8 @@ static void rewriteWorklist(ModuleOp module) {
   mlir::GreedyRewriteConfig config;
   config.cseConstants = false;
   config.fold = false;
+  config.enableRegionSimplification = GreedySimplifyRegionLevel::Disabled;
+  config.useTopDownTraversal = true;
 
   mlir::RewritePatternSet patterns(ctx);
   patterns.insert<Pattern>(ctx);
