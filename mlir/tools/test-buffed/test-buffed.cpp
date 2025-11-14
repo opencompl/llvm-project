@@ -245,7 +245,8 @@ namespace program {
 //   ...
 template <typename Op>
 static OwningOpRef<ModuleOp> constFoldTree(MLIRContext &ctx, uint64_t size,
-                                           uint32_t root, uint32_t increment) {
+                                           uint64_t pc, uint32_t root,
+                                           uint32_t increment) {
   OpBuilder builder(&ctx);
   OwningOpRef<ModuleOp> module =
       builder.create<ModuleOp>(UnknownLoc::get(&ctx));
@@ -260,8 +261,13 @@ static OwningOpRef<ModuleOp> constFoldTree(MLIRContext &ctx, uint64_t size,
         UnknownLoc::get(&ctx),
         IntegerAttr::get(IntegerType::get(&ctx, 32), increment));
 
-    accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
-                               cst->getResult(0));
+    if (i % 100 < pc) {
+      accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
+                                 cst->getResult(0));
+    } else {
+      accOp = builder.create<arith::AndIOp>(
+          UnknownLoc::get(&ctx), accOp->getResult(0), cst->getResult(0));
+    }
   }
 
   OperationState state(UnknownLoc::get(&ctx), "test.test");
@@ -271,16 +277,19 @@ static OwningOpRef<ModuleOp> constFoldTree(MLIRContext &ctx, uint64_t size,
   return module;
 }
 
-static OwningOpRef<ModuleOp> addZeroTree(MLIRContext &ctx, uint64_t size) {
-  return constFoldTree<arith::AddIOp>(ctx, size, 42, 0);
+static OwningOpRef<ModuleOp> addZeroTree(MLIRContext &ctx, uint64_t size,
+                                         uint64_t pc) {
+  return constFoldTree<arith::AddIOp>(ctx, size, pc, 42, 0);
 }
 
-static OwningOpRef<ModuleOp> addOneTree(MLIRContext &ctx, uint64_t size) {
-  return constFoldTree<arith::AddIOp>(ctx, size, 42, 1);
+static OwningOpRef<ModuleOp> addOneTree(MLIRContext &ctx, uint64_t size,
+                                        uint64_t pc) {
+  return constFoldTree<arith::AddIOp>(ctx, size, pc, 42, 1);
 }
 
-static OwningOpRef<ModuleOp> mulTwoTree(MLIRContext &ctx, uint64_t size) {
-  return constFoldTree<arith::MulIOp>(ctx, size, 42, 2);
+static OwningOpRef<ModuleOp> mulTwoTree(MLIRContext &ctx, uint64_t size,
+                                        uint64_t pc) {
+  return constFoldTree<arith::MulIOp>(ctx, size, pc, 42, 2);
 }
 
 // Create a program that looks like:
@@ -292,7 +301,8 @@ static OwningOpRef<ModuleOp> mulTwoTree(MLIRContext &ctx, uint64_t size) {
 //   ...
 template <typename Op>
 static OwningOpRef<ModuleOp> constReuseTree(MLIRContext &ctx, uint64_t size,
-                                            uint32_t root, uint32_t increment) {
+                                            uint64_t pc, uint32_t root,
+                                            uint32_t increment) {
   OpBuilder builder(&ctx);
   OwningOpRef<ModuleOp> module =
       builder.create<ModuleOp>(UnknownLoc::get(&ctx));
@@ -307,8 +317,13 @@ static OwningOpRef<ModuleOp> constReuseTree(MLIRContext &ctx, uint64_t size,
       IntegerAttr::get(IntegerType::get(&ctx, 32), increment));
 
   for (uint64_t i = 0; i < size; ++i) {
-    accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
-                               reuseOp->getResult(0));
+    if (i % 100 < pc) {
+      accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
+                                 reuseOp->getResult(0));
+    } else {
+      accOp = builder.create<arith::AndIOp>(
+          UnknownLoc::get(&ctx), accOp->getResult(0), reuseOp->getResult(0));
+    }
   }
 
   OperationState state(UnknownLoc::get(&ctx), "test.test");
@@ -318,8 +333,9 @@ static OwningOpRef<ModuleOp> constReuseTree(MLIRContext &ctx, uint64_t size,
   return module;
 }
 
-static OwningOpRef<ModuleOp> addZeroReuseTree(MLIRContext &ctx, uint64_t size) {
-  return constReuseTree<arith::AddIOp>(ctx, size, 42, 0);
+static OwningOpRef<ModuleOp> addZeroReuseTree(MLIRContext &ctx, uint64_t size,
+                                              uint64_t pc) {
+  return constReuseTree<arith::AddIOp>(ctx, size, pc, 42, 0);
 }
 
 // Create a program that looks like:
@@ -333,8 +349,8 @@ static OwningOpRef<ModuleOp> addZeroReuseTree(MLIRContext &ctx, uint64_t size) {
 //  ...
 template <typename Op>
 static OwningOpRef<ModuleOp> constLotsOfReuseTree(MLIRContext &ctx,
-                                                  uint64_t size, uint32_t lhs,
-                                                  uint32_t rhs) {
+                                                  uint64_t size, uint64_t pc,
+                                                  uint32_t lhs, uint32_t rhs) {
   OpBuilder builder(&ctx);
   OwningOpRef<ModuleOp> module =
       builder.create<ModuleOp>(UnknownLoc::get(&ctx));
@@ -352,8 +368,13 @@ static OwningOpRef<ModuleOp> constLotsOfReuseTree(MLIRContext &ctx,
   Operation *accOp = reuseOp;
 
   for (uint64_t i = 0; i < size; ++i) {
-    accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
-                               reuseOp->getResult(0));
+    if (i % 100 < pc) {
+      accOp = builder.create<Op>(UnknownLoc::get(&ctx), accOp->getResult(0),
+                                 reuseOp->getResult(0));
+    } else {
+      accOp = builder.create<arith::AndIOp>(
+          UnknownLoc::get(&ctx), accOp->getResult(0), reuseOp->getResult(0));
+    }
   }
 
   OperationState state(UnknownLoc::get(&ctx), "test.test");
@@ -363,9 +384,9 @@ static OwningOpRef<ModuleOp> constLotsOfReuseTree(MLIRContext &ctx,
   return module;
 }
 
-static OwningOpRef<ModuleOp> addZeroLotsOfReuseTree(MLIRContext &ctx,
-                                                    uint64_t size) {
-  return constLotsOfReuseTree<arith::AddIOp>(ctx, size, 42, 0);
+static OwningOpRef<ModuleOp>
+addZeroLotsOfReuseTree(MLIRContext &ctx, uint64_t size, uint64_t pc) {
+  return constLotsOfReuseTree<arith::AddIOp>(ctx, size, pc, 42, 0);
 }
 
 } // namespace program
@@ -397,9 +418,9 @@ static auto time(std::string_view name, F f) {
 }
 
 template <typename Create, typename Rewrite>
-static OwningOpRef<ModuleOp> run(MLIRContext &ctx, uint64_t size, Create create,
-                                 Rewrite rewrite, bool print) {
-  auto module = time("create", [&]() { return create(ctx, size); });
+static OwningOpRef<ModuleOp> run(MLIRContext &ctx, uint64_t size, uint64_t pc,
+                                 Create create, Rewrite rewrite, bool print) {
+  auto module = time("create", [&]() { return create(ctx, size, pc); });
   time("rewrite", [&]() { return rewrite(*module); });
 
   if (print) {
@@ -410,22 +431,24 @@ static OwningOpRef<ModuleOp> run(MLIRContext &ctx, uint64_t size, Create create,
 }
 
 static OwningOpRef<ModuleOp> runBench(MLIRContext &ctx, std::string_view name,
-                                      uint64_t size) {
+                                      uint64_t size, uint64_t pc) {
   using namespace program;
 
+  const auto print = pc == 100;
+
   // clang-format off
-  if (name == "add-fold-worklist")       { return run(ctx, size, addOneTree,       rewriteWorklist<pattern::AddConstantFolding>, true); }
-  if (name == "add-zero-worklist")       { return run(ctx, size, addZeroTree,      rewriteWorklist<pattern::AddZeroFolding>,     true); }
-  if (name == "add-zero-reuse-worklist") { return run(ctx, size, addZeroReuseTree, rewriteWorklist<pattern::AddZeroFolding>,     true); }
-  if (name == "mul-two-worklist")        { return run(ctx, size, mulTwoTree,       rewriteWorklist<pattern::MulTwoReduce>,      false); }
+  if (name == "add-fold-worklist")       { return run(ctx, size, pc, addOneTree,       rewriteWorklist<pattern::AddConstantFolding>, print); }
+  if (name == "add-zero-worklist")       { return run(ctx, size, pc, addZeroTree,      rewriteWorklist<pattern::AddZeroFolding>,     print); }
+  if (name == "add-zero-reuse-worklist") { return run(ctx, size, pc, addZeroReuseTree, rewriteWorklist<pattern::AddZeroFolding>,     print); }
+  if (name == "mul-two-worklist")        { return run(ctx, size, pc, mulTwoTree,       rewriteWorklist<pattern::MulTwoReduce>,       false); }
 
-  if (name == "add-fold-forwards")       { return run(ctx, size, addOneTree,       rewriteForwards<custom::addConstantFolding>,  true); }
-  if (name == "add-zero-forwards")       { return run(ctx, size, addZeroTree,      rewriteForwards<custom::addZeroFolding>,      true); }
-  if (name == "add-zero-reuse-forwards") { return run(ctx, size, addZeroReuseTree, rewriteForwards<custom::addZeroFolding>,      true); }
-  if (name == "mul-two-forwards")        { return run(ctx, size, mulTwoTree,       rewriteForwards<custom::mulTwoReduce>,       false); }
+  if (name == "add-fold-forwards")       { return run(ctx, size, pc, addOneTree,       rewriteForwards<custom::addConstantFolding>,  print); }
+  if (name == "add-zero-forwards")       { return run(ctx, size, pc, addZeroTree,      rewriteForwards<custom::addZeroFolding>,      print); }
+  if (name == "add-zero-reuse-forwards") { return run(ctx, size, pc, addZeroReuseTree, rewriteForwards<custom::addZeroFolding>,      print); }
+  if (name == "mul-two-forwards")        { return run(ctx, size, pc, mulTwoTree,       rewriteForwards<custom::mulTwoReduce>,        false); }
 
-  if (name == "add-zero-reuse-first")         { return run(ctx, size, addZeroReuseTree,       rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
-  if (name == "add-zero-lots-of-reuse-first") { return run(ctx, size, addZeroLotsOfReuseTree, rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
+  if (name == "add-zero-reuse-first")         { return run(ctx, pc, size, addZeroReuseTree,       rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
+  if (name == "add-zero-lots-of-reuse-first") { return run(ctx, pc, size, addZeroLotsOfReuseTree, rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
   // clang-format on
 
   assert(false && "Unknown benchmark");
@@ -435,6 +458,8 @@ cl::opt<std::string> BenchmarkMode(cl::Positional, cl::desc("<benchmark>"),
                                    cl::Required);
 cl::opt<uint64_t> BenchmarkSize(cl::Positional, cl::desc("<n>"),
                                 cl::init(50000));
+cl::opt<uint64_t> BenchmarkPercent(cl::Positional, cl::desc("<pc>"),
+                                   cl::init(100));
 
 int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv);
@@ -444,7 +469,7 @@ int main(int argc, char **argv) {
   ctx.allowUnregisteredDialects();
   ctx.getOrLoadDialect<arith::ArithDialect>();
 
-  runBench(ctx, BenchmarkMode, BenchmarkSize);
+  runBench(ctx, BenchmarkMode, BenchmarkSize, BenchmarkPercent);
 
   return 0;
 }
