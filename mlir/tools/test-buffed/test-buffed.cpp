@@ -447,8 +447,8 @@ static OwningOpRef<ModuleOp> runBench(MLIRContext &ctx, std::string_view name,
   if (name == "add-zero-reuse-forwards") { return run(ctx, size, pc, addZeroReuseTree, rewriteForwards<custom::addZeroFolding>,      print); }
   if (name == "mul-two-forwards")        { return run(ctx, size, pc, mulTwoTree,       rewriteForwards<custom::mulTwoReduce>,        false); }
 
-  if (name == "add-zero-reuse-first")         { return run(ctx, pc, size, addZeroReuseTree,       rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
-  if (name == "add-zero-lots-of-reuse-first") { return run(ctx, pc, size, addZeroLotsOfReuseTree, rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
+  if (name == "add-zero-reuse-first")         { return run(ctx, size, pc, addZeroReuseTree,       rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
+  if (name == "add-zero-lots-of-reuse-first") { return run(ctx, size, pc, addZeroLotsOfReuseTree, rewriteFirst<arith::AddIOp, custom::addZeroFolding>, false); }
   // clang-format on
 
   assert(false && "Unknown benchmark");
